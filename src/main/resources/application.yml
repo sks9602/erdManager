@@ -1,0 +1,120 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+      
+spring:
+  profiles:
+    active: local
+  aop:
+    proxy-target-class: true
+  mvc:
+    view:
+      prefix: /WEB-INF/view/
+      suffix: .jsp
+  jackson:
+#    property-naming-strategy: LOWER_CAMEL_CASE
+#    default-property-inclusion: use-defaults 
+    date-format: com.fasterxml.jackson.databind.util.ISO8601DateFormat
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+mybatis:
+  config-location: classpath:mybatis-config.xml
+  mapper-locations: classpath:mapper/**/*.xml
+  
+ALLOW_CORS: true
+ 
+mycommon:
+  attachImgsContext: /attachImgs
+  ext-list-zip: 
+    - zip
+  ext-list-img:
+    - jpg
+    - jpeg
+    - png
+    - gif
+  ext-list-office:
+    - hwp
+    - doc
+    - docx
+    - xls
+    - xlsx
+    - ppt
+    - pptx
+    - txt
+    - png
+    - pdf
+    - zip
+    - mp4
+# 파일 업로드 경로
+  file-store-path: d:/project/2021/dain_sr/attachFile/
+    
+logging:
+  file:
+    # path: ${application.log.path:./logs}
+    name: ${application.log.path:./logs/spring.log}  # 로깅 파일 위치이다.
+    max-history: 30 # 로그 파일 삭제 주기이다. 7일 이후 로그는 삭제한다.
+    max-size: 100MB  # 로그 파일 하나당 최대 파일 사이즈이다.
+  level:  # 각 package 별로 로깅 레벨을 지정할 수 있다.
+    ROOT: info
+    mapper: info
+    com.p6spy: info
+    org.springframework.web: error
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} [%4L] - %m%n"
+
+
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    jdbc-url: jdbc:p6spy:mariadb://127.0.0.1:3306/erd?serverTimezone=UTC&characterEncoding=UTF-8&allowMultiQueries=true
+    driver-class-name: com.p6spy.engine.spy.P6SpyDriver
+    username: erd
+    password: erd
+    
+logging:
+  file:
+    # path: ${application.log.path:./logs}
+    name: ${application.log.path:./logs/spring.log}  # 로깅 파일 위치이다.
+    max-history: 30 # 로그 파일 삭제 주기이다. 7일 이후 로그는 삭제한다.
+    max-size: 100MB  # 로그 파일 하나당 최대 파일 사이즈이다.
+  level:  # 각 package 별로 로깅 레벨을 지정할 수 있다.
+    ROOT: info
+    mapper: info
+    com.p6spy: info
+    org.springframework.web: error
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} [%4L] - %m%n"
+
+    
+---
+spring:
+  config:
+    activate:
+      on-profile: operation
+  datasource:
+    url: jdbc:p6spy:mariadb:thin:@127.0.0.1:3306:erd
+    driver-class-name: com.p6spy.engine.spy.P6SpyDriver
+    username: erd
+    password: erd
+    
+logging:
+  file:
+    # path: ${application.log.path:./logs}
+    name: ${application.log.path:./logs/spring.log}  # 로깅 파일 위치이다.
+    max-history: 30 # 로그 파일 삭제 주기이다. 7일 이후 로그는 삭제한다.
+    max-size: 100MB  # 로그 파일 하나당 최대 파일 사이즈이다.
+  level:  # 각 package 별로 로깅 레벨을 지정할 수 있다.
+    ROOT: info
+    mapper: info
+    com.p6spy: info
+    org.springframework.web: error
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} [%4L] - %m%n"

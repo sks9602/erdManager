@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.system.SysMenuPmsDao">
+
+	<!-- 시스템 메뉴 PMS 1건 조회 (Map) -->
+	<select id="selectSysMenuPms"  parameterType="paramMap" resultType="resultMap">
+	
+	SELECT 
+		  TSMP.MENU	/* 메뉴*/
+		, TO_CHAR(TSMP.PLAN_BGN_DT, 'YYYYMMDDHH24MI') PLAN_BGN_YMDHM	/* 계획 시작 일시*/
+		, TO_CHAR(TSMP.PLAN_END_DT, 'YYYYMMDDHH24MI') PLAN_END_YMDHM	/* 계획 종료 일시*/
+		, TSMP.DEVELOPER_ALLOC	/* 개발자 할당*/
+		, TSMP.DEVELOPER_PRGS	/* 개발자 진행*/
+		, TO_CHAR(TSMP.DEV_BGN_DT, 'YYYYMMDDHH24MI') DEV_BGN_YMDHM	/* 개발 시작 일시*/
+		, TO_CHAR(TSMP.DEV_END_DT, 'YYYYMMDDHH24MI') DEV_END_YMDHM	/* 개발 종료 일시*/
+		, TSMP.DEV_PRGS_RT
+		, TSMP.DEV_STATUS_CD	/* 개발 상태 코드*/
+		, TO_CHAR(TSMP.UPD_BGN_DT, 'YYYYMMDDHH24MI') UPD_BGN_YMDHM	/* 수정 시작 일시*/
+		, TO_CHAR(TSMP.UPD_END_DT, 'YYYYMMDDHH24MI') UPD_END_YMDHM	/* 수정 종료 일시*/
+		, TSMP.QA	/* QA*/
+		, TSMP.UPD_STATUS_CD	/* 수정 상태 코드*/
+		, CASE 	WHEN TSMP.DEV_END_DT IS NOT NULL AND TSMP.DEV_END_DT <![CDATA[ > ]]> TSMP.PLAN_END_DT THEN '완료(지연 '|| TRUNC(DEV_END_DT - TSMP.PLAN_END_DT)||')일'
+				WHEN TSMP.DEV_END_DT IS NOT NULL AND TSMP.DEV_END_DT <![CDATA[ <= ]]> TSMP.PLAN_END_DT  THEN '완료'
+				WHEN TSMP.DEV_END_DT IS NULL AND SYSDATE <![CDATA[ > ]]> TSMP.PLAN_END_DT  THEN '개발 종료 지연 '||TRUNC(SYSDATE - TSMP.PLAN_END_DT)||'일'
+				WHEN SYSDATE <![CDATA[ >= ]]>  TSMP.PLAN_BGN_DT AND TSMP.DEV_BGN_DT IS NOT NULL AND TSMP.DEV_END_DT IS  NULL THEN '개발중 - 지연 '||TRUNC(SYSDATE - TSMP.PLAN_BGN_DT)||'일'
+				WHEN SYSDATE <![CDATA[ >= ]]>  TSMP.PLAN_BGN_DT AND TSMP.DEV_BGN_DT IS NULL AND TSMP.PLAN_BGN_DT IS NOT NULL THEN '착수 지연 '||TRUNC(SYSDATE - TSMP.PLAN_BGN_DT)||'일'
+				WHEN TSMP.PLAN_BGN_DT IS NULL THEN '계획 미작성'
+				WHEN SYSDATE <![CDATA[ < ]]>  TSMP.PLAN_BGN_DT THEN '미도래'
+				WHEN SYSDATE  BETWEEN  TSMP.PLAN_BGN_DT AND TSMP.PLAN_END_DT AND TSMP.DEV_BGN_DT IS NULL THEN '지연'||TRUNC(SYSDATE - TSMP.PLAN_BGN_DT)||'일'
+				WHEN SYSDATE <![CDATA[ > ]]> TSMP.PLAN_BGN_DT 
+						AND TSMP.DEV_BGN_DT <![CDATA[ > ]]> TSMP.PLAN_BGN_DT + 1 THEN '지연'||TRUNC(TSMP.DEV_BGN_DT - TSMP.PLAN_BGN_DT)||'일'
+				ELSE '기타' END
+			AS STATUS_NM
+		, CASE WHEN SUBSTR(TSMP.MENU, 1, 3) = 'CLT' THEN '학생' ELSE '관리자' END AS FNC_DIV_NM
+		, F_SYS_MENU_PATH_NM( TSMP.MENU ) AS MENU_PATH_NM
+	  FROM T_SYS_MENU_PMS TSMP
+	 WHERE 1 = 1
+	   AND TSMP.MENU = #{menu}	/* 메뉴*/
+	
+	</select>
+
+
+	<!-- 시스템 메뉴 PMS 1건 조회 (Map) -->
+	<select id="selectSysMenuPmsSr"  parameterType="paramMap" resultType="resultMap">
+	
+	SELECT 
+		  TSMP.MENU	/* 메뉴*/
+		, CASE WHEN SUBSTR(TSMP.MENU, 1, 3) = 'CLT' THEN '학생' ELSE '관리자' END AS FNC_DIV_NM
+		, F_SYS_MENU_PATH_NM( TSMP.MENU ) AS MENU_PATH_NM
+	  FROM T_SYS_MENU TSMP
+	 WHERE 1 = 1
+	   AND TSMP.MENU = #{userMenu}	/* 메뉴*/
+	
+	</select>
+	
+
+	<!-- 시스템 메뉴 PMS 목록 조회 (Map)  -->
+	<select id="selectListSysMenuPms"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT 
+		  TSMP.MENU	/* 메뉴*/
+		, TSMP.PLAN_BGN_DT	/* 계획 시작 일시*/
+		, TSMP.PLAN_END_DT	/* 계획 종료 일시*/
+		, TSMP.DEVELOPER_ALLOC	/* 개발자 할당*/
+		, TSMP.DEVELOPER_PRGS	/* 개발자 진행*/
+		, TSMP.DEV_BGN_DT	/* 개발 시작 일시*/
+		, TSMP.DEV_END_DT	/* 개발 종료 일시*/
+		, TSMP.DEV_STATUS_CD	/* 개발 상태 코드*/
+		, TSMP.UPD_BGN_DT	/* 수정 시작 일시*/
+		, TSMP.UPD_END_DT	/* 수정 종료 일시*/
+		, TSMP.QA	/* QA*/
+		, TSMP.UPD_STATUS_CD	/* 수정 상태 코드*/
+	  FROM T_SYS_MENU_PMS TSMP
+	 WHERE 1 = 1
+	   AND TSMP.MENU = #{menu}	/* 메뉴*/
+	]]>
+	</select>
+
+	<!-- 시스템 메뉴 PMS 등록 -->
+	<insert id="insertSysMenuPms"  parameterType="paramMap">
+		<!-- selectKey keyProperty="" resultType="" order="BEFORE">
+			SELECT 
+			  FROM T_SYS_MENU_PMS TSMP
+		<selectKey -->
+	<![CDATA[
+	INSERT INTO T_SYS_MENU_PMS(
+		  MENU	/* 메뉴*/
+		, PLAN_BGN_DT	/* 계획 시작 일시*/
+		, PLAN_END_DT	/* 계획 종료 일시*/
+		, DEVELOPER_ALLOC	/* 개발자 할당*/
+		, DEVELOPER_PRGS	/* 개발자 진행*/
+		, DEV_BGN_DT	/* 개발 시작 일시*/
+		, DEV_END_DT	/* 개발 종료 일시*/
+		, DEV_STATUS_CD	/* 개발 상태 코드*/
+		, UPD_BGN_DT	/* 수정 시작 일시*/
+		, UPD_END_DT	/* 수정 종료 일시*/
+		, QA	/* QA*/
+		, UPD_STATUS_CD	/* 수정 상태 코드*/
+	)
+	VALUES (
+		  #{menu}	/* 메뉴*/
+		, #{planBgnDt}	/* 계획 시작 일시*/
+		, #{planEndDt}	/* 계획 종료 일시*/
+		, #{developerAlloc}	/* 개발자 할당*/
+		, #{developerPrgs}	/* 개발자 진행*/
+		, #{devBgnDt}	/* 개발 시작 일시*/
+		, #{devEndDt}	/* 개발 종료 일시*/
+		, #{devStatusCd}	/* 개발 상태 코드*/
+		, #{updBgnDt}	/* 수정 시작 일시*/
+		, #{updEndDt}	/* 수정 종료 일시*/
+		, #{qa}	/* QA*/
+		, #{updStatusCd}	/* 수정 상태 코드*/
+	)
+	]]>
+	</insert>
+
+	<!-- 시스템 메뉴 PMS 수정 -->
+	<update id="updateSysMenuPms"  parameterType="paramMap">
+	<![CDATA[
+	UPDATE T_SYS_MENU_PMS TSMP SET
+		  TSMP.PLAN_BGN_DT = #{planBgnDt}	/* 계획 시작 일시*/
+		, TSMP.PLAN_END_DT = #{planEndDt}	/* 계획 종료 일시*/
+		, TSMP.DEVELOPER_ALLOC = #{developerAlloc}	/* 개발자 할당*/
+		, TSMP.DEVELOPER_PRGS = #{developerPrgs}	/* 개발자 진행*/
+		, TSMP.DEV_BGN_DT = #{devBgnDt}	/* 개발 시작 일시*/
+		, TSMP.DEV_END_DT = #{devEndDt}	/* 개발 종료 일시*/
+		, TSMP.DEV_STATUS_CD = #{devStatusCd}	/* 개발 상태 코드*/
+		, TSMP.UPD_BGN_DT = #{updBgnDt}	/* 수정 시작 일시*/
+		, TSMP.UPD_END_DT = #{updEndDt}	/* 수정 종료 일시*/
+		, TSMP.QA = #{qa}	/* QA*/
+		, TSMP.UPD_STATUS_CD = #{updStatusCd}	/* 수정 상태 코드*/
+	 WHERE 1 = 1
+	   AND TSMP.MENU = #{menu}	/* 메뉴*/
+	]]>
+	</update>
+
+	<!-- 시스템 메뉴 PMS병합 -->
+	<update id="mergeSysMenuPms"  parameterType="paramMap">
+	<![CDATA[
+	MERGE INTO T_SYS_MENU_PMS TSMP
+		USING T_DUAL
+		ON (	TSMP.MENU = #{menu}	/* 메뉴*/
+		)
+	WHEN MATCHED THEN
+		UPDATE SET
+			  TSMP.PLAN_BGN_DT = TO_DATE(#{planBgnYmdhm}, 'YYYYMMDDHH24MI')	/* 계획 시작 일시*/
+			, TSMP.PLAN_END_DT = TO_DATE(#{planEndYmdhm}, 'YYYYMMDDHH24MI')	/* 계획 종료 일시*/
+			, TSMP.DEVELOPER_ALLOC = #{developerAlloc}	/* 개발자 할당*/
+			, TSMP.DEVELOPER_PRGS = #{developerPrgs}	/* 개발자 진행*/
+			, TSMP.DEV_BGN_DT = TO_DATE(#{devBgnYmdhm}, 'YYYYMMDDHH24MI')	/* 개발 시작 일시*/
+			, TSMP.DEV_END_DT = TO_DATE(#{devEndYmdhm}, 'YYYYMMDDHH24MI')	/* 개발 종료 일시*/
+			, TSMP.DEV_PRGS_RT = #{devPrgsRt}
+			, TSMP.DEV_STATUS_CD = #{devStatusCd}	/* 개발 상태 코드*/
+			, TSMP.UPD_BGN_DT = TO_DATE(#{updBgnYmdhm}, 'YYYYMMDDHH24MI')	/* 수정 시작 일시*/
+			, TSMP.UPD_END_DT = TO_DATE(#{updEndYmdhm}, 'YYYYMMDDHH24MI')	/* 수정 종료 일시*/
+			, TSMP.QA = #{qa}	/* QA*/
+			, TSMP.UPD_STATUS_CD = #{updStatusCd}	/* 수정 상태 코드*/
+	WHEN NOT MATCHED THEN
+		INSERT (
+			  MENU	/* 메뉴*/
+			, PLAN_BGN_DT	/* 계획 시작 일시*/
+			, PLAN_END_DT	/* 계획 종료 일시*/
+			, DEVELOPER_ALLOC	/* 개발자 할당*/
+			, DEVELOPER_PRGS	/* 개발자 진행*/
+			, DEV_BGN_DT	/* 개발 시작 일시*/
+			, DEV_END_DT	/* 개발 종료 일시*/
+			, DEV_PRGS_RT
+			, DEV_STATUS_CD	/* 개발 상태 코드*/
+			, UPD_BGN_DT	/* 수정 시작 일시*/
+			, UPD_END_DT	/* 수정 종료 일시*/
+			, QA	/* QA*/
+			, UPD_STATUS_CD	/* 수정 상태 코드*/
+		)
+		VALUES (
+			  #{menu}	/* 메뉴*/
+			, TO_DATE(#{planBgnYmdhm}, 'YYYYMMDDHH24MI')	/* 계획 시작 일시*/
+			, TO_DATE(#{planEndYmdhm}, 'YYYYMMDDHH24MI')	/* 계획 종료 일시*/
+			, #{developerAlloc}	/* 개발자 할당*/
+			, #{developerPrgs}	/* 개발자 진행*/
+			, TO_DATE(#{devBgnYmdhm}, 'YYYYMMDDHH24MI')	/* 개발 시작 일시*/
+			, TO_DATE(#{devEndYmdhm}, 'YYYYMMDDHH24MI')	/* 개발 종료 일시*/
+			, #{devPrgsRt}
+			, #{devStatusCd}	/* 개발 상태 코드*/
+			, TO_DATE(#{updBgnYmdhm}, 'YYYYMMDDHH24MI')	/* 수정 시작 일시*/
+			, TO_DATE(#{updEndYmdhm}, 'YYYYMMDDHH24MI')	/* 수정 종료 일시*/
+			, #{qa}	/* QA*/
+			, #{updStatusCd}	/* 수정 상태 코드*/
+		)
+	]]>
+	</update>
+
+	<!-- 시스템 메뉴 PMS 삭제 -->
+	<delete id="deleteSysMenuPms"  parameterType="paramMap">
+	<![CDATA[
+	DELETE 
+	  FROM T_SYS_MENU_PMS TSMP
+	 WHERE 1 = 1
+	   AND TSMP.MENU = #{menu}	/* 메뉴*/
+	]]>
+	</delete>
+</mapper>

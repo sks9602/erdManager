@@ -1,0 +1,133 @@
+
+    svg {
+        vertical-align: middle;
+        background: rgba(255,255,255, 0.2);
+        box-shadow: inset 0 0 3px 0px #CECECE;
+    }
+    svg text {
+        -webkit-user-select: none;
+           -moz-user-select: none;
+            -ms-user-select: none;
+                user-select: none;
+    }
+    svg text::selection {
+        background: none;
+    }
+
+    .header rect{
+        /* fill: #3366FF */
+        /* fill: #0099FF */ 
+    }
+
+    .header tspan{
+        /* fill: white; */
+        font: 10px sans-serif;
+        text-anchor: start;
+        dominant-baseline: hanging;
+    }
+
+    .pattern_hori_sign{
+        fill: #000;
+        font: 9px sans-serif;
+        text-anchor: middle;
+        dominant-baseline: hanging;
+    }
+    .pattern_base_sign{
+        fill: #000;
+        font: 9px sans-serif;
+        text-anchor: start;
+        dominant-baseline: hanging;
+    }
+    
+    .pattern_verti_sign{
+        fill: #000;
+        font: 9px sans-serif;
+        text-anchor: start;
+        dominant-baseline: middle;
+    }
+    
+    .columns{
+        fill: #FFFFFF;
+    }
+
+    .columns text{
+        fill: white;
+        font: 10px sans-serif;
+        text-anchor: start;
+        dominant-baseline: hanging;
+    }
+
+    .column rect{
+        fill: #FFFFFF;
+    }
+
+    .column text{
+        fill: #000;
+        font: 10px sans-serif;
+        text-anchor: start;
+        dominant-baseline: hanging;
+    }
+
+    .column tspan{
+        /* fill: #000; */
+        font: 10px sans-serif;
+        text-anchor: start;
+        dominant-baseline: hanging;
+    }
+    
+    .white-page .columns{
+        fill: #EEFFFF;
+    }
+    
+    .btn_segmentedbutton {
+        border-color: #81a4d0;
+    }
+
+     html, body {
+         margin: 0;
+     }
+
+     .SUBJAREA {
+         position: absolute;
+         height: 100%;
+         width: 100%;
+         overflow: auto;
+     }
+     #ERD-SUBJECTS {
+         position: absolute;
+         height: 100%;
+         width: 100%;
+         overflow: auto;
+     }
+
+    .child {
+        position: absolute;
+        height: 200px;
+        width: 100px;
+        background-color: #AFBBC6;
+        cursor: move;
+    }
+    .minimap {
+        position: fixed;
+        width: 125px;
+        height: 125px;
+        /* top: 820px;
+        left: 220px; */
+        background-color: #EEE;
+        border: 1px solid #AAA;
+        opacity: 0.9;
+        z-index: 0;
+    }
+
+    .minimap-node {
+        position: absolute;
+        background-color: #db1051;
+    }
+
+    .minimap-viewport {
+        position: absolute;
+        box-sizing: border-box;
+        background-color: rgba(79, 111, 126, 0.4);
+        z-index: 1;
+        cursor: move;
+    }

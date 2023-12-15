@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.system.SysUsrDao">
+
+	<!-- 시스템 사용자 1건 조회 (Map) -->
+	<select id="selectSysUsr"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT 
+		  TSU.USR	/* 사용자*/ 
+		, TSU.USR_ID /* 사용자 ID */ 
+		, TSU.USR_NM	/* 사용자 명*/
+		, TSU.USE_YN	/* 사용 여부*/
+		, TSU.PWD	/* 패스워드*/
+		, TSU.EMAIL	/* EMAIL*/
+		, TSU.TEL_NO	/* 전화 번호*/
+		, TSUL.IP_ACES_USE_YN	/* IP 접근 사용 여부*/
+		, TSUL.MULTI_LOGIN_USE_YN	/* 다중 로그인 사용 여부*/
+		, TSU.RGST_USR	/* 등록 사용자*/
+		, TSU.RGST_DT	/* 등록 일시*/
+		, TSU.UPD_USR	/* 수정 사용자*/
+		, TSU.UPD_DT	/* 수정 일시*/
+		, TSU.SCHL_NM
+	  FROM T_SYS_USR TSU
+	  		LEFT OUTER JOIN T_SYS_USR_LOGIN TSUL
+	  			ON TSU.USR = TSUL.USR
+	 WHERE 1 = 1
+	   AND TSU.USR = #{usr}	/* 사용자*/
+	]]>
+	</select>
+
+
+	<!-- 시스템 사용자 목록 조회 (Map)  -->
+	<select id="selectListSysUsr"  parameterType="paramMap" resultType="resultMap">
+	<include refid="Cmmn.pageHeadNewDT"/>
+	SELECT 
+		  TSU.USR	/* 사용자*/ 
+		, TSU.USR_ID /* 사용자 ID */ 
+		, TSU.USR_NM	/* 사용자 명*/
+		, TSU.USE_YN	/* 사용 여부*/
+		, TSU.PWD	/* 패스워드*/
+		, TSU.EMAIL	/* EMAIL*/
+		, TSU.TEL_NO	/* 전화 번호*/
+		, TSU.IP_ACSE_USE_YN	/* IP 접근 사용 여부*/
+		, (SELECT COUNT(*) FROM T_SYS_USR_ROLE WHERE USR = TSU.USR ) ROLE_CNT
+		, TSU.SCHL_NM
+	  FROM V_SYS_USR TSU
+	 WHERE 1 = 1
+	   AND TSU.USR_NM LIKE '%'||#{userNm}||'%'	/* 사용자*/
+	   <if test="useYnSearch != null and useYnSearch != ''">
+	   AND TSU.USE_YN  = #{useYnSearch}
+	   </if>
+	<include refid="Cmmn.pageFooterNewDT"/>
+	</select>
+
+	<!-- 시스템 사용자 등록 -->
+	<insert id="insertSysUsr"  parameterType="paramMap">
+		<!-- selectKey keyProperty="" resultType="" order="BEFORE">
+			SELECT 
+			  FROM T_SYS_USR TSU
+		<selectKey -->
+	<![CDATA[
+	INSERT INTO T_SYS_USR(
+		  USR	/* 사용자*/
+		, USR_NM	/* 사용자 명*/
+		, USE_YN	/* 사용 여부*/
+		, PWD	/* 패스워드*/
+		, EMAIL	/* EMAIL*/
+		, RGST_DT	/* 등록 일시*/
+		, TEL_NO	/* 전화 번호*/
+		, RGST_USR	/* 등록 사용자*/
+		, UPD_DT	/* 수정 일시*/
+		, UPD_USR	/* 수정 사용자*/
+		, IP_ACSE_USE_YN	/* IP 접근 사용 여부*/
+		, SCHL_NM 
+	)
+	VALUES (
+		  #{usr}	/* 사용자*/
+		, #{usrNm}	/* 사용자 명*/
+		, #{useYn}	/* 사용 여부*/
+		, #{pwd}	/* 패스워드*/
+		, #{email}	/* EMAIL*/
+		, #{rgstDt}	/* 등록 일시*/
+		, #{telNo}	/* 전화 번호*/
+		, #{rgstUsr}	/* 등록 사용자*/
+		, #{updDt}	/* 수정 일시*/
+		, #{updUsr}	/* 수정 사용자*/
+		, 'N'	/* IP 접근 사용 여부*/
+		, #{schlNm}
+	)
+	]]>
+	</insert>
+
+	<!-- 시스템 사용자 수정 -->
+	<update id="updateSysUsr"  parameterType="paramMap">
+	<![CDATA[
+	UPDATE T_SYS_USR TSU SET
+		  TSU.USR_NM = #{usrNm}	/* 사용자 명*/
+		, TSU.USE_YN = #{useYn}	/* 사용 여부*/
+		, TSU.PWD = #{pwd}	/* 패스워드*/
+		, TSU.EMAIL = #{email}	/* EMAIL*/
+		, TSU.RGST_DT = #{rgstDt}	/* 등록 일시*/
+		, TSU.TEL_NO = #{telNo}	/* 전화 번호*/
+		, TSU.RGST_USR = #{rgstUsr}	/* 등록 사용자*/
+		, TSU.UPD_DT = #{updDt}	/* 수정 일시*/
+		, TSU.UPD_USR = #{updUsr}	/* 수정 사용자*/
+		, TSU.IP_ACSE_USE_YN = 'N'	/* IP 접근 사용 여부*/
+		, SCHL_NM = #{schlNm} 
+	 WHERE 1 = 1
+	   AND TSU.USR = #{usr}	/* 사용자*/
+	]]>
+	</update>
+
+	<update id="mergeSysUsrCud"  parameterType="paramMap">
+	MERGE INTO T_SYS_USR_CUD
+		USING T_DUAL
+		ON (	1 = 1	/* 사용자*/
+		)
+	WHEN MATCHED THEN
+		UPDATE SET
+			USR = #{ssnUser}
+	WHEN NOT MATCHED THEN
+		INSERT ( USR )
+		VALUES ( #{ssnUser} )
+	</update>
+
+
+	<!-- 시스템 사용자병합 -->
+	<update id="mergeSysUsr"  parameterType="paramMap">
+	<selectKey keyProperty="usr" resultType="java.lang.String" order="BEFORE">
+			SELECT CASE WHEN #{usr} IS NULL THEN F_UUID() ELSE #{usr} END AS USR
+			  FROM DUAL
+	</selectKey>
+	MERGE INTO T_SYS_USR TSU
+		USING T_DUAL
+		ON (	TSU.USR = #{usr}	/* 사용자*/
+		)
+	WHEN MATCHED THEN
+		UPDATE SET
+			  TSU.USR_ID = #{ usrId }	/* 사용자 ID */
+			, TSU.USR_NM = #{usrNm}	/* 사용자 명*/
+			, TSU.USE_YN = #{useYn}	/* 사용 여부*/
+			<if test='pwdChangeYn != null and "Y".equals(pwdChangeYn)'>
+			, TSU.PWD = #{pwd}	/* 패스워드*/
+			</if>
+			, TSU.EMAIL = #{email}	/* EMAIL*/
+			, TSU.TEL_NO = #{telNo}	/* 전화 번호*/
+			, TSU.UPD_USR = #{ssnUser}	/* 수정 사용자*/
+			, TSU.UPD_DT = SYSDATE	/* 수정 일시*/
+			, SCHL_NM = #{schlNm} 
+	WHEN NOT MATCHED THEN
+		INSERT (
+			  USR	/* 사용자*/
+			, USR_ID	/* 사용자 명*/
+			, USR_NM	/* 사용자 명*/
+			, USE_YN	/* 사용 여부*/
+			<if test='pwdChangeYn != null and "Y".equals(pwdChangeYn)'>
+			, PWD	/* 패스워드*/
+			</if>
+			, EMAIL	/* EMAIL*/
+			, TEL_NO	/* 전화 번호*/
+			, RGST_USR	/* 등록 사용자*/
+			, RGST_DT	/* 등록 일시*/
+			, UPD_USR	/* 수정 사용자*/
+			, UPD_DT	/* 수정 일시*/
+			, SCHL_NM
+		)
+		VALUES (
+			  #{usr}	/* 사용자*/
+			, #{usrId}	/* 사용자 ID*/
+			, #{usrNm}	/* 사용자 명*/
+			, #{useYn}	/* 사용 여부*/
+			<if test='pwdChangeYn != null and "Y".equals(pwdChangeYn)'>
+			, #{pwd}	/* 패스워드*/
+			</if>
+			, #{email}	/* EMAIL*/
+			, #{telNo}	/* 전화 번호*/
+			, #{ssnUser}	/* 등록 사용자*/
+			, SYSDATE	/* 등록 일시*/
+			, #{ssnUser}	/* 수정 사용자*/
+			, #{updDt}	/* 수정 일시*/
+			,  #{schlNm} 
+		)
+	</update>
+
+
+	<!-- 시스템 사용자 로그인 옵션 관리.  -->
+	<update id="mergeSysUsrLoginOption"  parameterType="paramMap">
+	<![CDATA[
+	MERGE INTO T_SYS_USR_LOGIN TSUL
+		USING T_DUAL
+		ON (	TSUL.USR = #{usr}	/* 사용자*/
+		)
+	WHEN MATCHED THEN
+		UPDATE SET
+			  TSUL.IP_ACES_USE_YN = #{ipAcesUseYn}	
+			, TSUL.MULTI_LOGIN_USE_YN = #{multiLoginUseYn}	
+	WHEN NOT MATCHED THEN
+		INSERT (
+			  USR	/* 사용자*/
+			, IP_ACES_USE_YN	
+			, MULTI_LOGIN_USE_YN
+		)
+		VALUES (
+			  #{usr}	/* 사용자*/
+			, #{ipAcesUseYn}	
+			, #{multiLoginUseYn}	
+		)
+	]]>
+	</update>
+	
+	<!-- 시스템 사용자 삭제 -->
+	<delete id="deleteSysUsr"  parameterType="paramMap">
+	<![CDATA[
+	DELETE 
+	  FROM T_SYS_USR TSU
+	 WHERE 1 = 1
+	   AND TSU.USR = #{usr}	/* 사용자*/
+	]]>
+	</delete>
+</mapper>

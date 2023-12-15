@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.system.SysMenuDao">
+
+	<!--  1건 조회 (Map) -->
+	<select id="selectSysMenu"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT 
+		  TSM.MENU	/* */
+				, TSM.UP_MENU	/* */
+				, TSM.MENU_DEPTH	/* */
+				, TSM.MENU_DESC	/* */
+				, TSM.MENU_NM	/* */
+				, TSM.MENU_DTL_NM	/* */
+				, TSM.USE_YN	/* */
+				, TSM.ORDNO	/* */
+				, TSM.URL	/* */
+			  FROM T_SYS_MENU TSM
+	 WHERE 1 = 1
+	   AND TSM.MENU = #{menu}	/* */
+	]]>
+	</select>
+
+	<!--  URL을 기준으로 menu가 있는지 확인  -->
+	<select id="selectSysMenuUrlANDMenu"  parameterType="paramMap" resultType="java.lang.Integer">
+	<![CDATA[
+	SELECT MAX(CASE WHEN MENU = #{menu} THEN 1 ELSE 0 END) /* */
+	 FROM T_SYS_MENU TSM
+	 WHERE 1 = 1
+	   AND TSM.URL LIKE #{url}||'%'
+	]]>
+	</select>
+	
+	<!--  상위 메뉴 정보 조회 (Map) -->
+	<select id="selectSysUpMenu"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT 
+		  TSM.MENU	/* */
+				, TSM.UP_MENU	/* */
+				, TSM.MENU_DEPTH	/* */
+				, TSM.MENU_DESC	/* */
+				, TSM.MENU_NM	/* */
+				, TSM.MENU_DTL_NM	/* */
+				, TSM.USE_YN	/* */
+				, TSM.ORDNO	/* */
+				, TSM.URL	/* */
+			  FROM T_SYS_MENU TSM
+	 WHERE 1 = 1
+	   AND TSM.MENU = (SELECT UP_MENU FROM T_SYS_MENU WHERE MENU = #{menu} )	/* */
+	]]>
+	</select>
+	
+	<!--  목록 조회 (Map)  -->
+	<select id="selectListSysMenu"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT 
+		  TSM.MENU	/* */
+		, TSM.UP_MENU	/* */
+		, TSM.MENU_DEPTH	/* */
+		, TSM.MENU_DESC	/* */
+		, TSM.MENU_NM	/* */
+		, TSM.MENU_DTL_NM	/* */
+		, TSM.USE_YN	/* */
+		, TSM.ORDNO	/* */
+		, TSM.URL	/* */
+		, TSM.ICON
+		, TSM.LOGIN_NEED_YN
+		, (SELECT COUNT(*) FROM T_SYS_MENU_FNC WHERE MENU = TSM.MENU ) AS  FUNC_CNT
+	  FROM T_SYS_MENU TSM
+	 WHERE 1 = 1
+	   AND TSM.MENU_NM LIKE '%'||#{menu}||'%'	/* */
+	 ORDER BY CASE WHEN TSM.UP_MENU IS NULL THEN ' ' ELSE TSM.UP_MENU END, TSM.ORDNO, TSM.MENU_NM
+	]]>
+	</select>
+	
+	<!--  역할 별 메뉴 목록 조회. -->
+	<select id="selectListSysMenuInRoleAll"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT 
+		  TSM.MENU	AS ID/* */
+		, TSM.MENU_NM AS TEXT/* */
+		, TSM.MENU	/* */
+		, #{role} AS ROLE
+		, TSM.UP_MENU	/* */
+		, TSM.MENU_DEPTH	/* */
+		, CASE WHEN TSM.USE_YN = 'N' THEN '[미사용]' ELSE '' END || TSM.MENU_NM	AS MENU_NM/* */
+		, TSM.MENU_DTL_NM	/* */
+		, (SELECT COUNT(*) FROM T_SYS_MENU_FNC WHERE MENU = TSM.MENU ) AS  FUNC_CNT
+		, TSM.USE_YN	/* */
+		, TSM.ICON
+		, TSM.LOGIN_NEED_YN
+		, CASE WHEN TSRM.ROLE IS NOT NULL THEN 'Y' ELSE 'N' END AS SELECTED_YN	/* */
+	  FROM T_SYS_MENU TSM
+			LEFT OUTER JOIN T_SYS_ROLE_MENU TSRM 
+				ON TSM.MENU = TSRM.MENU
+				AND #{role} = TSRM.ROLE
+	 WHERE TSM.MENU LIKE #{menuGbn}||'%'
+	ORDER BY CASE WHEN TSM.UP_MENU='ROOT' THEN ' ' ELSE TSM.UP_MENU END , TSM.ORDNO, TSM.MENU
+	]]>
+	</select>
+	
+
+	<!--  등록 -->
+	<insert id="insertSysMenu"  parameterType="paramMap">
+		<!-- selectKey keyProperty="" resultType="" order="BEFORE">
+			SELECT 
+			  FROM T_SYS_MENU TSM
+		<selectKey -->
+	<![CDATA[
+	INSERT INTO T_SYS_MENU(
+		  MENU	/* */
+		, UP_MENU	/* */
+		, MENU_DEPTH	/* */
+		, MENU_DESC	/* */
+		, MENU_NM	/* */
+		, MENU_DTL_NM	/* */
+		, USE_YN	/* */
+		, ORDNO	/* */
+		, URL	/* */
+	)
+	VALUES (
+		  #{menu}	/* */
+		, #{upMenu}	/* */
+		, #{menuDepth}	/* */
+		, #{menuDesc}	/* */
+		, #{menuNm}	/* */
+		, #{menuDtlNm}	/* */
+		, #{useYn}	/* */
+		, #{ordno}	/* */
+		, #{url}	/* */
+	)
+	]]>
+	</insert>
+
+	<!--  수정 -->
+	<update id="updateSysMenu"  parameterType="paramMap">
+	<![CDATA[
+	UPDDATE T_SYS_MENU TSM SET
+		  TSM.UP_MENU = #{upMenu}	/* */
+		, TSM.MENU_DEPTH = #{menuDepth}	/* */
+		, TSM.MENU_DESC = #{menuDesc}	/* */
+		, TSM.MENU_NM = #{menuNm}	/* */
+		, TSM.MENU_DTL_NM = #{menuDtlNm}	/* */
+		, TSM.USE_YN = #{useYn}	/* */
+		, TSM.ORDNO = #{ordno}	/* */
+		, TSM.URL = #{url}	/* */
+	  FROM T_SYS_MENU TSM
+	 WHERE 1 = 1
+	   AND TSM.MENU = #{menu}	/* */
+	]]>
+	</update>
+
+	<!-- 병합 -->
+	<update id="mergeSysMenu"  parameterType="paramMap">
+	<![CDATA[
+	MERGE INTO T_SYS_MENU TSM
+		USING T_DUAL
+		ON (	TSM.MENU = #{menu}	/* */
+		)
+	WHEN MATCHED THEN
+		UPDATE SET
+			  TSM.UP_MENU = #{upMenu}	/* */
+			, TSM.MENU_DEPTH = #{menuDepth}	/* */
+			, TSM.MENU_DESC = #{menuDesc}	/* */
+			, TSM.MENU_NM = #{menuNm}	/* */
+			, TSM.MENU_DTL_NM = #{menuDtlNm}	/* */
+			, TSM.USE_YN = #{useYn}	/* */
+			, TSM.ORDNO = #{ordno}	/* */
+			, TSM.URL = #{url}	/* */
+	WHEN NOT MATCHED THEN
+		INSERT (
+			  MENU	/* */
+			, UP_MENU	/* */
+			, MENU_DEPTH	/* */
+			, MENU_DESC	/* */
+			, MENU_NM	/* */
+			, MENU_DTL_NM	/* */
+			, USE_YN	/* */
+			, ORDNO	/* */
+			, URL	/* */
+		)
+		VALUES (
+			  #{menu}	/* */
+			, #{upMenu}	/* */
+			, #{menuDepth}	/* */
+			, #{menuDesc}	/* */
+			, #{menuNm}	/* */
+			, #{menuDtlNm}	/* */
+			, #{useYn}	/* */
+			, #{ordno}	/* */
+			, #{url}	/* */
+		)
+	]]>
+	</update>
+
+	<!--  삭제 -->
+	<delete id="deleteSysMenu"  parameterType="paramMap">
+	<![CDATA[
+	DELETE 
+	  FROM T_SYS_MENU TSM
+	 WHERE 1 = 1
+	   AND TSM.MENU = #{menu}	/* */
+	]]>
+	</delete>
+	
+			
+	<!--  역할 별 메뉴 목록 조회. -->
+	<select id="selectListSysMenuInRole"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT DISTINCT 
+		  TSM.MENU /* */
+		, TSM.UP_MENU	/* */
+		, TSM.MENU_DEPTH	/* */
+		, TSM.MENU_NM	/* */
+		, TSM.MENU_DTL_NM	/* */
+		, TSM.ORDNO
+		, NVL(TSM.URL, '#') AS URL
+		, TSM.ICON
+		, TSM.LOGIN_NEED_YN
+	  FROM T_SYS_MENU TSM 
+			INNER JOIN (SELECT A.MENU, A.MENU_NM
+						 FROM T_SYS_MENU A
+						WHERE MENU IN (SELECT MENU 
+										FROM T_SYS_ROLE_MENU TSRM 
+												INNER JOIN T_SYS_USR_ROLE TSUR
+													ON TSRM.ROLE = TSUR.ROLE
+										WHERE TSUR.USR = #{ssnUser} ) ) A
+			ON A.MENU LIKE TSM.MENU||'%'
+	 WHERE TSM.MENU LIKE 'ADM%'
+	   AND TSM.MENU NOT IN ('ADM000')
+	   AND TSM.USE_YN = 'Y'
+	 ORDER BY CASE WHEN TSM.UP_MENU='ROOT' THEN ' ' ELSE TSM.UP_MENU END , TSM.ORDNO, TSM.MENU
+	]]>
+	</select>
+	
+	
+	<!--  [학생] 메뉴 목록 조회. -->
+	<select id="selectListSysMenuOfClient"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT DISTINCT 
+		  TSM.MENU /* */
+		, TSM.UP_MENU	/* */
+		, TSM.MENU_DEPTH	/* */
+		, TSM.MENU_NM	/* */
+		, TSM.MENU_DTL_NM	/* */
+		, TSM.ORDNO
+		, NVL(TSM.URL, '#') AS URL
+		, TSM.ICON
+		, TSM.LOGIN_NEED_YN
+	  FROM T_SYS_MENU TSM 
+	 WHERE TSM.MENU LIKE 'CLT%'
+	   AND TSM.MENU NOT IN ('CLT000')
+	 ORDER BY CASE WHEN TSM.UP_MENU='ROOT' THEN ' ' ELSE TSM.UP_MENU END , TSM.ORDNO, TSM.MENU
+	]]>
+	</select>
+	
+	<!--  하위(바로 하위 단계) 메뉴 목록 조회.  -->
+	<select id="selectSubMenuList"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT TSM.MENU /* */
+		, TSM.UP_MENU	/* */
+		, TSM.MENU_DEPTH	/* */
+		, TSM.MENU_NM	/* */
+		, TSM.MENU_DTL_NM	/* */
+		, TSM.ORDNO
+		, NVL(TSM.URL, '#') AS URL
+		, TSM.ICON
+		, TSM.LOGIN_NEED_YN
+	  FROM T_SYS_MENU TSM 
+	 WHERE UP_MENU = (SELECT UP_MENU FROM T_SYS_MENU WHERE MENU = #{menu} )
+	 ORDER BY TSM.ORDNO, TSM.MENU
+	]]>
+	</select>
+	
+	<!-- 시스템 메뉴 기능 1건 조회 (Map) -->
+	<select id="selectSysMenuFncByUrl"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT 
+		  TSMF.MENU	/* 메뉴*/
+		, TSMF.FNC_SNO	/* 기능 순번*/
+		, TSMF.URL	/* URL*/
+		, TSMF.FNC_NM	/* 기능 명*/
+	  FROM T_SYS_MENU_FNC TSMF
+	 WHERE 1 = 1
+	   AND TSMF.MENU = #{menu}	/* 메뉴*/
+	   AND TSMF.URL = #{url}	/* 기능 순번*/
+	]]>
+	</select>
+	
+	<!--  계층구조 목록 조회. (Map) -->
+	<select id="selectSysMenuHierarchy"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT MENU, 1 AS ORDNO, MENU_NM
+	  FROM T_SYS_MENU
+	 START WITH MENU = #{menu}	
+	   CONNECT BY PRIOR UP_MENU = MENU 
+	UNION ALL
+	SELECT MENU, 2, FNC_NM
+	  FROM T_SYS_MENU_FNC TSMF
+	WHERE TSMF.MENU = #{menu}	
+	 AND TSMF.URL = #{url}
+	 AND NOT EXISTS (SELECT 'Y'
+	 				 	FROM T_SYS_MENU
+	 				 WHERE MENU = TSMF.MENU
+	 				   AND URL = TSMF.URL )
+	 AND FNC_NM IS NOT NULL
+	 ORDER BY MENU, 2
+	]]>
+	</select>
+	
+	<!--  로그인 필요 여부 확인 -->
+	<select id="selectLoginNeedYnByMenu"  parameterType="paramMap" resultType="java.lang.String">
+	SELECT NVL(LOGIN_NEED_YN, 'N') AS LOGIN_NEED_YN
+	  FROM T_SYS_MENU
+	 WHERE MENU = #{menu}
+	</select>
+</mapper>

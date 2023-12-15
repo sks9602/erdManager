@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC
+		"-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+		"http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<tiles-definitions>
+
+	<!-- Header / Footer가 들어간 기본 화면 -->
+	<definition name="extjs/*/*/*" template="/WEB-INF/tiles/layout/extjs.admin.main.jsp">
+		<put-attribute name="header" value="/WEB-INF/tiles/layout/extjs.admin.header.jsp" />
+		<put-attribute name="left"   value="/WEB-INF/tiles/layout/extjs.admin.left.jsp" />
+        <put-attribute name="footer" value="/WEB-INF/tiles/layout/extjs.admin.footer.jsp" />
+		<put-attribute name="body"   value="/WEB-INF/jsp/extjs/{1}/{2}/{3}.jsp" />
+	</definition>
+
+    <definition name="erd/*/*/*" template="/WEB-INF/tiles/layout/erd.admin.main.jsp">
+        <put-attribute name="header" value="/WEB-INF/tiles/layout/erd.admin.header.jsp" />
+        <put-attribute name="left"   value="/WEB-INF/tiles/layout/erd.admin.left.jsp" />
+        <put-attribute name="footer" value="/WEB-INF/tiles/layout/erd.admin.footer.jsp" />
+        <put-attribute name="body"   value="/WEB-INF/jsp/erd/{1}/{2}/{3}.jsp" />
+    </definition>
+</tiles-definitions>

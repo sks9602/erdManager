@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.system.SysSrDao">
+
+	<!-- 시스템 SR 1건 조회 (Map) -->
+	<select id="selectSysSr"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT 
+		  TSS.SR_YMDHMS_SNO /* SR 년월일시분초*/
+		, TO_CHAR(TO_DATE(SUBSTR(TSS.SR_YMDHMS_SNO, 1, 14), 'YYYYMMDDHH24MISS')	, 'YYYY.MM.DD HH24:MI:SS') AS SR_YMDHMS /* SR 년월일시분초*/
+		, TSS.SCHL_NM	/* 학교 ID*/
+		, TSS.PRJT_NM	/* 학교 ID*/
+		, TSS.FNC_DIV_NM
+		, TSS.MENU_PATH_NM	/* 메뉴 경로 명*/
+		, TSS.MENU	/* 메뉴*/
+		, TSS.SR_PRIOR_NM	/* SR 우선순위 명*/
+		, TSS.SR_DIV_NM	/* SR 구분 명*/
+		, TSS.SR_CNTN	/* SR 내용*/
+		, TO_CHAR(TSS.CMPL_REQ_DT, 'YYYY.MM.DD') AS CMPL_REQ_YMD	/* 완료 요청 일시*/
+		, TSS.RGST_USR	/* 등록 사용자*/
+		, TSS.RGST_USR_TEL_NO	/* 등록 사용자 전화 번호*/
+		, TSS.RGST_USR_NM	/* 등록 사용자 명*/
+		, TO_CHAR(TSS.RGST_DT, 'YYYY.MM.DD HH24:MI:SS') AS RGST_YMDHS	/* 등록 일시*/
+		, TSS.SR_RECT_DIV_NM	/* SR 접수 구분 명*/
+		, TSS.SR_PRCS_STTS_NM	/* SR 처리 상태 명*/
+		, TSS.SR_PRCS_CNTN	/* SR 처리 내용*/
+		, TO_CHAR(TSS.RECT_DT, 'YYYY.MM.DD HH24:MI:SS') AS RECT_YMDHS	/* 접수 일시*/
+		, TO_CHAR(TSS.RECT_DT, 'YYYY.MM.DD') AS RECT	/* 접수 일시*/
+		, TO_CHAR(TSS.RVW_BGN_DT, 'YYYY.MM.DD HH24:MI:SS') AS RVW_BGN_YMDHS	/* 검토중 시작 일시*/
+		, TO_CHAR(TSS.RVW_BGN_DT, 'YYYY.MM.DD') AS RVW_BGN_YMD	/* 검토중 시작 일시*/
+		, TO_CHAR(TSS.UPD_BGN_DT, 'YYYY.MM.DD HH24:MI:SS') AS UPD_BGN_YMDHS	/* 수정 시작 일시*/
+		, TO_CHAR(TSS.UPD_BGN_DT, 'YYYY.MM.DD') AS UPD_BGN_YMD	/* 수정 시작 일시*/
+		, TO_CHAR(TSS.UPD_END_DT, 'YYYY.MM.DD HH24:MI:SS') AS UPD_END_YMDHS	/* 수정 종료 일시*/
+		, TO_CHAR(TSS.UPD_END_DT, 'YYYY.MM.DD') AS UPD_END_YMD	/* 수정 종료 일시*/
+		, TO_CHAR(TSS.UPD_DT, 'YYYY.MM.DD HH24:MI:SS') AS UPD_YMDHS	/* 수정 일시*/
+		, TSS.UPD_USR	/* 수정 사용자*/
+		, TSS.UPD_USR_NM	/* 수정 사용자 명*/
+		, TSS.MAN_DAY_CNT
+		, TO_CHAR(TSS.PLAN_DT, 'YYYY.MM.DD') AS PLAN_YMD
+	  FROM T_SYS_SR TSS
+	 WHERE 1 = 1
+	   AND TSS.SR_YMDHMS_SNO = #{srYmdhmsSno}	/* SR 년월일시분초*/
+	]]>
+	</select>
+
+
+	<!-- 시스템 SR 목록 조회 (Map)  -->
+	<select id="selectListSysSr"  parameterType="paramMap" resultType="resultMap">
+	<include refid="Cmmn.pageHeadNewDT"/>
+	SELECT 
+		  TSS.SR_YMDHMS_SNO /* SR 년월일시분초*/
+		, TO_CHAR(TO_DATE(SUBSTR(TSS.SR_YMDHMS_SNO, 1, 14), 'YYYYMMDDHH24MISS')	, 'YYYY.MM.DD HH24:MI:SS') AS SR_YMDHMS /* SR 년월일시분초*/
+		, TSS.SCHL_NM	/* 학교 ID*/
+		, TSS.PRJT_NM	/* 학교 ID*/
+		, TSS.FNC_DIV_NM
+		, TSS.MENU_PATH_NM	/* 메뉴 경로 명*/
+		, TSS.MENU	/* 메뉴*/
+		, TSS.SR_PRIOR_NM	/* SR 우선순위 명*/
+		, TSS.SR_DIV_NM	/* SR 구분 명*/
+		, SUBSTR(REGEXP_REPLACE(TSS.SR_CNTN, <![CDATA['<[^>]*>|\&([^;])*;']]>,''), 1, 300)	 AS SR_CNTN/* SR 내용*/
+		, TO_CHAR(TSS.CMPL_REQ_DT, 'YYYY.MM.DD') AS CMPL_REQ_YMD	/* 완료 요청 일시*/
+		, TSS.RGST_USR	/* 등록 사용자*/
+		, TSS.RGST_USR_TEL_NO	/* 등록 사용자 전화 번호*/
+		, TSS.RGST_USR_NM	/* 등록 사용자 명*/
+		, TO_CHAR(TSS.RGST_DT, 'YYYY.MM.DD HH24:MI:SS') AS RGST_YMDHS	/* 등록 일시*/
+		, TSS.SR_RECT_DIV_NM	/* SR 접수 구분 명*/
+		, TSS.SR_PRCS_STTS_NM	/* SR 처리 상태 명*/
+		, TSS.SR_PRCS_CNTN	/* SR 처리 내용*/
+		, TO_CHAR(TSS.RECT_DT, 'YYYY.MM.DD HH24:MI:SS') AS RECT_YMDHS	/* 접수 일시*/
+		, TO_CHAR(TSS.RECT_DT, 'YYYY.MM.DD') AS RECT	/* 접수 일시*/
+		, TO_CHAR(TSS.RVW_BGN_DT, 'YYYY.MM.DD HH24:MI:SS') AS RVW_BGN_YMDHS	/* 검토중 시작 일시*/
+		, TO_CHAR(TSS.RVW_BGN_DT, 'YYYY.MM.DD') AS RVW_BGN_YMD	/* 검토중 시작 일시*/
+		, TO_CHAR(TSS.UPD_BGN_DT, 'YYYY.MM.DD HH24:MI:SS') AS UPD_BGN_YMDHS	/* 수정 시작 일시*/
+		, TO_CHAR(TSS.UPD_BGN_DT, 'YYYY.MM.DD') AS UPD_BGN_YMD	/* 수정 시작 일시*/
+		, TO_CHAR(TSS.UPD_END_DT, 'YYYY.MM.DD HH24:MI:SS') AS UPD_END_YMDHS	/* 수정 종료 일시*/
+		, TO_CHAR(TSS.UPD_END_DT, 'YYYY.MM.DD') AS UPD_END_YMD	/* 수정 종료 일시*/
+		, TO_CHAR(TSS.UPD_DT, 'YYYY.MM.DD HH24:MI:SS') AS UPD_YMDHS	/* 수정 일시*/
+		, TSS.UPD_USR	/* 수정 사용자*/
+		, TSS.UPD_USR_NM	/* 수정 사용자 명*/
+		, TSS.MAN_DAY_CNT
+		, TSS.SR_PRCS_APPR_NM
+		, TO_CHAR(TSS.PLAN_DT, 'YYYY.MM.DD') AS PLAN_YMD	
+	  FROM T_SYS_SR TSS
+	 WHERE 1 = 1
+	   <if test="schlNmSearch != null and schlNmSearch != ''">
+	   AND TSS.SCHL_NM = #{schlNmSearch}
+	   </if>
+	   <if test="prjtNmSearch != null and prjtNmSearch != ''">
+	   AND TSS.PRJT_NM = #{prjtNmSearch}
+	   </if>
+	   <if test="srBgnSearchYmd != null and srBgnSearchYmd != ''">
+	   AND TSS.SR_YMDHMS_SNO <![CDATA[>=]]>  #{srBgnSearchYmd}||'000000_00000'
+	   </if>
+	   <if test="srEndSearchYmd != null and srEndSearchYmd != ''">
+	   AND TSS.SR_YMDHMS_SNO <![CDATA[<=]]>  #{srEndSearchYmd}||'999999_99999'
+	   </if>
+	   <if test="srPriorNmSearch != null and srPriorNmSearch != ''">
+	   AND TSS.SR_PRIOR_NM =  #{srPriorNm}
+	   </if>
+	   <if test="srDivNmSearch != null and srDivNmSearch != ''">
+	   AND TSS.SR_DIV_NM =  #{srDivNm}
+	   </if>
+	   <if test="srPrcsSttsNmSearch != null and srPrcsSttsNmSearch != ''">
+	   AND TSS.SR_PRCS_STTS_NM =  #{srPrcsSttsNmSearch}
+	   </if>
+	   <if test="menuPathNmSearch != null and menuPathNmSearch != ''">
+	   AND REPLACE(TSS.SR_PRCS_STTS_NM, ' ','') LIKE  '%'||REPLACE(#{menuPathNmSearch}, ' ','')||'%'
+	   </if>
+	   <if test="srCntnSearch != null and srCntnSearch != ''">
+	   AND INSRT(REGEXP_REPLACE(TSS.SR_CNTN, <![CDATA['<[^>]*>|\&([^;])*;']]>,''), REPLACE(#{srCntnSearch}, ' ','')) <![CDATA[>]]> 0
+	   </if>   
+	<include refid="Cmmn.pageFooterNewDT"/>
+	</select>
+
+
+
+	<!-- 시스템 SR 수정 -->
+	<update id="updateSrForDain"  parameterType="paramMap">
+	<![CDATA[
+	UPDATE T_SYS_SR TSS SET
+		  TSS.SR_RECT_DIV_NM = #{srRectDivNm}	/* SR 접수 구분 명*/
+		, TSS.SR_PRCS_STTS_NM = #{srPrcsSttsNm}	/* SR 처리 상태 명*/
+		, TSS.SR_PRCS_CNTN = #{srPrcsCntn}	/* SR 처리 내용*/
+		, TSS.RECT_DT = CASE WHEN TSS.RECT_DT IS NULL THEN SYSDATE ELSE TSS.RECT_DT END	/* 접수 일시*/
+		, TSS.RVW_BGN_DT = CASE WHEN #{srPrcsSttsNm} = '검토중' THEN SYSDATE ELSE TSS.RVW_BGN_DT END	/* 검토중 시작 일시*/
+		, TSS.UPD_BGN_DT = TO_DATE(#{updBgnYmd}, 'YYYYMMDD')	/* 수정 시작 일시*/
+		, TSS.UPD_END_DT = CASE WHEN  #{srPrcsSttsNm} = '불가' THEN SYSDATE ELSE TO_DATE(#{updEndYmd}, 'YYYYMMDD')	 END /* 수정 종료 일시*/
+		, TSS.UPD_DT = SYSDATE/* 수정 일시*/
+		, TSS.UPD_USR = #{ssnUser}	/* 수정 사용자*/
+		, TSS.UPD_USR_NM = #{updUsrNm}	/* 수정 사용자 명*/
+		, TSS.MAN_DAY_CNT  = #{manDayCnt}	
+		, SR_PRCS_APPR_NM	  = #{srPrcsApprNm}
+		, TSS.PLAN_DT = TO_DATE(#{planYmd}, 'YYYYMMDD')
+		, APPR_USR_NM  = #{apprUsrNm}
+		, APPR_CNTN =  #{apprCntn}
+	 WHERE 1 = 1
+	   AND TSS.SR_YMDHMS_SNO = #{srYmdhmsSno}	/* SR 년월일시분초*/
+	]]>
+	</update>
+
+
+
+	<!-- 시스템 SR 수정 -->
+	<update id="updateSysSrForSchool"  parameterType="paramMap">
+	<![CDATA[
+	UPDATE T_SYS_SR TSS SET
+			  TSS.SCHL_NM = #{schlNm}	/* 학교 ID*/
+			, TSS.PRJT_NM = #{prjtNm}
+			, TSS.MENU_PATH_NM = #{menuPathNm}	/* 메뉴 경로 명*/
+			, TSS.FNC_DIV_NM  = #{fncDivNm}
+			, TSS.MENU = #{userMenu}	/* 메뉴*/
+			, TSS.SR_PRIOR_NM = #{srPriorNm}	/* SR 우선순위 명*/
+			, TSS.SR_DIV_NM = #{srDivNm}	/* SR 구분 명*/
+			, TSS.SR_CNTN = #{srCntn}	/* SR 내용*/
+			, TSS.CMPL_REQ_DT = TO_DATE(#{cmplReqYmd}, 'YYYYMMDD')	/* 완료 요청 일시*/
+			, TSS.RGST_USR = #{rgstUsr}	/* 등록 사용자*/
+			, TSS.RGST_USR_TEL_NO = #{rgstUsrTelNo}	/* 등록 사용자 전화 번호*/
+			, TSS.RGST_USR_NM = #{rgstUsrNm}	/* 등록 사용자 명*/
+			, TSS.RGST_DT = #{rgstDt}	/* 등록 일시*/
+			, TSS.SR_PRCS_STTS_NM = #{srPrcsSttsNm}	/* SR 처리 상태 명*/
+			, TSS.UPD_DT = SYSDATE	/* 수정 일시*/
+			, TSS.UPD_USR = #{ssnUser}	/* 수정 사용자*/
+	 WHERE 1 = 1
+	   AND TSS.SR_YMDHMS_SNO = #{srYmdhmsSno}	/* SR 년월일시분초*/
+	]]>
+	</update>
+	
+	<!-- 시스템 SR병합 -->
+	<update id="insertSysSrForSchool"  parameterType="paramMap">
+		<selectKey keyProperty="srYmdhmsSno" resultType="String" order="BEFORE">
+			SELECT TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')||'_'||LPAD(TRUNC(DBMS_RANDOM.VALUE (1, 10000)), 5, '0') AS srYmdhmsSno
+			  FROM DUAL
+		</selectKey>
+	<![CDATA[
+		INSERT INTO T_SYS_SR(
+			  SR_YMDHMS_SNO	/* SR 년월일시분초*/
+			, SCHL_NM	/* 학교 ID*/
+			, PRJT_NM
+			, FNC_DIV_NM
+			, MENU_PATH_NM	/* 메뉴 경로 명*/
+			, MENU	/* 메뉴*/
+			, SR_PRIOR_NM	/* SR 우선순위 명*/
+			, SR_DIV_NM	/* SR 구분 명*/
+			, SR_CNTN	/* SR 내용*/
+			, CMPL_REQ_DT	/* 완료 요청 일시*/
+			, RGST_USR	/* 등록 사용자*/
+			, RGST_USR_TEL_NO	/* 등록 사용자 전화 번호*/
+			, RGST_USR_NM	/* 등록 사용자 명*/
+			, RGST_DT	/* 등록 일시*/
+			, SR_PRCS_STTS_NM	/* SR 처리 상태 명*/
+			, UPD_USR
+			, UPD_DT
+		)
+		VALUES (
+			  #{srYmdhmsSno}	/* SR 년월일시분초*/
+			, #{schlNm}	/* 학교 ID*/
+			, #{prjtNm}
+			, #{fncDivNm}
+			, #{menuPathNm}	/* 메뉴 경로 명*/
+			, #{userMenu}	/* 메뉴*/
+			, #{srPriorNm}	/* SR 우선순위 명*/
+			, #{srDivNm}	/* SR 구분 명*/
+			, #{srCntn}	/* SR 내용*/
+			, TO_DATE(#{cmplReqYmd}, 'YYYYMMDD') /* 완료 요청 일시*/
+			, #{ssnUser}	/* 등록 사용자*/
+			, #{rgstUsrTelNo}	/* 등록 사용자 전화 번호*/
+			, #{rgstUsrNm}	/* 등록 사용자 명*/
+			, SYSDATE	/* 등록 일시*/
+			, #{srPrcsSttsNm}	/* SR 처리 상태 명*/
+			, #{ssnUser}	/* 등록 사용자*/
+			, SYSDATE	/* 등록 일시*/
+		)
+	]]>
+	</update>
+
+	<!-- 시스템 SR 삭제 -->
+	<delete id="deleteSysSr"  parameterType="paramMap">
+	<![CDATA[
+	DELETE 
+	  FROM T_SYS_SR TSS
+	 WHERE 1 = 1
+	   AND TSS.SR_YMDHMS_SNO = #{srYmdhmsSno}	/* SR 년월일시분초*/
+	]]>
+	</delete>
+</mapper>

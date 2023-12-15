@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.system.SysUsrCnntMenuFncDao">
+
+
+	<!-- 시스템 사용자 접속 메뉴 기능 목록 조회 (Map)  -->
+	<select id="selectListSysUsrCnntMenuFnc"  parameterType="paramMap" resultType="resultMap">
+	<include refid="Cmmn.pageHeadNewDT"/>
+	SELECT 
+		  TSUCMF.USR	/* 사용자*/
+		, NVL(VU.USER_ID, '세션정보없음') AS USER_ID	/* 사용자*/
+		, NVL(VU.USER_NM, TSUCMF.USR ) AS USER_NM	/* 사용자*/
+		, TSUCMF.MENU	/* 메뉴*/
+		, TSUCMF.FNC_SNO	/* 기능 순번*/
+		, TSMF.FNC_NM	/* 기능 명*/
+		, TSMF.FNC_CD
+		, VC.CD_NM AS FNC_CD_NM
+		, TSMF.FNC_DESC	/* 기능 설명*/
+		, TSMF.URL	/* URL*/
+		, TSUCMF.CNNT_YMDHMS	/* 접속 년월일시분초*/
+		, TO_CHAR(TO_DATE( TSUCMF.CNNT_YMDHMS, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD HH24:MI:SS') AS CNNT_YMDHMS_FMT
+		, CASE WHEN SUBSTR(TSUCMF.MENU, 1, 3 ) = 'ADM' THEN '관리자'
+				WHEN SUBSTR(TSUCMF.MENU, 1, 3 ) = 'STD' THEN '학생'
+				ELSE '' END AS MENU_GBN_NM
+	  FROM T_SYS_USR_CNNT_MENU_FNC TSUCMF
+	  		LEFT OUTER JOIN V_USER VU
+	  			ON TSUCMF.USR = VU.USER_KEY
+	  		LEFT OUTER JOIN T_SYS_MENU_FNC TSMF
+	  			ON TSUCMF.MENU = TSMF.MENU
+	  			AND TSUCMF.FNC_SNO = TSMF.FNC_SNO
+	  		INNER JOIN V_CD VC
+	  			ON TSMF.FNC_CD = VC.CD_ID
+	  			AND VC.UP_CD_ID = 'SYS01'
+	 WHERE 1 = 1
+	 	<if test="usrId != null and usrId != ''">
+			AND VU.USER_ID like '%'||#{usrId}||'%'	/* 사용자*/
+		</if>	
+	 	<if test="usrNm != null and usrNm != ''">
+			AND VU.USER_NM like '%'||#{usrNm}||'%'	/* 사용자*/
+	 	</if>
+	 	<if test="menuGbn != null and menuGbn != ''">
+			AND TSUCMF.MENU like #{menuGbn}||'%'	/* 메뉴 구분*/
+		</if>	
+	   AND TSUCMF.CNNT_YMDHMS <![CDATA[>=]]> REPLACE(#{cnntStrYmd},'-','')	/* 접속 년월일시분초*/
+	   AND TSUCMF.CNNT_YMDHMS <![CDATA[<=]]> TO_CHAR(TO_DATE(REPLACE(#{cnntEndYmd},'-',''), 'YYYYMMDD')+1, 'YYYYMMDDHH24MISS')	/* 접속 년월일시분초*/
+	<include refid="Cmmn.pageFooterNewDT"/>
+	</select>
+
+	<!-- 시스템 사용자 접속 메뉴 기능병합 -->
+	<update id="mergeSysUsrCnntMenuFnc"  parameterType="paramMap">
+	<![CDATA[
+	MERGE INTO T_SYS_USR_CNNT_MENU_FNC TSUCMF
+		USING (SELECT	#{usr} USR, MENU, FNC_SNO, TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') CNNT_YMDHMS
+				FROM 	T_SYS_MENU_FNC
+				WHERE 	MENU = #{ssnMenu}
+				AND 	URL = #{url}
+				AND 	ROWNUM = 1
+				) TSMF
+		ON (	TSUCMF.USR = TSMF.USR	/* 사용자*/
+			AND TSUCMF.MENU = TSMF.MENU	/* 메뉴*/
+			AND TSUCMF.FNC_SNO = TSMF.FNC_SNO	/* 기능 순번*/
+			AND TSUCMF.CNNT_YMDHMS = TSMF.CNNT_YMDHMS	/* 접속 년월일시분초*/
+		)
+	WHEN NOT MATCHED THEN
+		INSERT (
+			  USR	/* 사용자*/
+			, MENU	/* 메뉴*/
+			, FNC_SNO	/* 기능 순번*/
+			, CNNT_YMDHMS	/* 접속 년월일시분초*/
+			, RGST_DT	/* 등록 일시*/
+			, RGST_USR	/* 등록 사용자*/
+		)
+		VALUES (
+			  #{usr}	/* 사용자*/
+			, NVL(TSMF.MENU, 'NULL')	/* 메뉴*/
+			, NVL(TSMF.FNC_SNO, 0)	/* 기능 순번*/
+			, TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')	/* 접속 년월일시분초*/
+			, SYSDATE	/* 등록 일시*/
+			, #{ssnUser}	/* 등록 사용자*/
+		)
+	]]>
+	</update>
+
+</mapper>

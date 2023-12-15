@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mapper.erd.word">
+
+    <!--   목록 조회. -->
+    <select id="selectWordDetail"  parameterType="paramMap" resultType="resultMap">
+    SELECT /* mapper.erd.word.selectWordDetail */
+           REPLACE(REPLACE(REPLACE(GROUP_CONCAT(NVL(WRD.ABBR, A.WORD) ORDER BY A.NO), ',@', ''), '@', ''), ',', '_') AS ABBR
+      FROM (SELECT 'A' AS GRP, NO, WORD
+              FROM (SELECT NULL AS NO, NULL AS WORD
+                     <foreach collection="VALUES" item="item" separator="" index="index">
+                        UNION ALL SELECT #{index} AS NO, #{item} AS WORD
+                     </foreach>
+                    ) A
+              WHERE NO IS NOT NULL
+              ORDER BY NO
+             ) A
+          LEFT OUTER JOIN (SELECT WRD.PROJECT_ID, WRD.WORD
+                                , CASE WHEN #{OBJ_TYPE}  = 'ENTITY' THEN
+                                            CASE WHEN PJT.ENTITY_CAPITALIZE = 'UPPER' THEN UPPER(WRD.ABBR)
+                                                 WHEN PJT.ENTITY_CAPITALIZE = 'LOWER' THEN LOWER(WRD.ABBR)
+                                                 ELSE WRD.ABBR END
+                                       ELSE 
+                                            CASE WHEN PJT.COLMN_CAPITALIZE = 'UPPER' THEN UPPER(WRD.ABBR)
+                                                 WHEN PJT.COLMN_CAPITALIZE = 'LOWER' THEN LOWER(WRD.ABBR)
+                                                 ELSE WRD.ABBR END
+                                       END AS ABBR
+                                   
+                             FROM WORD    WRD
+                                , PROJECT PJT
+                            WHERE PJT.PROJECT_ID = WRD.PROJECT_ID
+                              AND WRD.PROJECT_ID = #{SESSION_PROJECT_ID} )WRD
+               ON WRD.PROJECT_ID = #{SESSION_PROJECT_ID}
+              AND A.WORD         = WRD.WORD
+      GROUP BY A.GRP
+    </select>
+    
+    <insert id="insertWord" parameterType="paramMap">
+    INSERT /* mapper.erd.word.insertWord */
+      INTO WORD
+      (  
+             PROJECT_ID
+           , WORD_ID
+           , WORD
+           , FRST_INS_DT     
+           , FRST_INS_USR_UID
+           , LAST_UPD_DT     
+           , LAST_UPD_USR_UID
+      )
+      SELECT #{SESSION_PROJECT_ID} AS PROJECT_ID
+           , UUID() AS WORD_ID
+           , A.WORD AS WORD
+           , CURRENT_TIMESTAMP     
+           , #{SESSION_USR_UID}
+           , CURRENT_TIMESTAMP   
+           , #{SESSION_USR_UID}
+        FROM (
+              SELECT NULL AS WORD
+              <foreach collection="WORDS" item="item" separator="" index="index">
+                        UNION ALL SELECT #{item} AS WORD
+              </foreach>
+              ) A
+      WHERE A.WORD IS NOT NULL
+        AND A.WORD REGEXP '^[A-Za-z[:space:]]+$' = 0
+        AND NOT EXISTS (SELECT 'Y'
+                          FROM WORD
+                         WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+                           AND WORD       = A.WORD
+                        )
+    </insert>
+    
+    <!--   목록 조회. -->
+    <select id="selectWordList"  parameterType="paramMap" resultType="resultMap">
+    SELECT /* mapper.erd.word.selectWordList */
+           WORD_ID, WORD, ABBR, ENGLISH, WORD_DESC, 'Y' AS USE_YN
+         , DATE_FORMAT(LAST_UPD_DT, '%Y-%m-%d %H:%i:%S')  AS  LAST_UPD_DT_FMT
+      FROM WORD
+     WHERE PROJECT_ID  = #{SESSION_PROJECT_ID}
+           <if test="WORD != null ">
+               AND 
+                      <choose>
+                            <when test='"Y".equals(EXACT_YN)'>
+                                <foreach collection="WORD" item="ITEM" open="WORD IN (" close=")" separator=",">
+                                 #{ITEM}
+                                </foreach>
+                            </when>
+                            <otherwise>                    
+                                <foreach collection="WORD" item="ITEM" open="( " close=")" separator=" OR ">
+                                  WORD LIKE CONCAT('%', #{ITEM}, '%')
+                                </foreach>
+                            </otherwise>
+                       </choose>
+           </if>
+     ORDER BY WORD
+    </select>
+    
+    <update id="insertNewWord"  parameterType="paramMap">
+        INSERT /* mapper.erd.word.insertNewWord */
+          INTO WORD
+           (
+              PROJECT_ID, WORD_ID, WORD, ABBR, ENGLISH, WORD_DESC
+            , FRST_INS_DT
+            , FRST_INS_USR_UID
+            , LAST_UPD_DT
+            , LAST_UPD_USR_UID
+           ) 
+           VALUES
+           (
+              #{SESSION_PROJECT_ID}
+            , UUID()
+            , #{WORD       }     /* WORD        */
+            , #{ABBR       }     /* ABBR        */
+            , #{ENGLISH    }     /* ENGLISH     */
+            , #{WORD_DESC  }     /* WORD_DESC   */
+            , CURRENT_TIMESTAMP        /* FRST_INS_DT       */
+            , #{SESSION_USR_UID }      /* FRST_INS_USR_UID  */
+            , CURRENT_TIMESTAMP        /* LAST_UPD_DT       */
+            , #{SESSION_USR_UID }      /* LAST_UPD_USR_UID  */
+           )
+    </update>
+    <update id="updateWord"  parameterType="paramMap">
+        UPDATE /* mapper.erd.word.updateWord */
+               WORD 
+           SET
+              ABBR       = #{ABBR        }
+            , ENGLISH    = #{ENGLISH     }
+            , WORD_DESC  = #{WORD_DESC   }
+
+            , LAST_UPD_DT     = CURRENT_TIMESTAMP
+            , LAST_UPD_USR_UID= #{SESSION_USR_UID }
+        WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+          AND WORD_ID    = #{WORD_ID}
+    </update>
+    
+    <delete id="deleteWord"  parameterType="paramMap">
+    DELETE /* mapper.erd.word.deleteWord */
+      FROM WORD
+     WHERE PROJECT_ID  = #{SESSION_PROJECT_ID}
+       AND WORD_ID     = #{WORD_ID       } 
+    </delete>
+</mapper>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Cmmn">
+
+    <sql id="pageHeadErd">
+        SELECT
+            TT.TOTAL_COUNT - TT.RNUM +1 AS NO,  TT.*
+        FROM(
+            SELECT
+                COUNT(*) OVER() AS TOTAL_COUNT
+                ,TEMP.*
+                ,ROW_NUMBER() OVER(ORDER BY 1) AS RNUM
+            FROM(
+    </sql>
+
+    <sql id="pageFooterErd">
+            ) TEMP
+        )TT
+    </sql>
+
+
+	<sql id="pageHeadNewDT">
+		SELECT
+			TT.TOTAL_COUNT - TT.RNUM +1 AS NO,  TT.*
+		FROM(
+			SELECT
+				COUNT(*) OVER() AS TOTAL_COUNT
+				,TEMP.*
+				,ROW_NUMBER() OVER(ORDER BY
+					<foreach collection="sSortCol" item="sSort" separator="," index="index">
+						TEMP.${sSort} ${sSortDir[index]}
+					</foreach>
+				) AS RNUM
+			FROM(
+	</sql>
+
+	<sql id="pageFooterNewDT">
+			) TEMP
+		)TT
+		<if test = "iDisplayLength == '-1'">
+			WHERE
+				1=1
+		</if>
+		<if test = "iDisplayLength != '-1'">
+			WHERE TT.RNUM BETWEEN (#{iDisplayStart}+1) AND (#{iDisplayStart}+#{iDisplayLength})
+			ORDER BY TT.RNUM ASC
+		</if>
+	</sql>
+
+	<!-- 학생 뷰 테이블 컬럼 -->
+	<sql id="V_STD_CDP_SREG_COLUMN_INFO">
+		VSCS.STD_NO
+		,VSCS.STD_NUMBER
+		,VSCS.KOR_NM
+		,VSCS.COLG_CD
+		,VSCS.COLG_CD_NM
+		,VSCS.SUST_CD
+		,VSCS.SUST_CD_NM
+		,VSCS.MJ_CD
+		,VSCS.MJ_CD_NM
+		, NVL(MJ_CD_NM,SUST_CD_NM) AS INVOLVE_NM
+		,VSCS.SHYR_CD
+		,VSCS.SHYR_CD_NM
+		,VSCS.SHREG_ST
+		,VSCS.SHREG_ST_NM
+		,VSCS.GEN_FG
+		,VSCS.GEN_FG_NM
+		,VSCS.BIRTH_DT
+		,VSCS.EMAIL
+		,VSCS.HAND_NO
+		,VSCS.GUID_STAFF_NM
+		,VSCS.GUID_STAFF_NO
+		,VSCS.ENTR_DT
+		,VSCS.GRDT_DT
+		,VSCS.TERM
+		,VSCS.TEL_NO
+		,VSCS.FULL_ADDRESS
+		,VSCS.GRADT_YN
+		,VSCS.GRADT_YEAR
+		,VSCS.CREDIT
+		,VSCS.SHREG_BAN
+		,VSCS.VT_TIME
+	</sql>
+	
+    <select id="selectFieldList"  parameterType="paramMap" resultType="resultMap">
+        SELECT ID, NM, TYPE, FMT
+          FROM FIELD 
+         WHERE ID = #{ID}
+         ORDER BY SEQ, NM
+    </select>
+</mapper>

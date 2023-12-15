@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+		PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+		<setting name="cacheEnabled" value="false" />
+		<setting name="lazyLoadingEnabled" value="false" />
+		<setting name="multipleResultSetsEnabled" value="true" />
+		<setting name="useColumnLabel" value="true" />
+		<setting name="useGeneratedKeys" value="false" />
+		<setting name="defaultExecutorType" value="SIMPLE" />
+		<setting name="defaultStatementTimeout" value="25000" />
+		<setting name="mapUnderscoreToCamelCase" value="false" />
+		<setting name="callSettersOnNulls" value="true"/>
+		<setting name="jdbcTypeForNull" value="NULL" />
+	</settings>
+	
+	<typeAliases>	
+		<typeAlias alias="paramMap"		type="com.myframework.sql.SqlParamMap" />
+		<typeAlias alias="resultMap"	type="com.myframework.sql.SqlResultMap" />
+	</typeAliases>
+	
+	<typeHandlers>
+		
+		<!-- typeHandler javaType="java.lang.String" jdbcType="CLOB" handler="com.dainframework.sql.ClobTypeHandler" />
+		<typeHandler javaType="java.lang.String" jdbcType="LONGVARCHAR" handler="com.dainframework.sql.ClobTypeHandler" />
+		<typeHandler javaType="java.lang.String" jdbcType="CLOB" handler="org.apache.ibatis.type.ClobTypeHandler" />
+		<typeHandler javaType="java.lang.String" jdbcType="LONGVARCHAR" handler="org.apache.ibatis.type.ClobTypeHandler" / -->
+	</typeHandlers>
+	
+</configuration>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mapper.erd.user">
+     
+     <select id="selectUid" parameterType="paramMap" resultType="resultMap">
+            SELECT UUID() AS UID
+     </select>
+     
+    <select id="selectUserByLoginId"  parameterType="paramMap" resultType="resultMap">
+        SELECT COUNT(*) CNT
+          FROM USR
+         WHERE LOGIN_ID = #{LOGIN_ID}
+    </select>
+     
+    <!--  프로젝트 등록 -->
+    <insert  id="saveUser"  parameterType="paramMap">
+        INSERT INTO USR (
+             USR_UID      
+           , COMPANY_ID
+           , USR_NM
+           , LOGIN_ID
+           , PWD
+           , PROJECT_ID
+           , FRST_INS_DT     
+           , FRST_INS_USR_UID
+           , LAST_UPD_DT     
+           , LAST_UPD_USR_UID
+        ) VALUES (
+             #{USR_UID} 
+           , NVL(#{SESSION_COMPANY_ID}, 'DEFAULT')
+           , #{USR_NM}
+           , #{LOGIN_ID}
+           , #{PWD}
+           , #{PROJECT_ID}
+           , CURRENT_TIMESTAMP     
+           , #{SESSION_USR_NM}
+           , CURRENT_TIMESTAMP   
+           , #{SESSION_USR_NM}
+        )
+        ON DUPLICATE KEY UPDATE
+             PWD = #{PWD}
+           , COMPANY_ID = NVL(#{SESSION_COMPANY_ID}, 'DEFAULT')
+           , USR_NM =  #{USR_NM}
+           , PROJECT_ID =  #{PROJECT_ID}
+           , LAST_UPD_DT  =   CURRENT_TIMESTAMP 
+           , LAST_UPD_USR_UID =#{SESSION_USR_NM}
+    </insert>     
+
+</mapper>

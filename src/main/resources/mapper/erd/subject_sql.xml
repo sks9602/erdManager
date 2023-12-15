@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mapper.erd.subject">
+
+    <!--  도메인 목록 조회. -->
+    <select id="selectSubjectTree"  parameterType="paramMap" resultType="resultMap">
+
+        SELECT /* mapper.erd.subject.selectSubjectTree */
+               SUBJ.SUBJECT_ID AS ID      
+             , SUBJ.SUBJECT_ID       
+             , SUBJ.SUBJECT_NM       
+             , CONCAT('(', (SELECT COUNT(*) 
+                  FROM SUBJECT_ENTITY SUBJ_ETT
+                     , ENTITY         ETT
+                 WHERE SUBJ_ETT.PROJECT_ID = SUBJ.PROJECT_ID
+                   AND SUBJ_ETT.SUBJECT_ID = SUBJ.SUBJECT_ID
+                   AND SUBJ_ETT.PROJECT_ID = ETT.PROJECT_ID
+                   AND SUBJ_ETT.ENTITY_ID  = ETT.ENTITY_ID
+                   
+                   AND NVL(ETT.USE_YN, 'Y') = 'Y'
+                   AND NVL(SUBJ_ETT.USE_YN, 'Y') = 'Y'
+                   <if test="ENTITY_NM != null ">
+                       AND (
+                           (<choose>
+                                <when test='"Y".equals(EXACT_YN)'>
+                                    <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.ENTITY_NM) IN (" close=")" separator=",">
+                                     UPPER(REPLACE(#{ITEM},' ',''))
+                                    </foreach>
+                                </when>
+                                <otherwise>                    
+                                    <foreach collection="ENTITY_NM" item="ITEM" open="( " close=")" separator=" OR ">
+                                      ETT.ENTITY_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+                                    </foreach>
+                                </otherwise>
+                           </choose>)
+                           OR
+                           (<choose>
+                                <when test='"Y".equals(EXACT_YN)'>
+                                    <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.TABL_NM) IN (" close=")" separator=",">
+                                     UPPER(REPLACE(#{ITEM},' ',''))
+                                    </foreach>
+                                </when>
+                                <otherwise>                    
+                                    <foreach collection="ENTITY_NM" item="ITEM" open=" ( " close=")" separator=" OR ">
+                                      ETT.TABL_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+                                    </foreach>
+                                </otherwise>
+                           </choose>)
+                           )
+                    </if>
+                    <if test='TABL_SCD != null and !"".equals(TABL_SCD) '>
+                        AND ETT.TABL_SCD = #{TABL_SCD}
+                    </if>
+                    ), '개의 테이블)')  AS ENTITY_NM
+             , 'TOP'   AS UP_SUBJECT_ID 
+             , 1 AS ORD
+             , 'N' AS SELECTED_YN
+             , 'N' AS EXPAND_YN
+             , 'N' AS FAVOR_YN
+          FROM SUBJECT SUBJ
+         WHERE SUBJ.PROJECT_ID = #{SESSION_PROJECT_ID}
+           AND SUBJ.VERSN       = #{SESSION_VERSN}
+           <if test="ENTITY_NM != null ">
+               AND (
+                 (<choose>
+                        <when test='"Y".equals(EXACT_YN)'>
+                            <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(SUBJ.SUBJECT_NM) IN (" close=")" separator=",">
+                             UPPER(REPLACE(#{ITEM},' ',''))
+                            </foreach>
+                        </when>
+                        <otherwise>                    
+                            <foreach collection="ENTITY_NM" item="ITEM" open="( " close=")" separator=" OR ">
+                              SUBJ.SUBJECT_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+                            </foreach>
+                        </otherwise>
+                   </choose>)
+                   OR EXISTS ( SELECT 'Y' 
+                                 FROM SUBJECT_ENTITY SUBJ_ETT
+                                    , ENTITY         ETT
+		                 WHERE SUBJ_ETT.PROJECT_ID = SUBJ.PROJECT_ID
+                           AND SUBJ_ETT.SUBJECT_ID = SUBJ.SUBJECT_ID
+                           AND SUBJ_ETT.VERSN      = SUBJ.VERSN
+		                   AND SUBJ_ETT.PROJECT_ID = ETT.PROJECT_ID
+		                   AND SUBJ_ETT.ENTITY_ID  = ETT.ENTITY_ID
+                           AND SUBJ_ETT.VERSN      = ETT.VERSN
+		                   
+		                   AND NVL(ETT.USE_YN, 'Y') = 'Y'
+                       AND
+                       (<choose>
+                            <when test='"Y".equals(EXACT_YN)'>
+                                <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.ENTITY_NM) IN (" close=")" separator=",">
+                                 UPPER(REPLACE(#{ITEM},' ',''))
+                                </foreach>
+                            </when>
+                            <otherwise>                    
+                                <foreach collection="ENTITY_NM" item="ITEM" open="( " close=")" separator=" OR ">
+                                  ETT.ENTITY_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+                                </foreach>
+                            </otherwise>
+                       </choose>)
+                       OR
+                       (<choose>
+                            <when test='"Y".equals(EXACT_YN)'>
+                                <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.TABL_NM) IN (" close=")" separator=",">
+                                 UPPER(REPLACE(#{ITEM},' ',''))
+                                </foreach>
+                            </when>
+                            <otherwise>                    
+                                <foreach collection="ENTITY_NM" item="ITEM" open=" ( " close=")" separator=" OR ">
+                                  ETT.TABL_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+                                </foreach>
+                            </otherwise>
+                       </choose>)
+                       )
+                  )
+            </if>
+            <if test='FAVOR_YN != null and "Y".equals(FAVOR_YN) '>
+                AND EXISTS (SELECT 'Y' 
+                                 FROM SUBJECT_ENTITY SUBJ_ETT
+                                    , ENTITY         ETT
+                                    , ENTITY_FAVOR   FAVOR
+                         WHERE SUBJ_ETT.PROJECT_ID = SUBJ.PROJECT_ID
+                           AND SUBJ_ETT.SUBJECT_ID = SUBJ.SUBJECT_ID
+                           AND SUBJ_ETT.VERSN      = SUBJ.VERSN
+                           AND SUBJ_ETT.PROJECT_ID = ETT.PROJECT_ID
+                           AND SUBJ_ETT.ENTITY_ID  = ETT.ENTITY_ID
+                           AND SUBJ_ETT.VERSN      = ETT.VERSN
+                           
+                           AND NVL(ETT.USE_YN, 'Y') = 'Y'
+                           AND FAVOR.USR_UID     = #{SESSION_USR_UID} 
+                           AND FAVOR.PROJECT_ID  = SUBJ.PROJECT_ID 
+                           AND FAVOR.VERSN       = SUBJ.VERSN 
+                           AND FAVOR.ENTITY_ID   = ETT.ENTITY_ID )
+            </if>
+         UNION ALL
+        SELECT 
+               ETT.ENTITY_ID AS ID      
+             , ETT.ENTITY_ID AS  SUBJECT_ID    
+             , ETT.TABL_NM   AS  SUBJECT_NM   
+             , ETT.ENTITY_NM   AS  ENTITY_NM   
+             , SUBJ_ETT.SUBJECT_ID  AS UP_SUBJECT_ID
+             , 2 AS ORD
+             , 'N' AS SELECTED_YN
+             , 'N' AS EXPAND_YN
+             , (SELECT 'Y'
+                  FROM ENTITY_FAVOR
+                 WHERE USR_UID     = #{SESSION_USR_UID} 
+                   AND PROJECT_ID  = ETT.PROJECT_ID 
+                   AND ENTITY_ID   = ETT.ENTITY_ID 
+                   AND VERSN       = ETT.VERSN ) AS FAVOR_YN
+          FROM SUBJECT_ENTITY SUBJ_ETT
+             , ENTITY         ETT
+         WHERE 1 = 1
+           AND SUBJ_ETT.PROJECT_ID = #{SESSION_PROJECT_ID}
+           AND SUBJ_ETT.VERSN      = #{SESSION_VERSN}
+           AND SUBJ_ETT.PROJECT_ID = ETT.PROJECT_ID
+           AND SUBJ_ETT.ENTITY_ID  = ETT.ENTITY_ID
+           AND NVL(ETT.USE_YN, 'Y') = 'Y'
+           AND NVL(SUBJ_ETT.USE_YN, 'Y') = 'Y'
+           <if test="ENTITY_NM != null ">
+           AND (
+               (<choose>
+                    <when test='"Y".equals(EXACT_YN)'>
+                        <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.ENTITY_NM) IN (" close=")" separator=",">
+                         UPPER(REPLACE(#{ITEM},' ',''))
+                        </foreach>
+                    </when>
+                    <otherwise>                    
+                        <foreach collection="ENTITY_NM" item="ITEM" open=" ( " close=")" separator=" OR ">
+                          ETT.ENTITY_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+                        </foreach>
+                    </otherwise>
+               </choose>)
+               OR
+               (<choose>
+                    <when test='"Y".equals(EXACT_YN)'>
+                        <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.TABL_NM) IN (" close=")" separator=",">
+                         UPPER(REPLACE(#{ITEM},' ',''))
+                        </foreach>
+                    </when>
+                    <otherwise>                    
+                        <foreach collection="ENTITY_NM" item="ITEM" open=" ( " close=")" separator=" OR ">
+                          ETT.TABL_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+                        </foreach>
+                    </otherwise>
+               </choose>)
+               )
+            </if>
+            <if test='TABL_SCD != null and !"".equals(TABL_SCD) '>
+                AND ETT.TABL_SCD = #{TABL_SCD}
+            </if>
+            <if test='FAVOR_YN != null and "Y".equals(FAVOR_YN) '>
+                AND EXISTS (SELECT 'Y'
+                              FROM ENTITY_FAVOR
+                             WHERE USR_UID     = #{SESSION_USR_UID} 
+                               AND PROJECT_ID  = ETT.PROJECT_ID 
+                               AND ENTITY_ID   = ETT.ENTITY_ID 
+                               AND VERSN       = ETT.VERSN )
+            </if>
+          ORDER BY 6, 3, 4
+    </select>
+
+    <!--  도메인 삭제 -->
+    <delete  id="deleteDomain"  parameterType="paramMap">
+        UPDATE DOMAIN 
+           SET USE_YN           = 'N'
+             , LAST_UPD_DT      = SYSDATE
+             , LAST_UPD_USR_UID = #{SESSION_USR_NM}
+         WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+           AND DOMAIN_ID  = #{DOMAIN_ID}
+    </delete>
+    
+    <!--  도메인 목록 조회. -->
+    <select id="selectSubjectList"  parameterType="paramMap" resultType="resultMap">
+        SELECT  /* mapper.erd.subject.selectSubjectList */   
+               SUBJ.SUBJECT_ID       
+             , SUBJ.SUBJECT_NM       
+             , SUBJ.WIDTH
+             , SUBJ.HEIGHT
+          FROM SUBJECT SUBJ
+             , PROJECT PJT
+               LEFT OUTER JOIN USR_PROJECT USR_PJT
+                       ON USR_PJT.USR_UID  = #{SESSION_USER_UID}
+                      AND USR_PJT.PROJECT_ID = PJT.PROJECT_ID
+         WHERE SUBJ.PROJECT_ID = PJT.PROJECT_ID
+           AND SUBJ.VERSN      = PJT.VERSN
+           AND SUBJ.PROJECT_ID = #{SESSION_PROJECT_ID}
+           AND SUBJ.VERSN      = #{SESSION_VERSN}
+         ORDER BY CASE WHEN SUBJ.SUBJECT_ID = PJT.SUBJECT_ID THEN 1 ELSE 2 END, SUBJ.SUBJECT_NM
+     </select>
+     
+     
+         <!--  도메인 목록 조회. -->
+    <select id="selectSubjectEntityList"  parameterType="paramMap" resultType="resultMap">
+     SELECT /* mapper.erd.subject.selectSubjectEntityList */
+            SUBJ_ENTT.SUBJECT_ID
+          , SUBJ.SUBJECT_NM
+          , SUBJ_ENTT.ENTITY_ID   AS ENTITY_ID
+          , ENTT.ENTITY_NM        AS ENTITY_NM
+          , CASE WHEN NVL(ENTT.TRT_DT, CURRENT_TIMESTAMP) >= date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 
+                      CASE WHEN ENTT.DML_TCD = 'DML_TCD_C' THEN '+'
+                           WHEN ENTT.DML_TCD = 'DML_TCD_U' THEN '*'
+                           WHEN ENTT.DML_TCD = 'DML_TCD_D' THEN '-'
+                           ELSE '' END
+                  ELSE '' END     AS DML_TCD
+          , ENTT.TABL_NM          AS TABLE_NM
+          , NVL((SELECT 'Y'
+               FROM RELATION 
+              WHERE PROJECT_ID = SUBJ_ENTT.PROJECT_ID
+                AND VERSN      = SUBJ_ENTT.VERSN
+                AND END_ENTITY_ID = SUBJ_ENTT.ENTITY_ID
+                AND RELATION_TYPE = 'rel1toN'
+                AND NON_IDEN_YN   = 'N'
+                LIMIT 1 ), 'N')   AS IS_SUB_TABLE
+          , SUBJ_ENTT.LINE_COLOR  AS LINE_COLOR
+          , SUBJ_ENTT.COLOR       AS COLOR
+          , SUBJ_ENTT.BG_COLOR    AS BACKGROUND_COLOR
+          , SUBJ_ENTT.NM_BG_COLOR AS TABLE_BACKGROUND_COLOR
+          , SUBJ_ENTT.X           AS X
+          , SUBJ_ENTT.Y           AS Y
+          , SUBJ_ENTT.WIDTH       AS WIDTH
+          , SUBJ_ENTT.HEIGHT      AS HEIGHT
+          , ENTT.TABL_SCD          
+          , (SELECT CD_NM
+               FROM CD
+              WHERE CD_GRP = 'TABL_SCD'
+                AND CD     = ENTT.TABL_SCD)  AS TABL_SCD_NM    
+          , (SELECT 'Y'
+               FROM COLMN 
+              WHERE PROJECT_ID = SUBJ_ENTT.PROJECT_ID
+                AND VERSN      = SUBJ_ENTT.VERSN
+                AND ENTITY_ID  = SUBJ_ENTT.ENTITY_ID
+                AND PK_YN = 'Y'
+                LIMIT 1)    AS HAS_PK
+          , CASE WHEN ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END AS  USE_YN
+          , CASE WHEN SUBJ_ENTT.USE_YN = 'N' THEN 'Y' ELSE 'N' END AS DEL_YN
+       FROM SUBJECT_ENTITY SUBJ_ENTT
+          , SUBJECT        SUBJ
+          , ENTITY         ENTT
+      WHERE SUBJ_ENTT.ENTITY_ID  = ENTT.ENTITY_ID
+        AND SUBJ_ENTT.PROJECT_ID = #{SESSION_PROJECT_ID}
+        AND SUBJ_ENTT.VERSN      = #{SESSION_VERSN}
+        AND SUBJ_ENTT.PROJECT_ID = SUBJ.PROJECT_ID
+        AND SUBJ_ENTT.VERSN      = SUBJ.VERSN
+        AND SUBJ_ENTT.SUBJECT_ID = SUBJ.SUBJECT_ID
+        /* AND NVL(SUBJ_ENTT.USE_YN, 'Y')  = 'Y' */
+        AND CASE WHEN ENTT.TABL_SCD  = 'TABL_SCD_020' AND CASE WHEN ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END = 'N' THEN 'N'
+                 WHEN CASE WHEN ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END AND NVL(ENTT.TRT_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]>  date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 'N' 
+                 ELSE 'Y' END = 'Y'
+        <if test="ENTITY_LIST != null">
+            <foreach collection="ENTITY_LIST" item="item" open=" AND ENTT.ENTITY_ID IN (" close=")" separator=",">
+             #{item}
+            </foreach>
+        </if>
+      ORDER BY SUBJ_ENTT.SUBJECT_ID, SUBJ_ENTT.ENTITY_ID
+     </select>
+     
+    <!--  업무영역 등록 -->
+    <insert  id="saveSubject"  parameterType="paramMap">
+        INSERT INTO SUBJECT (
+             PROJECT_ID      
+           , VERSN      
+           , SUBJECT_ID
+           , SUBJECT_NM
+           , WIDTH
+           , HEIGHT
+           , FRST_INS_DT     
+           , FRST_INS_USR_UID
+           , LAST_UPD_DT     
+           , LAST_UPD_USR_UID
+        ) VALUES (
+             #{SESSION_PROJECT_ID}      
+           , #{SESSION_VERSN}
+           , #{SUBJECT_ID}
+           , #{SUBJECT_NM}
+           , #{WIDTH}
+           , #{HEIGHT}
+           , CURRENT_TIMESTAMP     
+           , #{SESSION_USR_UID}
+           , CURRENT_TIMESTAMP   
+           , #{SESSION_USR_UID}
+        )
+        ON DUPLICATE KEY UPDATE
+             SUBJECT_NM = CASE WHEN #{SUBJECT_NM} IS NULL THEN SUBJECT_NM ELSE #{SUBJECT_NM} END
+           , WIDTH =  #{WIDTH}
+           , HEIGHT = #{HEIGHT}
+           , LAST_UPD_DT  =   CURRENT_TIMESTAMP 
+           , LAST_UPD_USR_UID =#{SESSION_USR_UID}
+    </insert>
+    
+    <!--  업무영역 상세 조회. -->
+    <select id="selectSubjectDetail"  parameterType="paramMap" resultType="resultMap">
+
+        SELECT /* mapper.erd.subject.selectSubjectDetail */
+               SUBJ.SUBJECT_ID AS ID      
+             , SUBJ.SUBJECT_ID       
+             , SUBJ.SUBJECT_NM       
+
+             , SUBJ.WIDTH 
+             , SUBJ.HEIGHT
+          FROM SUBJECT SUBJ
+         WHERE SUBJ.SUBJECT_ID = #{SUBJECT_ID}
+    </select>
+</mapper>

@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mapper.erd.domain">
+
+    <!--  도메인 목록 조회. -->
+    <select id="selectDomainTree"  parameterType="paramMap" resultType="resultMap">
+        <if test='"ALL".equals(FIRST)'>
+        SELECT  /* mapper.erd.domain.selectDomainTree - FIRST */
+               '' AS DOMAIN_ID       
+             , '' AS ID      
+             , '전체' AS DOMAIN_NM       
+             , '' AS TOP_DOMAIN_NM       
+             , 'TOP'  AS UP_DOMAIN_ID    
+             , NULL AS PROJECT_ID      
+             , NULL AS DATA_TYPE
+             , NULL AS DTYPE           
+             , NULL AS LEN1            
+             , NULL AS LEN2            
+             , NULL AS FRST_INS_DT     
+             , NULL AS FRST_INS_USR_UID
+             , NULL AS LAST_UPD_DT     
+             , NULL AS LAST_UPD_USR_UID
+             , 'N' AS SELECTED_YN
+             , NULL AS ICON_CLS
+             , NULL AS DEFAULT_VAL
+             , NULL AS DOMAIN_DESC
+             , 1 AS COLUMN_CNT
+             , -1 AS ORD_TRN
+             , NULL AS SCALE_YN
+             , NULL AS COMMA_YN
+             , NULL AS SYNTAX
+             , NULL AS DTYPE_DESC
+             , NULL AS COLMN_NM
+         UNION ALL
+        </if>
+        SELECT  /* mapper.erd.domain.selectDomainTree */
+               DMN.DOMAIN_ID       
+             , DMN.DOMAIN_ID AS ID      
+             , DMN.DOMAIN_NM       
+             , DMN.TOP_DOMAIN_NM       
+             , nvl(DMN.UP_DOMAIN_ID, 'TOP')  AS UP_DOMAIN_ID    
+             , DMN.PROJECT_ID      
+             , CONCAT(DMN.DTYPE
+                      , CASE WHEN DTYPE.SCALE_YN = 'Y' AND DMN.LEN1 IS NOT NULL THEN CONCAT('(', DMN.LEN1) ELSE '' END
+                      , CASE WHEN DTYPE.SCALE_YN = 'Y' AND DTYPE.COMMA_YN = 'Y' AND DMN.LEN2 IS NOT NULL THEN CONCAT(',', DMN.LEN2) ELSE '' END
+                      , CASE WHEN DTYPE.SCALE_YN = 'Y' OR DTYPE.COMMA_YN = 'Y' OR DMN.LEN1 IS NOT NULL OR DMN.LEN2 IS NOT NULL THEN ')'  ELSE '' END)
+                 AS  DATA_TYPE           
+             , DMN.DTYPE           
+             , DMN.LEN1            
+             , DMN.LEN2            
+             , DMN.FRST_INS_DT     
+             , DMN.FRST_INS_USR_UID
+             , DMN.LAST_UPD_DT     
+             , DMN.LAST_UPD_USR_UID
+             , 'N' AS SELECTED_YN
+             , DMN.ICON_CLS
+             , DMN.DEFAULT_VAL
+             , DMN.DOMAIN_DESC
+             , (SELECT COUNT(*)
+                  FROM COLMN
+                 WHERE PROJECT_ID = DMN.PROJECT_ID
+                   AND DOMAIN_ID  = DMN.DOMAIN_ID
+                   AND VERSN      = (SELECT VERSN FROM PROJECT WHERE PROJECT_ID = DMN.PROJECT_ID)) AS COLUMN_CNT
+             , DMN.ORD_TRN
+             , DTYPE.SCALE_YN AS SCALE_YN
+             , DTYPE.COMMA_YN AS COMMA_YN
+             , DTYPE.SYNTAX   AS SYNTAX
+             , DTYPE.DTYPE_DESC AS DTYPE_DESC
+             , WRD.COLMN_NM
+          FROM DOMAIN DMN
+           LEFT OUTER JOIN DTYPE DTYPE 
+                ON DMN.DTYPE      = DTYPE.DTYPE
+           LEFT OUTER JOIN (SELECT DMN.PROJECT_ID, DMN.DOMAIN_ID, DMN.DOMAIN_NM
+                                 , REPLACE(GROUP_CONCAT(DMN.WORD ORDER BY ORD), ',', '_') AS WORD, REPLACE(GROUP_CONCAT(NVL(WORD.ABBR, DMN.WORD) ORDER BY ORD), ',', '_') AS COLMN_NM
+                              FROM (SELECT DMN.PROJECT_ID, DMN.DOMAIN_ID,  DMN.DOMAIN_NM, LENGTH(DMN.DOMAIN_NM) - LENGTH(REPLACE(DMN.DOMAIN_NM,' ', '')) - RN + 2 AS ORD
+                                         , SUBSTRING_INDEX(SUBSTRING_INDEX(DMN.DOMAIN_NM, ' ', -RN), ' ', 1) WORD
+                                      FROM DOMAIN DMN
+                                         , (SELECT  1 RN
+                                            UNION ALL SELECT 2 RN
+                                            UNION ALL SELECT 3 RN
+                                            UNION ALL SELECT 4 RN 
+                                            UNION ALL SELECT 5 RN 
+                                            UNION ALL SELECT 6 RN 
+                                            UNION ALL SELECT 7 RN 
+                                            UNION ALL SELECT 8 RN 
+                                            UNION ALL SELECT 9 RN 
+                                            UNION ALL SELECT 10 RN ) RN
+                                     WHERE DMN.PROJECT_ID = 'DEFAULT-PROJECT'
+                                       AND LENGTH(DMN.DOMAIN_NM)-LENGTH(REPLACE(DMN.DOMAIN_NM,' ', '')) >= RN.RN-1 ) DMN
+                                           LEFT OUTER JOIN WORD WORD
+                                                ON DMN.PROJECT_ID = WORD.PROJECT_ID
+                                               AND DMN.WORD       = WORD.WORD
+                                    GROUP BY DMN.PROJECT_ID, DMN.DOMAIN_ID) WRD
+                  ON DMN.PROJECT_ID = WRD.PROJECT_ID
+                 AND DMN.DOMAIN_ID  = WRD.DOMAIN_ID
+         WHERE DMN.PROJECT_ID IN ('*', #{SESSION_PROJECT_ID})
+           AND NVL(DMN.USE_YN, 'Y') = 'Y'
+         ORDER BY ORD_TRN, NVL(LENGTH(DMN.DOMAIN_ID),0), DMN.DOMAIN_NM, DMN.LEN1, DMN.LEN2, DMN.DOMAIN_ID
+    </select>
+
+    <!--  도메인 상세 조회. -->
+    <select id="selectDomainDetail"  parameterType="paramMap" resultType="resultMap">
+
+        SELECT /* mapper.erd.domain.selectDomainDetail */    
+               DOMAIN_ID       
+             , DOMAIN_ID AS ID      
+             , DOMAIN_NM       
+             , TOP_DOMAIN_NM       
+             , nvl(UP_DOMAIN_ID, 'TOP')  AS UP_DOMAIN_ID    
+             , (SELECT DOMAIN_NM 
+                  FROM DOMAIN
+                 WHERE PROJECT_ID = DMN.PROJECT_ID
+                   AND DOMAIN_ID = DMN.UP_DOMAIN_ID) AS  UP_DOMAIN_NM
+             , DTYPE           
+             , PROJECT_ID      
+             , CONCAT(LEN1, CASE WHEN LEN2 IS NULL OR LEN2 = 0 THEN '' ELSE CONCAT(',', LEN2) END) AS LEN                    
+             , ICON_CLS
+             , DEFAULT_VAL
+             , DOMAIN_DESC
+             , (SELECT COUNT(*)
+                  FROM COLMN
+                 WHERE PROJECT_ID = DMN.PROJECT_ID
+                   AND DOMAIN_ID  = DMN.DOMAIN_ID
+                   AND VERSN      = (SELECT VERSN FROM PROJECT WHERE PROJECT_ID = DMN.PROJECT_ID)) AS COLUMN_CNT
+          FROM DOMAIN DMN
+         WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+           AND DOMAIN_ID  = #{DOMAIN_ID}
+    </select>
+    
+    <!--  도메인 등록 -->
+    <insert  id="saveDomain"  parameterType="paramMap">
+        INSERT /* mapper.erd.domain.saveDomain */
+          INTO DOMAIN (
+               DOMAIN_ID       
+             , DOMAIN_NM       
+             , PROJECT_ID      
+             , TOP_DOMAIN_NM       
+             , UP_DOMAIN_ID   
+             , DATA_TYPE
+             , DTYPE           
+             , LEN1            
+             , LEN2            
+             , DEFAULT_VAL
+             , DOMAIN_DESC
+             , FRST_INS_DT     
+             , FRST_INS_USR_UID
+             , LAST_UPD_DT     
+             , LAST_UPD_USR_UID
+             , ICON_CLS
+        ) VALUES (
+              CASE WHEN #{DOMAIN_ID} IS NULL OR #{DOMAIN_ID} = '' 
+                         THEN (SELECT CONCAT(#{UP_DOMAIN_ID}, LPAD(NVL(MAX(CAST(REPLACE(DOMAIN_ID, #{UP_DOMAIN_ID}, '') AS INTEGER )),0)+1, 3, '0'))
+                                 FROM DOMAIN DMN
+                                WHERE UP_DOMAIN_ID = #{UP_DOMAIN_ID} )
+                   ELSE  #{DOMAIN_ID} END
+            , #{DOMAIN_NM}
+            , #{SESSION_PROJECT_ID}
+            , #{TOP_DOMAIN_NM}
+            , #{UP_DOMAIN_ID}
+            , CONCAT(#{DTYPE}, CASE WHEN #{LEN} IS NULL OR #{LEN} = '' THEN '' ELSE CONCAT('(', #{LEN}, ')') END ) 
+            , #{DTYPE}
+            , CASE WHEN #{LEN} IS NULL OR #{LEN} = ''  THEN NULL
+                   WHEN INSTR(#{LEN}, ',') > 1 THEN CAST(SUBSTR(#{LEN}, 1, INSTR(#{LEN}, ',')-1) AS INTEGER) 
+                   ELSE CAST(#{LEN} AS INTEGER) END   
+            , CASE WHEN #{LEN} IS NULL OR #{LEN} = ''  THEN NULL
+                   WHEN INSTR(#{LEN}, ',') > 1 THEN CAST(SUBSTR(#{LEN}, INSTR(#{LEN}, ',')+1) AS INTEGER)
+                   ELSE NULL END
+            , #{DEFAULT_VAL}
+            , #{DOMAIN_DESC}
+            , CURRENT_TIMESTAMP
+            , #{SESSION_USR_NM}
+            , CURRENT_TIMESTAMP
+            , #{SESSION_USR_NM}
+            , LOWER(#{TOP_DOMAIN_NM})
+        )
+        ON DUPLICATE KEY UPDATE
+              DOMAIN_NM = #{DOMAIN_NM}
+            , DATA_TYPE = CONCAT(#{DTYPE}, CASE WHEN #{LEN} IS NULL OR #{LEN} = '' THEN '' ELSE CONCAT('(', #{LEN}, ')') END )  
+            , DTYPE     = #{DTYPE}
+            , LEN1      = CASE WHEN #{LEN} IS NULL OR #{LEN} = ''  THEN NULL
+                               WHEN INSTR(#{LEN}, ',') > 1 THEN CAST(SUBSTR(#{LEN}, 1, INSTR(#{LEN}, ',')-1) AS INTEGER) 
+                               ELSE CAST(#{LEN} AS INTEGER) END   
+            , LEN2      = CASE WHEN #{LEN} IS NULL OR #{LEN} = ''  THEN NULL
+                               WHEN INSTR(#{LEN}, ',') > 1 THEN CAST(SUBSTR(#{LEN}, INSTR(#{LEN}, ',')+1) AS INTEGER)
+                               ELSE NULL END
+            , ICON_CLS         = LOWER(#{TOP_DOMAIN_NM})
+            , DEFAULT_VAL      = #{DEFAULT_VAL}
+            , DOMAIN_DESC      = #{DOMAIN_DESC}
+            , LAST_UPD_DT      = CURRENT_TIMESTAMP
+            , LAST_UPD_USR_UID = #{SESSION_USR_NM}
+            
+    </insert>
+
+    <!--  도메인 삭제 -->
+    <delete  id="deleteDomain"  parameterType="paramMap">
+        UPDATE /* mapper.erd.domain.deleteDomain */
+               DOMAIN 
+           SET USE_YN           = 'N'
+             , LAST_UPD_DT      = SYSDATE
+             , LAST_UPD_USR_UID = #{SESSION_USR_UID}
+         WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+           AND DOMAIN_ID  = #{DOMAIN_ID}
+    </delete>
+    
+    <!--  DB에 따른 기본 도메인 등록 삭제 -->
+    <insert  id="insertDomainByDB"  parameterType="paramMap">
+        INSERT /* mapper.erd.domain.insertDomainByDB */
+          INTO DOMAIN 
+          (
+             PROJECT_ID
+           , DOMAIN_ID
+           , UP_DOMAIN_ID
+           , TOP_DOMAIN_NM
+           , DOMAIN_NM
+           , DTYPE
+           , LEN1
+           , LEN2
+           , DEFAULT_VAL
+           , DOMAIN_DESC
+           , USE_YN
+           , ORD_TRN
+           , ICON_CLS
+           , FRST_INS_DT
+           , FRST_INS_USR_UID
+           , LAST_UPD_DT
+           , LAST_UPD_USR_UID
+          )
+         SELECT 
+             #{SESSION_PROJECT_ID} AS PROJECT_ID
+           , UUID()         AS DOMAIN_ID
+           , NULL           AS UP_DOMAIN_ID
+           , DTYPE.DTYPE    AS TOP_DOMAIN_NM
+           , DTYPE.DTYPE    AS DOMAIN_NM
+           , DTYPE.DTYPE    AS DTYPE
+           , NULL           AS LEN1
+           , NULL           AS LEN2
+           , NULL           AS DEFAULT_VAL
+           , NULL           AS DOMAIN_DESC
+           , 'Y'            AS USE_YN
+           , DTYPE.ORD_TRN  AS ORD_TRN
+           , NULL           AS ICON_CLS
+           , CURRENT_TIMESTAMP AS FRST_INS_DT
+           , #{SESSION_USR_NM}   AS FRST_INS_USR_UID
+           , CURRENT_TIMESTAMP AS LAST_UPD_DT
+           , #{SESSION_USR_NM}   AS LAST_UPD_USR_UID
+         
+           FROM DTYPE DTYPE
+          WHERE DTYPE.DBASE = #{DBASE}
+            AND UP_DTYPE IS NULL
+    </insert>
+</mapper>

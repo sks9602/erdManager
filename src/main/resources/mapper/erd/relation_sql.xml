@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mapper.erd.relation">
+
+    <select id="selectRelationByStartEndEntity" parameterType="paramMap" resultType="resultMap">
+        SELECT /* mapper.erd.relation.selectRelationByStartEndEntity */
+               REL.RELATION_ID
+          FROM RELATION REL
+         WHERE REL.PROJECT_ID      = #{SESSION_PROJECT_ID}
+           AND REL.VERSN           = #{SESSION_VERSN}
+           AND REL.START_ENTITY_ID = #{START_ENTITY_ID}
+           AND REL.END_ENTITY_ID   = #{END_ENTITY_ID}
+    
+    </select>
+
+    <!--  관계 목록 조회. -->
+    <select id="selectSubjectRelationErdList"  parameterType="paramMap" resultType="resultMap">
+    SELECT /* mapper.erd.relation.selectSubjectRelationErdList */
+           SUBJ_REL.SUBJECT_ID
+         , SUBJ_REL.RELATION_ID
+         , CONCAT(REL.START_ENTITY_ID, '_', REL.END_ENTITY_ID) AS RELATION
+         , REL.RELATION_NM    AS RELATION_NAME
+         , REL.RELATION_TYPE  AS RELATION_TYPE
+         , REL.LINE_COLOR     AS COLOR
+         , CASE WHEN REL.START_ENTITY_ID = REL.END_ENTITY_ID THEN 'Y'   
+                ELSE NULL END AS RECURSIVE_YN
+         , REL.START_ENTITY_ID
+         , SUBJ_REL.START_POSITION
+         , SUBJ_REL.START_X
+         , SUBJ_REL.START_Y
+         , REL.END_ENTITY_ID
+         , SUBJ_REL.END_POSITION
+         , SUBJ_REL.END_X
+         , SUBJ_REL.END_Y
+         , REL.NON_IDEN_YN AS NON_IDEN_YN 
+         , SUBJ_REL.LINE_PATH AS PATHS
+         , CASE WHEN SUBJ_REL.USE_YN = 'N' THEN 'Y'
+                WHEN REL.USE_YN      = 'N' THEN 'Y'
+                ELSE 'N' END AS DEL_YN
+      FROM SUBJECT_RELATION  SUBJ_REL
+         , RELATION          REL
+     WHERE 1 = 1
+       AND SUBJ_REL.PROJECT_ID  = REL.PROJECT_ID
+       AND SUBJ_REL.RELATION_ID = REL.RELATION_ID
+       AND SUBJ_REL.PROJECT_ID  = #{SESSION_PROJECT_ID}
+    </select>
+    
+    <!--  관계 목록 조회. -->
+    <select id="selectRelationList"  parameterType="paramMap" resultType="resultMap">
+    SELECT /* mapper.erd.relation.selectRelationList */
+           CONCAT(REL.START_ENTITY_ID, '_', REL.END_ENTITY_ID) AS RELATION
+         , REL.RELATION_NM    AS RELATION_NAME
+         , REL.RELATION_TYPE  AS RELATION_TYPE
+         , REL.RELATION_ID    AS RELATION_ID
+         , REL.LINE_COLOR     AS COLOR
+         , CASE WHEN REL.START_ENTITY_ID = REL.END_ENTITY_ID THEN 'Y'   
+                ELSE NULL END AS RECURSIVE_YN
+         , REL.START_ENTITY_ID
+         , NULL AS START_POSITION
+         , NULL AS START_X
+         , NULL AS START_Y
+         , (SELECT ENTITY_NM FROM ENTITY WHERE PROJECT_ID = REL.PROJECT_ID AND VERSN = 1.0 AND ENTITY_ID= REL.START_ENTITY_ID ) AS START_ENTITY_NM
+         , REL.END_ENTITY_ID
+         , NULL AS END_POSITION
+         , NULL AS END_X
+         , NULL AS END_Y
+         , (SELECT ENTITY_NM FROM ENTITY WHERE PROJECT_ID = REL.PROJECT_ID AND VERSN = 1.0 AND ENTITY_ID= REL.END_ENTITY_ID ) AS END_ENTITY_NM
+         , REL.NON_IDEN_YN 
+         , NULL  AS PATHS
+         , CASE WHEN REL.USE_YN      = 'N' THEN 'Y'
+                ELSE 'N' END AS DEL_YN
+      FROM RELATION          REL
+     WHERE 1 = 1
+       AND REL.PROJECT_ID  = #{SESSION_PROJECT_ID}
+       AND NVL( REL.USE_YN, 'Y') = 'Y'
+    </select>
+
+    <!--  관계 목록 조회. -->
+    <select id="selectRelationListByStartEntity"  parameterType="paramMap" resultType="resultMap">
+    SELECT /* mapper.erd.relation.selectRelationListByStartEntity */
+           CONCAT(REL.START_ENTITY_ID, '_', REL.END_ENTITY_ID) AS RELATION
+         , REL.RELATION_NM    AS RELATION_NAME
+         , REL.RELATION_TYPE  AS RELATION_TYPE
+         , REL.RELATION_ID    AS RELATION_ID
+         , REL.LINE_COLOR     AS COLOR
+         , CASE WHEN REL.START_ENTITY_ID = REL.END_ENTITY_ID THEN 'Y'   
+                ELSE NULL END AS RECURSIVE_YN
+         , REL.START_ENTITY_ID
+         , NULL AS START_POSITION
+         , NULL AS START_X
+         , NULL AS START_Y
+         , (SELECT ENTITY_NM FROM ENTITY WHERE PROJECT_ID = REL.PROJECT_ID AND VERSN = 1.0 AND ENTITY_ID= REL.START_ENTITY_ID ) AS START_ENTITY_NM
+         , REL.END_ENTITY_ID
+         , NULL AS END_POSITION
+         , NULL AS END_X
+         , NULL AS END_Y
+         , (SELECT ENTITY_NM FROM ENTITY WHERE PROJECT_ID = REL.PROJECT_ID AND VERSN = 1.0 AND ENTITY_ID= REL.END_ENTITY_ID ) AS END_ENTITY_NM
+         , REL.NON_IDEN_YN 
+         , NULL  AS PATHS
+         , CASE WHEN REL.USE_YN      = 'N' THEN 'Y'
+                ELSE 'N' END AS DEL_YN
+      FROM RELATION          REL
+     WHERE 1 = 1
+       AND REL.PROJECT_ID        = #{SESSION_PROJECT_ID}
+       AND REL.VERSN             = #{SESSION_VERSN}
+       AND REL.START_ENTITY_ID   = #{ENTITY_ID}
+       AND NVL( REL.USE_YN, 'Y') = 'Y'
+    </select>
+
+    <insert id="saveRelation"  parameterType="paramMap">
+        INSERT /* mapper.erd.relation.saveRelation */
+          INTO RELATION (
+                    PROJECT_ID 
+                  , VERSN
+                  , RELATION_ID 
+                  , START_ENTITY_ID 
+                  , END_ENTITY_ID 
+                  , RELATION_NM 
+                  , RELATION_TYPE 
+                  , LINE_COLOR 
+                  , NON_IDEN_YN 
+                  , FRST_INS_DT 
+                  , FRST_INS_USR_UID 
+                  , LAST_UPD_DT 
+                  , LAST_UPD_USR_UID 
+           ) VALUES (
+                    #{SESSION_PROJECT_ID} 
+                  , #{SESSION_VERSN}
+                  , #{RELATION_ID}
+                  , #{START_ENTITY_ID} 
+                  , #{END_ENTITY_ID} 
+                  , #{RELATION_NM} 
+                  , #{RELATION_TYPE} 
+                  , #{LINE_COLOR}
+                  , #{NON_IDEN_YN} 
+                  , CURRENT_TIMESTAMP     
+                  , #{SESSION_USR_NM}
+                  , CURRENT_TIMESTAMP   
+                  , #{SESSION_USR_NM}
+           )
+        ON DUPLICATE KEY UPDATE
+
+             RELATION_NM     = CASE WHEN #{RELATION_NM}   IS NULL THEN RELATION_NM   ELSE #{RELATION_NM}   END   
+           , RELATION_TYPE   = CASE WHEN #{RELATION_TYPE} IS NULL THEN RELATION_TYPE ELSE #{RELATION_TYPE} END  
+           , LINE_COLOR      = CASE WHEN #{LINE_COLOR}    IS NULL THEN LINE_COLOR    ELSE #{LINE_COLOR}    END     
+           , NON_IDEN_YN     = CASE WHEN #{NON_IDEN_YN}   IS NULL THEN NON_IDEN_YN   ELSE #{NON_IDEN_YN}   END    
+           
+           , LAST_UPD_DT     = CURRENT_TIMESTAMP 
+           , LAST_UPD_USR_UID =#{SESSION_USR_NM}
+    </insert>
+    
+    <insert id="saveRelationAttr"  parameterType="paramMap">
+        INSERT /* mapper.erd.relation.saveRelationAttr */
+          INTO RELATION_ATTR (
+                    PROJECT_ID 
+                  , VERSN
+                  , RELATION_ID 
+                  , ATTR 
+                  , VAL 
+                  , FRST_INS_DT 
+                  , FRST_INS_USR_UID 
+                  , LAST_UPD_DT 
+                  , LAST_UPD_USR_UID 
+           ) VALUES (
+                    #{SESSION_PROJECT_ID} 
+                  , #{SESSION_VERSN}
+                  , #{RELATION_ID}
+                  , #{ATTR} 
+                  , #{VAL} 
+                  , CURRENT_TIMESTAMP     
+                  , #{SESSION_USR_NM}
+                  , CURRENT_TIMESTAMP   
+                  , #{SESSION_USR_NM}
+           )
+        ON DUPLICATE KEY UPDATE
+             ATTR = #{ATTR}
+           , VAL   = #{VAL}  
+           
+           , LAST_UPD_DT     = CURRENT_TIMESTAMP 
+           , LAST_UPD_USR_UID =#{SESSION_USR_NM}
+    </insert>
+
+    <!--  관계 목록 조회. -->
+    <select id="selectRelation"  parameterType="paramMap" resultType="resultMap">
+    SELECT /* mapper.erd.relation.selectRelation */
+           REL.RELATION_ID
+         , CONCAT(REL.START_ENTITY_ID, '_', REL.END_ENTITY_ID) AS RELATION
+         , REL.RELATION_NM    AS RELATION_NAME
+         , REL.RELATION_TYPE  AS RELATION_TYPE
+         , REL.LINE_COLOR     AS COLOR
+         , CASE WHEN REL.START_ENTITY_ID = REL.END_ENTITY_ID THEN 'Y'   
+                ELSE NULL END AS RECURSIVE_YN
+         , REL.START_ENTITY_ID
+         , REL.END_ENTITY_ID
+         , REL.NON_IDEN_YN AS NON_IDEN_YN 
+      FROM RELATION          REL
+     WHERE 1 = 1
+       AND REL.PROJECT_ID  = #{SESSION_PROJECT_ID}
+       AND REL.VERSN       = #{SESSION_VERSN}
+       AND REL.RELATION_ID = #{RELATION_ID}
+    </select>
+    
+    <delete id="deleteRelationColumnFK"  parameterType="paramMap">
+        DELETE COL /* mapper.erd.relation.deleteRelationColumnFK */
+          FROM COLMN COL
+        WHERE PROJECT_ID    = #{SESSION_PROJECT_ID }
+          AND VERSN         = #{SESSION_VERSN }
+          AND ENTITY_ID     = #{END_ENTITY_ID }
+          AND FK_COLMN_NM   IN (SELECT COLMN_NM
+                                  FROM COLMN A
+                                 WHERE A.PROJECT_ID = COL.PROJECT_ID
+                                   AND A.VERSN      = COL.VERSN
+                                   AND NVL(A.PK_YN, 'N') = CASE WHEN #{NON_IDEN_YN} = 'Y' THEN 'N' ELSE 'Y' END
+                                   AND A.ENTITY_ID  = #{START_ENTITY_ID })
+    </delete>
+
+    <update id="updateRelationColumnFK"  parameterType="paramMap">
+        UPDATE /* mapper.erd.relation.updateRelationColumnFK */
+               COLMN COL_E
+          JOIN COLMN COL_S
+               ON COL_E.PROJECT_ID = COL_S.PROJECT_ID
+              AND COL_E.VERSN      = COL_S.VERSN
+              AND COL_E.PROJECT_ID = #{SESSION_PROJECT_ID }
+              AND COL_E.VERSN      = #{SESSION_VERSN }
+              AND COL_E.ENTITY_ID  = #{END_ENTITY_ID }
+              AND COL_S.ENTITY_ID  = #{START_ENTITY_ID }
+              AND COL_S.PK_YN      = 'Y'
+              AND ( COL_E.FK_COLMN_NM   = COL_S.COLMN_NM
+                    OR COL_E.FK_COLMN_ID   = COL_S.COLMN_ID )
+          SET 
+              COL_E.DOMAIN_ID     = COL_S.DOMAIN_ID    
+            , COL_E.COLMN_NM      = COL_S.COLMN_NM     
+            , COL_E.ATTR_NM       = COL_S.ATTR_NM      
+            , COL_E.DTYPE         = COL_S.DTYPE        
+            , COL_E.LEN1          = COL_S.LEN1         
+            , COL_E.LEN2          = COL_S.LEN2         
+            , COL_E.DML_TCD       = COL_S.DML_TCD      
+            , COL_E.DML_DT        = COL_S.DML_DT       
+            , COL_E.APLY_USR_UID  = COL_S.APLY_USR_UID 
+            , COL_E.APLY_DT       = COL_S.APLY_DT      
+            , COL_E.COLMN_SCD     = COL_S.COLMN_SCD    
+            , COL_E.NOTNULL_YN    = CASE WHEN #{RELATION_TYPE} = 'relNonIden' THEN 'Y' ELSE 'N' END
+            , COL_E.SEQ           = CASE WHEN COL_S.USE_YN  = 'N' THEN COL_E.SEQ
+                                         WHEN COL_E.SEQ IS NULL THEN #{INDEX}*10 + NVL((SELECT MAX(SEQ) 
+                                                                                          FROM COLMN A
+                                                                                         WHERE A.PROJECT_ID = COL_S.PROJECT_ID
+                                                                                           AND A.VERSN      = COL_S.VERSN
+                                                                                           AND A.ENTITY_ID  = COL_S.ENTITY_ID),10) /* NVL(COL_S.SEQ, 10) */
+                                         ELSE  COL_E.SEQ END
+            , COL_E.PK_YN         = CASE WHEN #{RELATION_TYPE} = 'relNonIden' THEN 'N' ELSE 'Y' END 
+            , COL_E.FK_ENTITY_ID  = COL_S.ENTITY_ID 
+            , COL_E.FK_COLMN_ID   = COL_S.COLMN_ID  
+            , COL_E.FK_COLMN_NM   = COL_S.COLMN_NM  
+            , COL_E.COLMN_DESC    = COL_S.COLMN_DESC  
+            , COL_E.USE_YN        = COL_S.USE_YN      
+            , COL_E.NUMB_MTH      = COL_S.NUMB_MTH 
+            , COL_E.LAST_UPD_DT   = CURRENT_TIMESTAMP
+            , COL_E.LAST_UPD_USR_UID = #{SESSION_USR_NM}
+    </update>  
+      
+    <insert id="saveRelationColumnFK"  parameterType="paramMap">
+        INSERT /* mapper.erd.relation.saveRelationColumnFK */
+          INTO COLMN
+          (
+              PROJECT_ID
+            , VERSN
+            , ENTITY_ID
+            , COLMN_ID
+            , DOMAIN_ID
+            , COLMN_NM
+            , ATTR_NM
+            , DTYPE
+            , LEN1
+            , LEN2
+            , DML_TCD
+            , DML_DT
+            , APLY_USR_UID
+            , APLY_DT
+            , COLMN_SCD
+            , NOTNULL_YN
+            , SEQ
+            , PK_YN
+            , FK_ENTITY_ID 
+            , FK_COLMN_ID 
+            , FK_COLMN_NM
+            , COLMN_DESC 
+            , USE_YN
+            , NUMB_MTH
+            , FRST_INS_DT
+            , FRST_INS_USR_UID
+            , LAST_UPD_DT
+            , LAST_UPD_USR_UID
+          )
+          SELECT
+              PROJECT_ID
+            , VERSN
+            , #{END_ENTITY_ID } AS ENTITY_ID
+            , COLMN_ID          AS COLMN_ID
+            , DOMAIN_ID
+            , COLMN_NM
+            , ATTR_NM
+            , DTYPE
+            , LEN1
+            , LEN2
+            , DML_TCD
+            , DML_DT
+            , APLY_USR_UID
+            , APLY_DT
+            , COLMN_SCD
+            , CASE WHEN #{RELATION_TYPE} = 'relNonIden' THEN 'Y' ELSE 'N' END NOTNULL_YN
+            , #{INDEX}*10 + NVL((SELECT MAX(SEQ) 
+                     FROM COLMN A
+                    WHERE A.PROJECT_ID = COL.PROJECT_ID
+                      AND A.VERSN      = COL.VERSN
+                      AND A.ENTITY_ID  = COL.ENTITY_ID),10)
+               + NVL(SEQ, 10) AS SEQ
+            , CASE WHEN #{RELATION_TYPE} = 'relNonIden' THEN 'N' ELSE 'Y' END PK_YN
+            , ENTITY_ID AS FK_ENTITY_ID 
+            , COLMN_ID  AS FK_COLMN_ID 
+            , COLMN_NM  AS FK_COLMN_NM
+            , COLMN_DESC 
+            , USE_YN
+            , NUMB_MTH
+            , CURRENT_TIMESTAMP
+            , #{SESSION_USR_NM}
+            , CURRENT_TIMESTAMP
+            , #{SESSION_USR_NM}
+         FROM COLMN  COL
+        WHERE PROJECT_ID = #{SESSION_PROJECT_ID }
+          AND VERSN      = #{SESSION_VERSN }
+          AND ENTITY_ID  = #{START_ENTITY_ID }
+          AND PK_YN      = 'Y'
+          AND USE_YN     = 'Y'
+          AND NOT EXISTS (SELECT 'Y'
+                            FROM COLMN
+                           WHERE PROJECT_ID = COL.PROJECT_ID
+                             AND VERSN      = COL.VERSN
+                             AND ENTITY_ID  = #{END_ENTITY_ID }
+                             AND COLMN_NM   = COL.COLMN_NM )
+    </insert>
+
+
+
+    <update  id="updateRelationNonIdenYN"  parameterType="paramMap">
+      UPDATE /* mapper.erd.relation.updateRelationNonIdenY */
+             COLMN  COL
+         SET 
+             PK_YN       = CASE WHEN #{NON_IDEN_YN} = 'Y' THEN 'N' ELSE 'Y' END
+           , SEQ         = CASE WHEN #{NON_IDEN_YN} = 'Y' THEN SEQ
+                                ELSE NVL((SELECT MAX(SEQ) 
+                                            FROM COLMN A
+                                           WHERE A.PROJECT_ID = COL.PROJECT_ID
+                                             AND A.VERSN      = COL.VERSN
+                                             AND A.ENTITY_ID  = COL.ENTITY_ID
+                                             AND PK_YN      = 'Y' ),10) 
+                                     + SEQ +10-(SELECT MIN(SEQ)
+                                                  FROM COLMN
+                                                 WHERE PROJECT_ID = COL.PROJECT_ID
+                                                   AND VERSN      = COL.VERSN
+                                                   AND FK_COLMN_NM IN (SELECT A.COLMN_NM
+                                                                         FROM COLMN A
+                                                                        WHERE A.PROJECT_ID = COL.PROJECT_ID
+                                                                          AND A.VERSN      = COL.VERSN
+                                                                          AND A.ENTITY_ID  = #{START_ENTITY_ID })) END
+           , LAST_UPD_DT     = CURRENT_TIMESTAMP 
+           , LAST_UPD_USR_UID =#{SESSION_USR_NM}
+       WHERE PROJECT_ID = #{SESSION_PROJECT_ID }
+         AND VERSN      = #{SESSION_VERSN }
+         AND ENTITY_ID  = #{END_ENTITY_ID }
+         AND FK_COLMN_NM IN (SELECT A.COLMN_NM
+                               FROM COLMN A
+                              WHERE A.PROJECT_ID = COL.PROJECT_ID
+                                AND A.VERSN      = COL.VERSN
+                                AND A.ENTITY_ID  = #{START_ENTITY_ID }
+                                AND A.PK_YN      = 'Y'
+                            )
+    </update>
+    
+    
+    <insert id="saveSubjectRelation"  parameterType="paramMap">
+        INSERT /* mapper.erd.relation.saveSubjectRelation */
+          INTO SUBJECT_RELATION (
+                  PROJECT_ID 
+                , VERSN  
+                , SUBJECT_ID 
+                , RELATION_ID 
+                , USR_ID 
+                , START_POSITION 
+                , START_Y 
+                , START_X 
+                
+                , END_POSITION 
+                , END_X 
+                , END_Y 
+                
+                , LINE_PATH
+                
+                , FRST_INS_DT 
+                , FRST_INS_USR_UID 
+                , LAST_UPD_DT 
+                , LAST_UPD_USR_UID 
+
+           ) VALUES (
+                  #{SESSION_PROJECT_ID} 
+                , #{SESSION_VERSN}
+                , #{SUBJECT_ID} 
+                , #{RELATION_ID} 
+                , NVL(#{USR_ID}, #{SESSION_USR_UID})
+                 
+                , #{START_POSITION} 
+                , #{START_Y} 
+                , #{START_X} 
+                  
+                , #{END_POSITION} 
+                , #{END_X}
+                , #{END_Y} 
+                
+                , #{LINE_PATH}
+                
+                , CURRENT_TIMESTAMP     
+                , #{SESSION_USR_NM}
+                , CURRENT_TIMESTAMP   
+                , #{SESSION_USR_NM}
+           )
+        ON DUPLICATE KEY UPDATE
+              START_POSITION = CASE WHEN #{START_POSITION} IS NULL THEN START_POSITION ELSE #{START_POSITION} END
+            , START_Y        = CASE WHEN #{START_Y}        IS NULL THEN START_Y        ELSE #{START_Y}        END
+            , START_X        = CASE WHEN #{START_X}        IS NULL THEN START_X        ELSE #{START_X}        END
+
+            , END_POSITION   = CASE WHEN #{END_POSITION}   IS NULL THEN END_POSITION   ELSE #{END_POSITION}   END
+            , END_X          = CASE WHEN #{END_X}          IS NULL THEN END_X          ELSE #{END_X}          END
+            , END_Y          = CASE WHEN #{END_Y}          IS NULL THEN END_Y          ELSE #{END_Y}          END
+
+            , LINE_PATH      = CASE WHEN #{LINE_PATH}      IS NULL THEN LINE_PATH      ELSE #{LINE_PATH}      END
+           
+           , LAST_UPD_DT     = CURRENT_TIMESTAMP 
+           , LAST_UPD_USR_UID =#{SESSION_USR_NM}
+    </insert>
+    
+    <delete id="deleteRelation"  parameterType="paramMap">
+        DELETE /* mapper.erd.relation.deleteRelation */
+          FROM RELATION 
+         WHERE 1 = 1
+           AND PROJECT_ID  = #{SESSION_PROJECT_ID} 
+           AND VERSN       = #{SESSION_VERSN}
+           AND RELATION_ID = #{RELATION_ID} 
+    </delete>
+    
+    <delete id="deleteRelationAttr"  parameterType="paramMap">
+        DELETE /* mapper.erd.relation.deleteRelationAttr */
+          FROM RELATION_ATTR 
+         WHERE 1 = 1
+           AND PROJECT_ID  = #{SESSION_PROJECT_ID} 
+           AND VERSN       = #{SESSION_VERSN}
+           AND RELATION_ID = #{RELATION_ID} 
+    </delete>
+    
+    <delete id="deleteSubjectRelation"  parameterType="paramMap">
+        DELETE /* mapper.erd.relation.deleteSubjectRelation */
+          FROM SUBJECT_RELATION 
+         WHERE 1 = 1
+           AND PROJECT_ID  = #{SESSION_PROJECT_ID} 
+           AND VERSN       = #{SESSION_VERSN}
+           AND SUBJECT_ID  = #{SUBJECT_ID} 
+           AND RELATION_ID = #{RELATION_ID} 
+    </delete>
+    
+    <delete id="updateRelationPath"  parameterType="paramMap">
+        UPDATE /* mapper.erd.relation.updateRelationPath */
+               SUBJECT_RELATION SUBJ_REL
+           SET 
+               LINE_PATH = #{PATHS} 
+             , LAST_UPD_DT     = CURRENT_TIMESTAMP 
+             , LAST_UPD_USR_UID =#{SESSION_USR_NM}
+         WHERE 1 = 1
+           AND PROJECT_ID  = #{SESSION_PROJECT_ID} 
+           AND VERSN       = #{SESSION_VERSN}
+           AND SUBJECT_ID  = #{SUBJECT_ID} 
+           AND RELATION_ID = #{RELATION_ID} 
+    </delete>
+</mapper>

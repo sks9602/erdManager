@@ -1,0 +1,62 @@
+
+.link {
+    color : blue;
+}
+
+.x-autocontainer-form-item,
+.x-anchor-form-item,
+.x-vbox-form-item,
+.x-table-form-item {
+    margin-top: 1px;
+    margin-bottom: 0px;
+}
+.x-form-item-label-required {
+    /* color: red !important; */
+    background:transparent url(/static/ext/ux/image/icons/field_required.gif) no-repeat right;  height:22px;  /* float:left; 9 * 8 */
+    background-position: right 3px center;
+}
+
+.x-form-item-label {
+    background-color : #ddd;
+    height : 22px;
+    vertical-align: middle;
+    margin-top : 0px;
+    padding : 0px 0 0 4px;
+    line-height : 22px;
+}
+
+.x-form-display-field-default {
+    min-height : 0px;
+}
+.x-form-trigger-wrap, .x-form-display-field {
+    margin-left: 2px;
+}
+.x-tree-icon {
+    width: 0px;
+}
+.x-tree-elbow-img {
+    width: 14px;
+}
+
+.grid-highlight-drop-location {
+    border-bottom-style: solid;
+    border-bottom-color: red;
+    border-bottom-width: medium;
+}
+
+.grid-header-textfield { background:transparent url(/static/ext/ux/image/icons/text-input.png) no-repeat !important; width:16px; height:16px; float:left;  }
+.grid-header-textarea { background:transparent url(/static/ext/ux/image/icons/text_signature.png) no-repeat !important; width:14px; height:14px; float:left;  }
+.grid-header-numberfield { background:transparent url(/static/ext/ux/image/icons/calculator_edit.png) no-repeat !important; width:16px; height:16px; float:left;  }
+/*.grid-header-datefield { background:transparent url(/static/ext/ux/image/icons/calendar.gif) no-repeat !important; width:16px; height:16px; float:left;  } */
+.grid-header-datefield { background:transparent url(/static/ext/ux/image/icons/ui-datefield-icon.png) no-repeat !important; width:16px; height:16px; float:left;  }
+/* .grid-header-combobox { background:transparent url(/static/ext/ux/image/icons/grid_ic_combobox.gif) no-repeat !important; width:16px; height:16px; float:left; */
+.grid-header-combobox { background:transparent url(/static/ext/ux/image/icons/ui-combo-box-edit-icon.png) no-repeat !important; width:16px; height:16px; float:left;  }
+/* .grid-header-combotipple { background:transparent url(/static/ext/ux/image/icons/grid_ic_combobox.gif) no-repeat !important; width:16px; height:16px; float:left;  } */
+.grid-header-combotipple { background:transparent url(/static/ext/ux/image/icons/ui-combo-box-edit-icon.png) no-repeat !important; width:16px; height:16px; float:left;  }
+.grid-header-combogrid { background:transparent url(/static/ext/ux/image/icons/ui-combo-box-edit-icon.png) no-repeat !important; width:16px; height:16px; float:left;  }
+.grid-header-combotree { background:transparent url(/static/ext/ux/image/icons/ui_tree_1.gif) no-repeat !important; width:16px; height:16px; float:left;  }
+.grid-header-timefield { background:transparent url(/static/ext/ux/image/icons/grid_ic_timefield.gif) no-repeat !important; width:16px; height:16px; float:left;  }
+.grid-header-email { background:transparent url(/static/ext/ux/image/icons/email_edit.png) no-repeat !important; width:16px; height:16px; float:left;  }
+.grid-header-link { background:transparent url(/static/ext/ux/image/icons/link.png) no-repeat !important; width:16px; height:16px; float:left;  }
+.grid-header-action { background:transparent url(/static/ext/ux/image/icons/anchor.png) no-repeat !important; width:16px; height:16px; float:left;  }
+.grid-header-popup { background:transparent url(/static/ext/ux/image/icons/zoom.png) no-repeat !important; width:16px; height:16px; float:left;  }

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- configuration>
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<layout class="ch.qos.logback.classic.PatternLayout">
+			<Pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level] %logger{36}.%M\(%line\) - %msg%n </Pattern>
+		</layout>
+	</appender>
+	<root level="info">
+		<appender-ref ref="STDOUT"/>
+	</root>
+</configuration -->
+
+<configuration scan="true" scanPeriod="30 seconds">
+
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<Pattern>%d{HH:mm} %-5level %logger{36}.%M\(%line\) - %msg%n</Pattern>
+		</encoder>
+	</appender>
+
+	<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>logs/access.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>logs/access-%d{yyyy-MM-dd}.log</fileNamePattern>
+			<maxHistory>30</maxHistory>
+		</rollingPolicy>
+
+		<encoder>
+			<Pattern>%d{HH:mm} %-5level %logger{36} - %msg%n</Pattern>
+		</encoder>
+	</appender>
+
+	<!--appender name="DATABASE" class="ch.qos.logback.classic.db.DBAppender">
+		<connectionSource class="ch.qos.logback.core.db.DriverManagerConnectionSource">
+			<driverClass>com.p6spy.engine.spy.P6SpyDriver</driverClass>
+			<url>jdbc:p6spy:oracle:thin:@222.122.47.39:1521:orcl</url>
+			<user>sems2</user>
+			<password>dainls1q2w3e4r</password>
+		</connectionSource>
+	</ appender-->
+
+	<root level="info">
+		<appender-ref ref="CONSOLE"/>
+		<!--appender-ref ref="FILE"/-->
+	</root> 
+		
+	<!-- logger name="com.dainframework" level="error">
+		<appender-ref ref="DATABASE"/>
+	</logger>
+
+	<logger name="com.dao" level="error">
+		<appender-ref ref="DATABASE"/>
+	</logger>
+
+	<logger name="com.staff" level="error">
+		<appender-ref ref="DATABASE"/>
+	</logger -->
+		
+	<logger name="org.springframework" level="info"/>
+
+
+</configuration>

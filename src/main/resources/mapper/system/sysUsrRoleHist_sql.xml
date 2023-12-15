@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.system.SysUsrRoleHistDao">
+
+
+	<!-- 시스템 사용자 역할 이력 목록 조회 (Map)  -->
+	<select id="selectListSysUsrRoleHist"  parameterType="paramMap" resultType="resultMap">
+	<include refid="Cmmn.pageHeadNewDT"/>
+	SELECT 
+		  TSURH.USR	/* 사용자*/
+		, VU.USER_ID	/* 사용자*/
+		, VU.USER_NM	/* 사용자*/
+		, TSURH.ROLE	/* 역할*/
+		, TSURH.RGST_DT	/* 등록 일시*/
+		, TO_CHAR(TSURH.RGST_DT, 'YYYY-MM-DD HH24:MI:SS') AS RGST_DT_FMT
+		, TSURH.ROLE_NM	/* 역할 명*/
+		, TSURH.HIST_CD	/* */
+		, TSURH.HIST_NM	/* 이력 명*/
+		, TSURH.RGST_USR	/* 등록 사용자*/
+		, VU2.USER_ID AS  RGST_USER_ID	/* 등록 사용자*/
+		, TSURH.RGST_USR_NM	AS RGST_USER_ID_NM/* 등록 사용자 명*/
+	  FROM T_SYS_USR_ROLE_HIST TSURH
+	  		INNER JOIN V_USER VU
+	  			ON TSURH.USR = VU.USER_KEY
+	  		INNER JOIN V_USER VU2
+	  			ON TSURH.RGST_USR = VU2.USER_KEY
+	 WHERE 1 = 1
+	 	<if test="usrId != null and usrId != ''">
+			AND VU.USER_ID like '%'||#{usrId}||'%'	/* 사용자*/
+		</if>	
+	 	<if test="usrNm != null and usrNm != ''">
+			AND VU.USER_NM like '%'||#{usrNm}||'%'	/* 사용자*/
+	 	</if>
+	 	<if test="histCd != null and histCd != ''">
+			AND TSURH.HIST_CD = #{histCd}	/* 권한 부여 코드 */
+	 	</if>
+	   AND TSURH.RGST_DT <![CDATA[>=]]> TO_DATE(REPLACE(#{regStrYmd},'-',''), 'YYYYMMDD')	/* 접속 년월일시분초*/
+	   AND TSURH.RGST_DT <![CDATA[<=]]> TO_DATE(REPLACE(#{regEndYmd},'-',''), 'YYYYMMDD')+1	/* 접속 년월일시분초*/
+	<include refid="Cmmn.pageFooterNewDT"/>
+	</select>
+
+</mapper>

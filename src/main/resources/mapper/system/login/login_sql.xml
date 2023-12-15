@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.login.LoginDao">
+
+    <!-- 시스템 사용자 1건 조회 (Map) -->
+    <select id="selectLoginUser"  parameterType="paramMap" resultType="resultMap">
+    <![CDATA[
+    SELECT 
+          USR.USR_UID   /* 사용자*/ 
+        , USR.LOGIN_ID   /* 사용자 ID */ 
+        , USR.USR_NM    /* 사용자 명*/
+
+        , USR_PJT.AUTH_CD
+        , PJT.PROJECT_ID
+        , PJT.PROJECT_NM
+        , PJT.VERSN
+        , NVL(USR_PJT.ENTITY_DISPLAY_DAYCNT, PJT.ENTITY_DISPLAY_DAYCNT) AS ENTITY_DISPLAY_DAYCNT
+        , NVL(USR_PJT.COLMN_DISPLAY_DAYCNT, PJT.COLMN_DISPLAY_DAYCNT) AS COLMN_DISPLAY_DAYCNT
+      FROM USR         USR
+         , USR_PROJECT USR_PJT
+         , PROJECT     PJT
+     WHERE 1 = 1
+       AND USR.PROJECT_ID     = USR_PJT.PROJECT_ID
+       AND USR_PJT.PROJECT_ID = PJT.PROJECT_ID
+       AND USR.LOGIN_ID = #{LOGIN_ID}    /* 사용자*/
+       AND USR.PWD      = #{PWD}  /* 패스워드*/
+    ]]>
+    </select>
+
+    <!--  사용자 IP확인 -->
+    <select id="selectUserIpCheckCount"  parameterType="com.common.login.vo.LoginVo" resultType="resultMap">
+    <![CDATA[
+    SELECT (SELECT COUNT(*) FROM T_SYS_USR_IP WHERE USR = #{userKey} ) AS IP_ALL_COUNT
+         , (SELECT COUNT(*) FROM T_SYS_USR_IP WHERE USR = #{userKey} AND IP = #{loginIp} ) AS IP_COUNT
+      FROM DUAL
+    ]]>
+    </select>
+
+    <!--  사용자 역할 조회. -->
+    <select id="selectUserRoleList"  parameterType="paramMap" resultType="resultMap">
+    <![CDATA[
+    SELECT 
+          TSUR.ROLE /* 역할*/
+      FROM V_USER_ROLE TSUR
+     WHERE 1 = 1
+       AND TSUR.USR_UID = #{USR_UID}   /* 사용자*/
+    ]]>
+    </select>
+    
+    
+    <!-- 시스템 사용자 로그인 이력등록 -->
+    <insert id="insertSysUsrLoginHist"  parameterType="paramMap">
+        <selectKey keyProperty="LOGIN_YMDHMS" resultType="java.lang.String" order="BEFORE">
+            SELECT DATE_FORMAT(NOW(), '%Y-%m-%d %T') AS LOGIN_YMDHMS
+        </selectKey>
+        INSERT INTO T_SYS_USR_LOGIN_HIST
+          (
+                  LOGIN_ID  /* 사용자*/
+                , LOGIN_YMDHMS  /* 로그인 년월일시분초*/
+                , USR_UID    /* 사용자 명*/
+                , USR_NM    /* 사용자 명*/
+                , LOGIN_IP  /* IP*/
+                , OS_INFO   /* OS 정보*/
+            )
+           VALUE (
+                  #{LOGIN_ID}   /* 사용자*/
+                , #{LOGIN_YMDHMS}   /* 로그인 년월일시분초*/
+                , (SELECT USR_NM
+                             FROM V_USER 
+                            WHERE LOGIN_ID = #{LOGIN_ID}) /* 사용자 명*/
+                , (SELECT USR_UID
+                             FROM V_USER 
+                            WHERE LOGIN_ID = #{LOGIN_ID}) /* 사용자 명*/
+                , #{LOGIN_IP}   /* IP*/
+                , NULL  --   /* OS 정보 OS_INFO*/
+             )
+             ON DUPLICATE KEY UPDATE
+                  LOGIN_IP  = #{LOGIN_IP}
+                , OS_INFO   = NULL  --  /* OS 정보 OS_INFO*/
+    </insert>
+    
+    <!--  사용자 로그인 실패 및 성공 사유 등록 -->
+    <update id="updateSysUsrLoginHist"  parameterType="paramMap">
+    <![CDATA[
+    UPDATE T_SYS_USR_LOGIN_HIST TSULH SET
+          TSULH.LOGIN_YN = #{ LOGIN_YN } /* 로그인 여부 */
+        , TSULH.LOGIN_FAIL_DESC = #{LOGIN_FAIL_DESC}    /* 로그인 실패 설명 */
+     WHERE 1 = 1
+         AND TSULH.LOGIN_ID = #{ LOGIN_ID } /* 사용자 */ 
+         AND TSULH.LOGIN_YMDHMS = #{LOGIN_YMDHMS} /* 로그인 년월일시분초 */ 
+
+    ]]>
+    </update>
+        
+    <!-- 시스템 사용자 로그인병합 -->
+    <update id="mergeSysUsrLoginFinalDt"  parameterType="paramMap">
+    <![CDATA[
+    MERGE INTO T_SYS_USR_LOGIN TSUL
+        USING T_DUAL
+        ON (    TSUL.USR = #{userKey}   /* 사용자*/
+        )
+    WHEN MATCHED THEN
+        UPDATE SET
+              TSUL.FINAL_LOGIN_DT = SYSDATE /* 최종 로그인 일시*/
+    WHEN NOT MATCHED THEN
+        INSERT (
+              USR   /* 사용자*/
+            , FINAL_LOGIN_DT    /* 최종 로그인 일시*/
+        )
+        VALUES (
+              #{userKey}    /* 사용자*/
+            , SYSDATE   /* 최종 로그인 일시*/
+        )
+    ]]>
+    </update>
+    
+    <!-- 로그아웃 일시 저장 -->
+    <update id="updateSysUsrLogout" parameterType="com.common.login.vo.LoginVo">
+    <![CDATA[
+    UPDATE T_SYS_USR_LOGIN_HIST TSULH SET
+            TSULH.LOGOUT_DT = SYSDATE/* 로그아웃 일시 */
+     WHERE 1 = 1
+         AND TSULH.USR_ID = #{ userId } /* 사용자 */ 
+         AND TSULH.LOGIN_YMDHMS = #{ loginYmdhms } /* 로그인 년월일시분초 */ 
+
+    ]]>
+    </update>
+</mapper>

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.system.SysRoleMenuDao">
+
+	<!-- 시스템 역할 메뉴 1건 조회 (Map) -->
+	<select id="selectSysRoleMenu"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT 
+		  TSRM.ROLE	/* 역할*/
+		, TSRM.MENU	/* 메뉴*/
+		, TSRM.RGST_DT	/* 등록 일시*/
+		, TSRM.RGST_USR	/* 등록 사용자*/
+	  FROM T_SYS_ROLE_MENU TSRM
+	 WHERE 1 = 1
+	   AND TSRM.ROLE = #{role}	/* 역할*/
+	   AND TSRM.MENU = #{menu}	/* 메뉴*/
+	]]>
+	</select>
+
+
+	<!-- 시스템 역할 메뉴 목록 조회 (Map)  -->
+	<select id="selectListSysRoleMenu"  parameterType="paramMap" resultType="resultMap">
+	<![CDATA[
+	SELECT 
+		  TSRM.ROLE	/* 역할*/
+		, TSRM.MENU	/* 메뉴*/
+		, TSRM.RGST_DT	/* 등록 일시*/
+		, TSRM.RGST_USR	/* 등록 사용자*/
+	  FROM T_SYS_ROLE_MENU TSRM
+	 WHERE 1 = 1
+	   AND TSRM.ROLE = #{role}	/* 역할*/
+	   AND TSRM.MENU = #{menu}	/* 메뉴*/
+	]]>
+	</select>
+
+	<!-- 시스템 역할 메뉴 등록 -->
+	<insert id="insertSysRoleMenu"  parameterType="paramMap">
+		<!-- selectKey keyProperty="" resultType="" order="BEFORE">
+			SELECT 
+			  FROM T_SYS_ROLE_MENU TSRM
+		<selectKey -->
+	<![CDATA[
+	INSERT INTO T_SYS_ROLE_MENU(
+		  ROLE	/* 역할*/
+		, MENU	/* 메뉴*/
+		, RGST_DT	/* 등록 일시*/
+		, RGST_USR	/* 등록 사용자*/
+	)
+	VALUES (
+		  #{role}	/* 역할*/
+		, #{menu}	/* 메뉴*/
+		, #{rgstDt}	/* 등록 일시*/
+		, #{rgstUsr}	/* 등록 사용자*/
+	)
+	]]>
+	</insert>
+
+	<!-- 시스템 역할 메뉴 수정 -->
+	<update id="updateSysRoleMenu"  parameterType="paramMap">
+	<![CDATA[
+	UPDDATE T_SYS_ROLE_MENU TSRM SET
+		  TSRM.RGST_DT = #{rgstDt}	/* 등록 일시*/
+		, TSRM.RGST_USR = #{rgstUsr}	/* 등록 사용자*/
+	  FROM T_SYS_ROLE_MENU TSRM
+	 WHERE 1 = 1
+	   AND TSRM.ROLE = #{role}	/* 역할*/
+	   AND TSRM.MENU = #{menu}	/* 메뉴*/
+	]]>
+	</update>
+
+	<!-- 시스템 역할 메뉴병합 -->
+	<update id="mergeSysRoleMenu"  parameterType="paramMap">
+	<![CDATA[
+	MERGE INTO T_SYS_ROLE_MENU TSRM
+		USING T_DUAL
+		ON (	TSRM.ROLE = #{role}	/* 역할*/
+			AND TSRM.MENU = #{menu}	/* 메뉴*/
+		)
+	WHEN NOT MATCHED THEN
+		INSERT (
+			  ROLE	/* 역할*/
+			, MENU	/* 메뉴*/
+			, RGST_DT	/* 등록 일시*/
+			, RGST_USR	/* 등록 사용자*/
+		)
+		VALUES (
+			  #{role}	/* 역할*/
+			, #{menu}	/* 메뉴*/
+			, #{rgstDt}	/* 등록 일시*/
+			, #{rgstUsr}	/* 등록 사용자*/
+		)
+	]]>
+	</update>
+
+	<!-- 시스템 역할 메뉴 삭제 -->
+	<delete id="deleteSysRoleMenu"  parameterType="paramMap">
+	<![CDATA[
+	DELETE 
+	  FROM T_SYS_ROLE_MENU TSRM
+	 WHERE 1 = 1
+	   AND TSRM.ROLE = #{role}	/* 역할*/
+	   AND TSRM.menu LIKE #{menuGbn}||'%'
+	]]>
+	</delete>
+	
+	
+
+</mapper>
