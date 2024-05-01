@@ -104,11 +104,11 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		var tableFullNm = ""; // tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"]+" [" + tableInfo["TABL_SCD_NM"] +"]";
 
 		if( Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue() == 'LOGICAL' ) {
-			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]+ " [" + tableInfo["TABL_SCD_NM"] +"]";
+			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]; // + " [" + tableInfo["TABL_SCD_NM"] +"]";
 		} else if( Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue() == 'PHYSICAL' )  {
-			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["ENTITY_NM"]+ " [" + tableInfo["TABL_SCD_NM"] +"]";
+			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["ENTITY_NM"]; // + " [" + tableInfo["TABL_SCD_NM"] +"]";
 		} else {
-			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"]+ " [" + tableInfo["TABL_SCD_NM"] +"]";
+			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"]; // + " [" + tableInfo["TABL_SCD_NM"] +"]";
 		}
 		
 		this.tableNameText = _this.draw.text(function(t) {
@@ -149,6 +149,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 				, 'stroke-width': this.CONSTANT.STROKE_WIDTH
 				, rx : tableInfo["IS_SUB_TABLE"] =="Y" ? 5 : 0
 				, fill : this.getTableBackgroundColor(_this.tableInfo)
+				, 'stroke-dasharray' : (tableInfo["ENTITY_TCD"] == "MVIEW" || tableInfo["ENTITY_TCD"] == "VIEW") ?  '5,5' : ""  
 				//, fill: '#f06'
 				//, 'fill-opacity': 0.5
 			}).transform({
@@ -195,11 +196,13 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 				_this.relationByButtonBegin = true;
 				_this.drawDataLoad.setRelationByButton( Ext.getCmp('DRAW_BUTTON').getValue(), _this.draw, _this.tableGrp, _this.subjectAreaInfo,  _this.tableInfo, ev  );
 			} 
-		  // 1:0or1관계선
+		    // 1:0or1관계선
 			else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'relNonIden' ) {
 				_this.relationByButtonBegin = true;
 				_this.drawDataLoad.setRelationByButton( Ext.getCmp('DRAW_BUTTON').getValue(), _this.draw, _this.tableGrp, _this.subjectAreaInfo,  _this.tableInfo, ev  );
-			} else {
+			}
+			// 기타..
+			else {
 				_this.tableGrp.draggable(true);
 		
 				console.log(">>", _this.subjectAreaInfo["SUBJECT_ID"],  _this.tableInfo["ENTITY_ID"], ev.ctrlKey )
@@ -295,7 +298,12 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		
 		this.tableGrp.on("mouseover", function(ev) {
 			// 테이블 draggable
-			_this.tableGrp.attr("cursor", _this.isSelected ? "move" : "default");
+			if( erdAuth.isEditable()  ) {
+                _this.tableGrp.attr("cursor", _this.isSelected ? "move" : "default");
+            } else {
+                _this.tableGrp.attr("cursor", "default");
+            }
+			
 		});
 		this.tableGrp.on("dragstart", function(ev) { 
 			console.log("dragstart", ev.ctrlKey);
@@ -474,8 +482,8 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 			_this.drawDataLoad.setSelectRectangular('init', ev);
 			_this.tableGrp.draggable(false);
 
-			$( "#minimap" ).html('');
-			$( "#minimap" ).minimap( $("#"+_this.subjectAreaInfo["SUBJECT_ID"]) );
+			$( "#minimap-"+_this.subjectAreaInfo["SUBJECT_ID"] ).html('');
+			$( "#minimap-"+_this.subjectAreaInfo["SUBJECT_ID"] ).minimap( $("#"+_this.subjectAreaInfo["SUBJECT_ID"]) );
 
 		});
 		
@@ -525,9 +533,10 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 			_this.tableColumnDataList[i].remove();
 		}
 		console.log( _this.pkLine );
-		// pk라인 삭제
-		_this.pkLine.remove();
-		
+		if( _this.pkLine ) {
+    		// pk라인 삭제
+    		_this.pkLine.remove();
+		}
 		// 컬럼 그리기
 		_this.drawColumns()
 	}
@@ -540,6 +549,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		var colIdx = 0;
 		var pkLineGap = 0;
 		var pkGap = 3;
+		console.log( _this.tableInfo );
 		if( !_this.tableInfo["HAS_PK"] ) {
 			_this.drawPkLine(colIdx);
 			colIdx +=2;
@@ -591,8 +601,8 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 			}
 			
 			// 삭제건은 취소선 처리.
-			if(columnInfo["USE_YN"] == 'N') {
-				// columnName.attr({"text-decoration":"line-through", "text-decoration-color":"red"});
+			if(columnInfo["USE_YN"] == 'N' && columnInfo["PK_YN"] == "Y") {
+			     columnName.attr({"text-decoration":"line-through", "text-decoration-color":"red"});
 			}
 			
 			if( columnInfo["DATA_TYPE"] != "COMMENT") {
@@ -605,7 +615,12 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 			// 마지막 pk일 경우
 			if( columnInfo["IS_LAST_PK_YN"] == "Y" ) {
 				_this.drawPkLine(colIdx);
-				pkLineGap = 2;
+				if( this.tableInfo["ENTITY_TCD"] != "VIEW") {
+                    pkLineGap = 2;
+                } else {
+                    pkLineGap = 0;
+                }
+				
 			}
 		}
 
@@ -763,12 +778,20 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 	 */
 	this.drawPkLine = function( colIdx ) {
 		var _this = this;
-		if( colIdx == 0 ) {
-			this.pkLine = this.draw.path('M 0 '+ 28+' H'+(this.getTableWidth(_this.tableInfo))).attr({ 'stroke-width':this.CONSTANT.STROKE_WIDTH , stroke: this.getTableLineColor(_this.tableInfo)});
-		} else {
-			this.pkLine = this.draw.path('M 0 '+ (28+((colIdx-1)*12))+' H'+(this.getTableWidth(_this.tableInfo))).attr({'stroke-width':this.CONSTANT.STROKE_WIDTH , stroke: this.getTableLineColor(_this.tableInfo)});
-		}
-		console.log("this.pkLine", this.tableInfo , this.pkLine);
+		if( this.tableInfo["ENTITY_TCD"] != "VIEW") {
+    		if( colIdx == 0 ) {
+    			this.pkLine = this.draw.path('M 0 '+ 28+' H'+(this.getTableWidth(_this.tableInfo))).attr({ 'stroke-width':this.CONSTANT.STROKE_WIDTH , stroke: this.getTableLineColor(_this.tableInfo)});
+    		} else {
+    			this.pkLine = this.draw.path('M 0 '+ (28+((colIdx-1)*12))+' H'+(this.getTableWidth(_this.tableInfo))).attr({'stroke-width':this.CONSTANT.STROKE_WIDTH , stroke: this.getTableLineColor(_this.tableInfo)});
+    		}
+        }
+        
+		if( this.tableInfo["ENTITY_TCD"] == "MVIEW") {
+            this.pkLine.attr({
+                'stroke-dasharray' : '5,5',
+            })
+        } 
+		// console.log("this.pkLine", this.tableInfo , this.pkLine);
 		this.tableColumns.add(this.pkLine);
 	}
 	
@@ -776,9 +799,11 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 	 * PK를 구분하는 선을 
 	 */
 	this.redrawPkLine = function(width) {
-		var pathArr = this.pkLine.array();
-		var path = pathArr[0][0]+ pathArr[0][1] + " " + pathArr[0][2] + " H "+ width;
-		this.pkLine.plot(path);
+        if( this.tableInfo["ENTITY_TCD"] != "VIEW") {
+    		var pathArr = this.pkLine.array();
+    		var path = pathArr[0][0]+ pathArr[0][1] + " " + pathArr[0][2] + " H "+ width;
+    		this.pkLine.plot(path);
+    	}
 	}
 	
 	/*
@@ -907,8 +932,8 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 					_this.relationEnd[i].drawRelation('resizer_move_dragend');
 				}
 		
-				$( "#minimap" ).html('');
-				$( "#minimap" ).minimap( $("#"+_this.subjectAreaInfo["SUBJECT_ID"]) );
+				$( "#minimap_"+_this.subjectAreaInfo["SUBJECT_ID"] ).html('');
+				$( "#minimap_"+_this.subjectAreaInfo["SUBJECT_ID"] ).minimap( $("#"+_this.subjectAreaInfo["SUBJECT_ID"]) );
 			});
 		}
 		

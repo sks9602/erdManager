@@ -1,5 +1,6 @@
 <%@ tag language="java" pageEncoding="UTF-8"%>
 <%@ taglib prefix="tagErd"  tagdir="/WEB-INF/tags/erd"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 
                {
                    xtype: 'panel',
@@ -43,7 +44,7 @@
                                         }
                                     </tagErd:itemText>
                                     <tagErd:itemCheckbox type="checkbox_ux" name="EXACT_YN" boxLabel="정확히 일치하는 테이블" value="Y" checked="false"></tagErd:itemCheckbox>
-                                    <tagErd:itemCode type="ext-js-combobox" label="테이블 관리상태" name="TABL_SCD" id="TABLE_TABL_SCD_ALL" cdGrp="TABL_SCD" firstText="전체" value=""></tagErd:itemCode>
+                                    <tagErd:itemCode type="ext-js-combobox" label="테이블 관리상태" name="TABL_SCD" id="TABLE_TABL_SCD_ALL" cdGrp="TABL_SCD" firstText="전체" value="" usedef1="Y"  usedef4="Y"></tagErd:itemCode>
                                     <tagErd:itemText type="textfield_ux" label="컬럼 명" name="COLUMN_NMS" value="" placeholder="';'로 구분하면 다건조회 가능">
                                         listeners : {
                                             'render' : function(cmp) {
@@ -57,7 +58,7 @@
                                         },
                                     </tagErd:itemText>
                                     <tagErd:itemCheckbox type="checkbox_ux" name="EXACT_COLUMN_YN" boxLabel="정확히 일치하는 컬럼" value="Y" checked="false"></tagErd:itemCheckbox>
-                                    <tagErd:itemCode type="ext-js-combobox" label="컬럼 관리상태" name="COLMN_SCD" id="TABLE_COLMN_SCD_ALL" cdGrp="TABL_SCD" firstText="전체" value=""></tagErd:itemCode>
+                                    <tagErd:itemCode type="ext-js-combobox" label="컬럼 관리상태" name="COLMN_SCD" id="TABLE_COLMN_SCD_ALL" cdGrp="TABL_SCD" firstText="전체" value=""  usedef1="Y" usedef4="Y"></tagErd:itemCode>
                                    {
                                         xtype: 'combotreegrid_domain',
                                         value : '',
@@ -113,14 +114,41 @@
                                         }
                                    </tagErd:button>
                                 ],
-                                <tagErd:store type="store" id="tableLayoutStore" idProperty="COLMN_ID" groupField="ENTITY_NM" url="/entity/data/entityColumList.do" rootProperty="data" expanded="false" params="PROJECT_ID : 'PROJECT'" autoLoad="true">
+                                <tagErd:store type="store" id="tableLayoutStore" idProperty="COLMN_ID" groupField="ENTITY_UNIQUE_NM" url="/entity/data/entityColumList.do" rootProperty="data" expanded="false" params="PROJECT_ID : 'PROJECT'" autoLoad="true">
                                      // fields: store.tag로 이동
                                      grouper: {
                                          groupFn: function(item) {
                                              return 'Month: ' + item.get('month') + ', Year: ' + item.get('year');
                                          }
                                      },
+                                     groupField : 'ENTITY_UNIQUE_NM',
+                                     /*
+                                     sorters: [{
+                                                property : 'ENTITY_UNIQUE_NM',
+                                                direction: 'ASC'
+                                            }, {
+                                                property : 'PK_YN',
+                                                direction: 'DESC'
+                                            }, {
+                                                property : 'RNUM',
+                                                direction: 'ASC'
+                                            }],
+                                     */
                                      listeners : {
+                                        load : function(_this, records, successful, operation, eOpts ){
+                                           /*
+                                           _this.sort([{
+                                                property : 'ENTITY_UNIQUE_NM',
+                                                direction: 'ASC'
+                                            }, {
+                                                property : 'PK_YN',
+                                                direction: 'DESC'
+                                            }, {
+                                                property : 'RNUM',
+                                                direction: 'ASC'
+                                            }]);
+                                            */
+                                        }, 
                                         datachanged : function( _this, eOpts) {
                                             console.log( _this )
                                         
@@ -137,7 +165,7 @@
                                     groupHeaderTpl: ['{name:this.formatName}',
                                                         {
                                                             formatName: function(name) {
-                                                                return name.substring(name.indexOf('@')+1);
+                                                                return name.substring(0, name.indexOf('@'));
                                                             }
                                                         }
                                                      ],
@@ -145,12 +173,14 @@
                                     enableGroupingMenu: false,
                                     showSummaryRow : false,
                                 }],
+                                /*
                                 plugins: {
                                     cellediting: {
                                         editing : true,
                                         clicksToEdit: 1
                                     }
                                 },
+                                */
                                 viewConfig: {
                                     plugins: {
                                         gridviewdragdrop: {
@@ -176,20 +206,20 @@
                                             console.log( location )
                                         },
                                         edit : function( sender, location, eOpts )  {
-                                            console.log( sender )
-                                            console.log( location )
+                                            // console.log( sender )
+                                            // console.log( location )
                                         },
                                         beforedrop : function ( node, data, overModel, dropPosition, dropHandlers, eOpts )  {
                                             
-                                            console.log(node)
-                                            console.log(data)
-                                            console.log(overModel)
-                                            console.log(dropPosition);
-                                            console.log(dropHandlers);
+                                            // console.log(node)
+                                            // console.log(data)
+                                            // console.log(overModel)
+                                            // console.log(dropPosition);
+                                            // console.log(dropHandlers);
                                             /*
                                             for( var i=0; i < data.records.length; i++ ) {
                                                 data.records[i].set("ENTITY_ID", overModel.data["ENTITY_ID"]);
-                                                data.records[i].set("ENTITY_NM", overModel.data["ENTITY_NM"]);
+                                                data.records[i].set("ENTITY_UNIQUE_NM", overModel.data["ENTITY_UNIQUE_NM"]);
                                                 data.records[i].set("COLMN_ID", "COL-"+Math.floor(Math.random() * 100000));
                                                 if( overModel.data["PK_YN"]=="Y" && data.records[i].get("PK_YN") == "Y" ) {
                                                    data.records[i].set("PK_YN", "Y");
@@ -200,8 +230,8 @@
                                                 data.records[i].set("id", Ext.id());
                                                 
                                                 var rowNum = Ext.getStore("tableLayoutStore").findBy ( function(record){
-                                                   console.log(record.get("ENTITY_NM"), data.records[i].get("ENTITY_NM"), record.get("COLMN_NM"), data.records[i].get("COLMN_NM")  );
-                                                   if( record.get("ENTITY_NM") == data.records[i].get("ENTITY_NM") 
+                                                   console.log(record.get("ENTITY_UNIQUE_NM"), data.records[i].get("ENTITY_UNIQUE_NM"), record.get("COLMN_NM"), data.records[i].get("COLMN_NM")  );
+                                                   if( record.get("ENTITY_UNIQUE_NM") == data.records[i].get("ENTITY_UNIQUE_NM") 
                                                        && record.get("COLMN_NM") == data.records[i].get("COLMN_NM") ){
                                                            return record.get('id');
                                                        }
@@ -216,11 +246,11 @@
                                         },
                                         drop: function(node, data, dropRec, dropPosition) {
                                             
-                                            console.log(node)
-                                            console.log(data)
-                                            console.log(dropRec)
-                                            console.log(dropPosition);
-                                            console.log(Ext.getStore("tableLayoutStore"));
+                                            // console.log(node)
+                                            // console.log(data)
+                                            // console.log(dropRec)
+                                            // console.log(dropPosition);
+                                            // console.log(Ext.getStore("tableLayoutStore"));
                                             
                                             for( var i=0; i < data.records.length; i++ ) {
                                                 data.records[i].set("RNUM", (parseInt(dropRec.data["RNUM"]) + ( dropPosition == 'after' ? 1 : -1)));
@@ -229,7 +259,7 @@
                                                     continue;
                                                 }
                                                 data.records[i].set("ENTITY_ID", dropRec.data["ENTITY_ID"]);
-                                                data.records[i].set("ENTITY_NM", dropRec.data["ENTITY_NM"]);
+                                                data.records[i].set("ENTITY_UNIQUE_NM", dropRec.data["ENTITY_UNIQUE_NM"]);
                                                 data.records[i].set("COLMN_ID", "COL-"+Math.floor(Math.random() * 100000));
                                                 /*
                                                 if( dropRec.data["PK_YN"]=="Y" && data.records[i].get("PK_YN") == "Y" ) {
@@ -243,8 +273,8 @@
                                                 data.records[i].set("id", Ext.id());
                                                 
                                                 var rowNum = Ext.getStore("tableLayoutStore").findBy ( function(record){
-                                                   // console.log(record.get("ENTITY_NM"), data.records[i].get("ENTITY_NM"), record.get("COLMN_NM"), data.records[i].get("COLMN_NM")  );
-                                                   if( record.get("ENTITY_NM") == data.records[i].get("ENTITY_NM") 
+                                                   // console.log(record.get("ENTITY_UNIQUE_NM"), data.records[i].get("ENTITY_UNIQUE_NM"), record.get("COLMN_NM"), data.records[i].get("COLMN_NM")  );
+                                                   if( record.get("ENTITY_UNIQUE_NM") == data.records[i].get("ENTITY_UNIQUE_NM") 
                                                        && record.get("COLMN_NM") == data.records[i].get("COLMN_NM")
                                                        && record.get("id")!= data.records[i].get("id") ){
                                                            return record.get('id');
@@ -262,7 +292,7 @@
                                             }
                                             
                                             Ext.getStore("tableLayoutStore").sort([{
-                                                property : 'ENTITY_NM',
+                                                property : 'ENTITY_UNIQUE_NM',
                                                 direction: 'ASC'
                                             }, {
                                                 property : 'PK_YN',
@@ -271,6 +301,7 @@
                                                 property : 'RNUM',
                                                 direction: 'ASC'
                                             }]);
+                                            
                                             var records = Ext.getStore("tableLayoutStore").queryRecords ( "ENTITY_ID", dropRec.data["ENTITY_ID"] );
                                             
                                             var isChange = false;
@@ -296,23 +327,31 @@
                                         text: 'ENTITY_NM',
                                         flex: 1,
                                         sortable: true,
-                                        dataIndex: 'ENTITY_NM',
+                                        dataIndex: 'ENTITY_UNIQUE_NM',
                                         hideable: false,
                                         locked : true,
                                         summaryType: 'count',
                                         summaryRenderer: function(value, summaryData, dataIndex) {
-                                            return ((value === 0 || value > 1) ? '(' + value + ' Tasks)' : '(1 Task)');
+                                            return ((value === 0 || value > 1) ? '(' + value + ' Columns)' : '(1 Column)');
                                         }
                                     },
-                                    { text: 'PK', dataIndex: 'PK_YN_BOOL', xtype: 'checkcolumn', width : 28, menuDisabled : true,  locked : true, resizable : false,
+                                    
+                                    { text: 'PK', dataIndex: 'PK_YN', width : 28, menuDisabled : true,  locked : true, resizable : false, sortable : false, 
+                                         renderer : function(value, metaData, record , rowIndex, colIndex, store, view ) {
+                                            return value == "Y" ? "Y" : "";
+                                         }
+                                    },
+                                    /*
+                                    { text: 'PK', dataIndex: 'PK_YN_BOOL', xtype: 'checkcolumn', width : 28, menuDisabled : true,  locked : true, resizable : false, sortable : false, 
                                           listeners : {
                                               checkchange : function( _this, rowIndex, checked, record, e, eOpts ) {
                                                   record.set("NOTNULL_YN_BOOL", checked);
                                               }
                                           }
                                     },
+                                    */
                                     /*
-                                    { text: '<div class="grid-header-combogrid"></div>PK', dataIndex: 'PK_YN', align: "center", width : 40, resizable : false, menuDisabled : true, locked : true,
+                                    { text: 'PK', dataIndex: 'PK_YN', align: "center", width : 40, resizable : false, menuDisabled : true, locked : true,
                                       editor: {
                                          xtype: 'combo',
                                          typeAhead: true,
@@ -325,14 +364,14 @@
                                      }
                                     },
                                     */
-                                    // { text: '컬럼 ID', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div>컬럼 ID</div>', width : 150, sortable: true, dataIndex: 'COLMN_ID' , minWidth : 100, locked : true, },
-                                    { text: '컬럼 논리 명', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div>컬럼 명</div>', dataIndex: 'ATTR_NM', width : 120, minWidth : 100, locked : true, 
+                                    // { text: '컬럼 ID', header: '<div style="text-align:center;width:100%;">컬럼 ID</div>', width : 150, sortable: true, dataIndex: 'COLMN_ID' , minWidth : 100, locked : true, },
+                                    { text: '컬럼 논리 명', header: '<div style="text-align:center;width:100%;">컬럼 논리 명</div>', dataIndex: 'ATTR_NM', width : 120, minWidth : 100, locked : true, 
                                         editor: {
                                             allowBlank: false,
                                             selectOnFocus: false
                                         },
                                     },
-                                    { text: '컬럼 물리 명', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div>컬럼</div>', width : 150, sortable: true, dataIndex: 'COLMN_NM' , minWidth : 100, locked : true, 
+                                    { text: '컬럼 물리 명', header: '<div style="text-align:center;width:100%;">컬럼 물리 명</div>', width : 150, sortable: true, dataIndex: 'COLMN_NM' , minWidth : 100, locked : true, 
                                         
                                         renderer : function(value, metaData, record , rowIndex, colIndex, store, view ) {
                                             var link = new Array();
@@ -355,7 +394,7 @@
                                         }
                                         */
                                     },
-                                    { text: '도메인', header: '<div style="text-align:center;width:100%;"><div class="grid-header-combogrid"></div>도메인</div>', dataIndex: 'DOMAIN_NM', width : 90,
+                                    { text: '도메인', header: '<div style="text-align:center;width:100%;">도메인</div>', dataIndex: 'DOMAIN_NM', width : 90,
                                          editor: {
                                                     xtype: 'combotreegrid_domain',
                                                     id : 'rightAll_combotreegrid_domain_picker',
@@ -372,7 +411,7 @@
                                     
                                     },
                                     { text: '데이터 타입', dataIndex: 'DOMAIN_DATA_TYPE', width : 110, hidden : true, },
-                                    { text: '데이터 타입', header: '<div style="text-align:center;width:100%;"><div class="grid-header-combogrid"></div>데이터 타입</div>', dataIndex: 'DATA_TYPE', width : 110, 
+                                    { text: '데이터 타입', header: '<div style="text-align:center;width:100%;">데이터 타입</div>', dataIndex: 'DATA_TYPE', width : 110, 
                                        renderer : function (value, metaData, record , rowIndex, colIndex, store, view ){
                                             /*
                                             var store = Ext.getStore('combotreegrid_dataType_store');
@@ -401,7 +440,7 @@
                                         editor: {
                                                     xtype: 'combotreegrid_dataType',
                                                     id : 'combotreegrid_dataType_picker',
-                                                    vtype : 'MariaDBDataTypeScale',
+                                                    vtype : '${sessionScope._sessionVO.dbase}DataTypeScale', // MariaDBDataTypeScale
                                                  },
                                     },
                                     { text: '<div class="grid-header-combogrid"></div>Not널', dataIndex: 'IS_NULL', align: "center", width : 45, resizable : false,
@@ -417,7 +456,7 @@
                                          }
                                     },
                                     {
-                                        text: '기본값', dataIndex: 'DEFAULT_VAL', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div>기본값</div>', width : 100, menuDisabled : true, 
+                                        text: '기본값', dataIndex: 'DEFAULT_VAL', header: '<div style="text-align:center;width:100%;">기본값</div>', width : 100, menuDisabled : true, 
                                         editor: {
                                             xtype: 'textfield',
                                         },
@@ -436,7 +475,7 @@
                                       }
                                     },
                                     */
-                                    { text: '코드/채번방식',  header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div>코드/채번방식</div>',dataIndex: 'NUMB_MTH', width : 120, visible : false, align : 'center',
+                                    { text: '코드/채번방식',  header: '<div style="text-align:center;width:100%;">코드/채번방식</div>',dataIndex: 'NUMB_MTH', width : 120, visible : false, align : 'center',
                                        renderer : function(value, metaData, record , rowIndex, colIndex, store, view) {
                                           return record.data.NUMB_MTH;
                                        },
@@ -446,7 +485,7 @@
                                     },
                                     { text: 'CUD',  header: '<div style="text-align:center;width:100%;">CUD</div>',dataIndex: 'DML_TCD_NM', width : 40, visible : false,  },
                                     { text: 'CUD일자',  header: '<div style="text-align:center;width:100%;">CUD일자</div>',dataIndex: 'DML_DT_FMT', width : 80, visible : false,  },
-                                    { text: 'NOTE',  header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div>Note</div>',dataIndex: 'COLMN_DESC', flex: 1, minWidth :100, width : 100, visible : false, 
+                                    { text: 'NOTE',  header: '<div style="text-align:center;width:100%;">Note</div>',dataIndex: 'COLMN_DESC', flex: 1, minWidth :100, width : 100, visible : false, 
                                        editor :  {
                                             xtype: 'textarea', // 'htmleditor',
                                             grow : true,
@@ -454,7 +493,13 @@
                                             enableAlignments: false
                                        }                              
                                     },
-                                    { text: '상태',  header: '<div style="text-align:center;width:100%;">상태</div>',dataIndex: 'COLMN_SCD_NM', width : 60, visible : false,  },
+			                         <c:forEach var="item" items="${data}">
+			                        { text: '${item.CD_NM}', dataIndex: '${item.CD}', align: "center", width : 65, menuDisabled : true, resizable : false,
+                                       renderer : function(value, metaData, record , rowIndex, colIndex, store, view) {
+                                          return value ? "Y" : "";
+                                       },
+			                        },
+			                         </c:forEach>
                                 ]
                             }, 
                         ]

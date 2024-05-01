@@ -21,11 +21,28 @@ public class UserCtrl {
 	private UserSvc userSvc;
 	
 	@RequestMapping(value="/user/data/insert.do")
-	public String userSave(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+	public String userSave(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) throws Exception {
 	
 		MyFrameworkResponseCud myFrameworkResponseCud = userSvc.userInsert(model, paramMap, request);
 		
 		return "jsonView";
 	}
 
+	@RequestMapping(value="/user/data/initPassword.do")
+	public String userInitPassword(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) throws Exception {
+	
+		MyFrameworkResponseCud myFrameworkResponseCud = userSvc.userInitPassword(model, paramMap, request);
+		
+		return "jsonView";
+	}
+	
+	@RequestMapping(value="/user/data/confirm.do")
+	public String userConfirm(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) throws Exception {
+	
+		MyFrameworkResponseCud myFrameworkResponseCud = userSvc.userConfirm(model, paramMap, request);
+		
+		return "jsonView";
+	}
+	
+	
 }

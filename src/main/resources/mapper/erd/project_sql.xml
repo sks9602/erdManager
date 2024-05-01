@@ -51,8 +51,8 @@
            , #{DBASE}
            , NVL(#{SSN_COMPANY_ID}, 'DEFAULT')
            , #{PROJECT_NM}
-           , STR_TO_DATE(#{START_DT}, '%Y-%m-%d')
-           , STR_TO_DATE(#{END_DT}, '%Y-%m-%d')
+           , STR_TO_DATE(#{START_DT}, '%Y-%m-%d %H:%i:%S')
+           , STR_TO_DATE(#{END_DT}, '%Y-%m-%d %H:%i:%S')
 
            , #{ENTITY_WORD_YN      }
            , #{ENTITY_CAPITALIZE   }
@@ -200,9 +200,10 @@
                  AND CD = U_PJT.APPR_SCD) AS APPR_SCD_NM
            , U_PJT.AUTH_CD
         FROM PROJECT     PJT
-           , USR_PROJECT U_PJT
-       WHERE PJT.PROJECT_ID = U_PJT.PROJECT_ID
-         AND U_PJT.USR_UID = #{SESSION_USR_UID}
+             LEFT OUTER JOIN USR_PROJECT U_PJT
+                  ON PJT.PROJECT_ID = U_PJT.PROJECT_ID
+       WHERE ( U_PJT.USR_UID = #{SESSION_USR_UID}
+               OR PJT.CRT_USR_UID = #{SESSION_USR_UID} )
        ORDER BY PJT.START_DT DESC, PJT.PROJECT_NM
      </select>
      
@@ -229,6 +230,7 @@
            , PJT.INDEX_SUFFIX_NM_FMT 
            , PJT.TABLE_SPACE_NM      
            , PJT.INDEX_SPACE_NM      
+           , PJT.BUY_UID
            
            , NVL(NVL(USR_PJT.ENTITY_DISPLAY_DAYCNT, PJT.ENTITY_DISPLAY_DAYCNT), 7) AS ENTITY_DISPLAY_DAYCNT
            , NVL(NVL(USR_PJT.COLMN_DISPLAY_DAYCNT,  PJT.COLMN_DISPLAY_DAYCNT), 7) AS COLMN_DISPLAY_DAYCNT
@@ -278,6 +280,7 @@
            , PJT.TABLE_SPACE_NM  
            , PJT.INDEX_SPACE_NM  
            , PJT.SUBJECT_ID  
+           , nvl(PJT.BUY_UID, 'Free') 
         FROM PROJECT     PJT
        WHERE PJT.PROJECT_ID = #{SESSION_PROJECT_ID}
      </select>
@@ -452,6 +455,16 @@
        WHERE LOGIN_ID = #{LOGIN_ID}
     </select>
 
+    <!--  프로젝트 참여자 목록 조회. -->
+    <select id="selectCountOfAuth"  parameterType="paramMap" resultType="resultMap">
+      SELECT /* mapper.erd.project.selectCountOfAuth*/
+             COUNT(CASE WHEN AUTH_CD    = 'MANAGER' THEN 1 ELSE NULL END) AS MANAGER_CNT
+           , COUNT(CASE WHEN AUTH_CD    = 'MODELER' THEN 1 ELSE NULL END) AS MODELER_CNT
+        FROM USR_PROJECT         USR_PJT
+       WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+         AND APPR_SCD   = 'APPR_SCD_APP'
+    </select>
+    
     <!--  프로젝트 공유신청 -->
     <insert  id="projectChgLog"  parameterType="paramMap">
         INSERT /* mapper.erd.project.projectChgLog */
@@ -472,7 +485,7 @@
                  PROJECT_ID
                , NVL(#{SESSION_USR_UID}, 'NOT-KNOWN')
                , CURRENT_TIMESTAMP
-               , LOG_ID
+               , concat(LOG_ID, '_', FLOOR(100000 + RAND()*(999999-100000)) )
                , 'ENTITY'
                , ENTITY_ID
                , NULL       AS COLMN_ID
@@ -488,7 +501,59 @@
                  PROJECT_ID
                , NVL(#{SESSION_USR_UID}, 'NOT-KNOWN')
                , CURRENT_TIMESTAMP
-               , LOG_ID
+               , concat(LOG_ID, '_', FLOOR(100000 + RAND()*(999999-100000)) )
+               , 'ENTITY'
+               , ENTITY_ID
+               , NULL       AS COLMN_ID
+               , CHG_CTNT
+               , #{SESSION_USR_UID}
+               , CURRENT_TIMESTAMP
+            FROM ENTITY_SCD
+           WHERE PROJECT_ID = #{SESSION_PROJECT_ID} 
+             AND LOG_ID     = #{LOG_ID}
+             AND CHG_CTNT IS NOT NULL
+           UNION ALL
+          SELECT 
+                 PROJECT_ID
+               , NVL(#{SESSION_USR_UID}, 'NOT-KNOWN')
+               , CURRENT_TIMESTAMP
+               , concat(LOG_ID, '_', FLOOR(100000 + RAND()*(999999-100000)) )
+               , 'INDEX'
+               , ENTITY_ID
+               , NULL
+               , CHG_CTNT
+               , #{SESSION_USR_UID}
+               , CURRENT_TIMESTAMP
+            FROM INDX
+           WHERE PROJECT_ID = #{SESSION_PROJECT_ID} 
+             AND LOG_ID = #{LOG_ID}
+             AND CHG_CTNT IS NOT NULL
+           UNION ALL
+          SELECT 
+                 INDX_SCD.PROJECT_ID
+               , NVL(#{SESSION_USR_UID}, 'NOT-KNOWN')
+               , CURRENT_TIMESTAMP
+               , concat(INDX_SCD.LOG_ID, '_', FLOOR(100000 + RAND()*(999999-100000)) )
+               , 'INDEX'
+               , INDX.ENTITY_ID
+               , NULL       AS COLMN_ID
+               , INDX_SCD.CHG_CTNT
+               , 'GUEST'
+               , CURRENT_TIMESTAMP
+            FROM INDX_SCD INDX_SCD
+               , INDX     INDX
+           WHERE INDX_SCD.PROJECT_ID  =  INDX.PROJECT_ID
+             AND INDX_SCD.VERSN      =  INDX.VERSN
+             AND INDX_SCD.INDX_ID      =  INDX.INDX_ID
+             AND INDX_SCD.PROJECT_ID = #{SESSION_PROJECT_ID} 
+             AND INDX_SCD.LOG_ID     = #{LOG_ID}
+             AND INDX_SCD.CHG_CTNT IS NOT NULL
+           UNION ALL
+          SELECT 
+                 PROJECT_ID
+               , NVL(#{SESSION_USR_UID}, 'NOT-KNOWN')
+               , CURRENT_TIMESTAMP
+               , concat(LOG_ID, '_', FLOOR(100000 + RAND()*(999999-100000)) )
                , 'COLUMN'
                , ENTITY_ID
                , COLMN_ID
@@ -499,7 +564,282 @@
            WHERE PROJECT_ID = #{SESSION_PROJECT_ID} 
              AND LOG_ID = #{LOG_ID}
              AND CHG_CTNT IS NOT NULL
+           UNION ALL
+          SELECT 
+                 PROJECT_ID
+               , NVL(#{SESSION_USR_UID}, 'NOT-KNOWN')
+               , CURRENT_TIMESTAMP
+               , concat(LOG_ID, '_', FLOOR(100000 + RAND()*(999999-100000)) )
+               , 'COLUMN'
+               , ENTITY_ID
+               , COLMN_ID
+               , CHG_CTNT
+               , #{SESSION_USR_UID}
+               , CURRENT_TIMESTAMP
+            FROM COLMN_SCD
+           WHERE PROJECT_ID = #{SESSION_PROJECT_ID} 
+             AND LOG_ID     = #{LOG_ID}
+             AND CHG_CTNT IS NOT NULL
+           UNION ALL
+          SELECT 
+                 PROJECT_ID
+               , NVL(#{SESSION_USR_UID}, 'NOT-KNOWN')
+               , CURRENT_TIMESTAMP
+               , concat(LOG_ID, '_', FLOOR(100000 + RAND()*(999999-100000)) )
+               , 'SEQUENCE'
+               , SEQNC_ID
+               , NULL
+               , CHG_CTNT
+               , #{SESSION_USR_UID}
+               , CURRENT_TIMESTAMP
+            FROM SEQNC
+           WHERE PROJECT_ID = #{SESSION_PROJECT_ID} 
+             AND LOG_ID = #{LOG_ID}
+             AND CHG_CTNT IS NOT NULL
+           UNION ALL
+          SELECT 
+                 PROJECT_ID
+               , NVL(#{SESSION_USR_UID}, 'NOT-KNOWN')
+               , CURRENT_TIMESTAMP
+               , concat(LOG_ID, '_', FLOOR(100000 + RAND()*(999999-100000)) )
+               , 'WORD'
+               , NULL
+               , NULL
+               , CHG_CTNT
+               , #{SESSION_USR_UID}
+               , CURRENT_TIMESTAMP
+            FROM WORD
+           WHERE PROJECT_ID = #{SESSION_PROJECT_ID} 
+             AND LOG_ID = #{LOG_ID}
+             AND CHG_CTNT IS NOT NULL
     </insert>
+
+    <!-- 프로젝트 업무영역 목록 조회. -->
+    <select id="selectProjectChgLogList"  parameterType="paramMap" resultType="resultMap">
+        SELECT /* mapper.erd.project.selectProjectChgLogList */
+                LOG.TRT_DT              
+              , DATE_FORMAT(LOG.TRT_DT, '%Y-%m-%d %H:%i:%S') AS TRT_DT_FMT
+              , LOG.LOG_ID              
+              , CASE WHEN LOG.TGT_OBJT_CD = 'ENTITY' THEN '테이블'
+                     WHEN LOG.TGT_OBJT_CD = 'COLUMN' THEN '컬럼'      
+                     WHEN LOG.TGT_OBJT_CD = 'SEQUENCE' THEN '시퀀스'
+                     WHEN LOG.TGT_OBJT_CD IS NULL THEN '단어'
+                     ELSE NULL END AS TGT_OBJT_CD_NM
+              , LOG.TGT_OBJT_CD
+              , LOG.ENTITY_ID           
+              , LOG.COLMN_ID            
+              , COL.COLMN_NM
+              , COL.ATTR_NM
+              , LOG.CHG_CTNT            
+          FROM PROJECT_CHG_LOG LOG
+               LEFT OUTER JOIN COLMN COL
+                     ON LOG.PROJECT_ID = COL.PROJECT_ID
+                    AND LOG.ENTITY_ID  = COL.ENTITY_ID
+                    AND LOG.COLMN_ID   = COL.COLMN_ID
+         WHERE LOG.PROJECT_ID = #{SESSION_PROJECT_ID}
+         <if test='ENTITY_ID != null and !"".equals(ENTITY_ID) '>
+             AND LOG.ENTITY_ID = #{ENTITY_ID}
+         </if>
+         ORDER BY LOG.TRT_DT  DESC
+     </select>
+
+     <!-- 프로젝트 코드조회. -->
+     <select id="selectProjectCdList"  parameterType="paramMap" resultType="resultMap">
+     SELECT /* mapper.erd.project.selectProjectCdList */
+            PJT_CD.PROJECT_ID
+          , PJT_CD.CD_GRP
+          , PJT_CD.CD
+          , CD.CD_NM
+       FROM PROJECT_CD PJT_CD
+          , CD         CD
+      WHERE PJT_CD.PROJECT_ID = #{SESSION_PROJECT_ID}
+        AND PJT_CD.CD_GRP     = #{CD_GRP}
+        AND PJT_CD.CD_GRP     = CD.CD_GRP
+        AND PJT_CD.CD         = CD.CD
+      ORDER BY CD.ORD_TRN, PJT_CD.CD
+     </select>
+
+    <!--  프로젝트 스니핏 목록 조회. -->
+    <select id="selectProjectSnippetList"  parameterType="paramMap" resultType="resultMap">
+      SELECT /* mapper.erd.project.selectProjectSnippetList */
+              US.USR_UID
+            , US.SNIPPET_UID
+            , US.SNIPPET_CD         
+            , CASE WHEN US.SNIPPET_CD = 'SELECT' THEN '조회(SELECT)'
+                   ELSE '등록/수정/삭제(CUD)' END AS SNIPPET_CD_NM
+            , US.SNIPPET_NM         
+            , US.SNIPPET            
+            , US.USE_YN             
+            , CASE WHEN US.USE_YN  = 'N' THEN '미사용' ELSE '사용' END AS  USE_YN_NM
+            , US.SNIPPET          
+        FROM USR_SNIPPET     US
+       WHERE US.PROJECT_ID IN ( #{SESSION_PROJECT_ID}, (SELECT DBASE FROM PROJECT WHERE PROJECT_ID = #{SESSION_PROJECT_ID} ))
+         AND US.USR_UID    IN ( #{SESSION_USR_UID}, '*')
+         <if test='SNIPPET_CD!=null and !"".equals(SNIPPET_CD)'>
+             AND US.SNIPPET_CD  = #{SNIPPET_CD}
+             AND NVL(US.USE_YN, 'Y') = 'Y'
+         </if>
+         <if test='EDITABLE!=null and !"".equals(EDITABLE)'>
+             AND US.USR_UID != '*'
+         </if>
+       ORDER BY CASE WHEN US.USR_UID = '*' THEN 100 ELSE 1 END, US.SNIPPET_CD, US.SNIPPET_NM
+     </select>
+     
+    <!--  프로젝트 스니핏 상세. -->
+    <select id="selectProjectSnippetDetail"  parameterType="paramMap" resultType="resultMap">
+      SELECT /* mapper.erd.project.selectProjectSnippetDetail */
+              US.SNIPPET_UID
+            , US.SNIPPET_CD         
+            , CASE WHEN US.SNIPPET_CD = 'SELECT' THEN '조회(SELECT)'
+                   WHEN US.SNIPPET_CD = 'WHERE' THEN 'WHERE절 조건'
+                   ELSE '등록/수정/삭제(CUD)' END AS SNIPPET_CD_NM
+            , US.SNIPPET_NM         
+            , US.SNIPPET            
+            , US.USE_YN             
+            , US.SNIPPET
+        FROM USR_SNIPPET     US
+       WHERE US.PROJECT_ID = #{SESSION_PROJECT_ID}
+         AND US.USR_UID    = #{SESSION_USR_UID}
+         AND US.SNIPPET_UID = #{SNIPPET_UID}
+       ORDER BY US.SNIPPET_NM
+     </select>
+     
+         <!--  프로젝트 공유신청 -->
+    <insert  id="insertProjectSnippeInfo"  parameterType="paramMap">
+        INSERT /* mapper.erd.project.insertProjectSnippeInfo */
+          INTO USR_SNIPPET
+            (
+               PROJECT_ID      
+             , USR_UID         
+             , SNIPPET_UID     
+             , SNIPPET_CD      
+             , SNIPPET_NM      
+             , SNIPPET         
+             , USE_YN          
+             , FRST_INS_DT     
+             , FRST_INS_USR_UID
+             , LAST_UPD_DT     
+             , LAST_UPD_USR_UID
+            )
+           VALUES (
+               #{SESSION_PROJECT_ID}   
+             , #{SESSION_USR_UID}      
+             , #{SNIPPET_UID}
+             , #{SNIPPET_CD}     
+             , #{SNIPPET_NM}      
+             , #{SNIPPET}        
+             , #{USE_YN}         
+             , CURRENT_TIMESTAMP     
+             , #{SESSION_USR_UID}
+             , CURRENT_TIMESTAMP     
+             , #{SESSION_USR_UID}
            
+           )
+           ON DUPLICATE KEY UPDATE
+              SNIPPET_CD       = #{SNIPPET_CD}
+            , SNIPPET_NM       = #{SNIPPET_NM}
+            , SNIPPET          = #{SNIPPET}
+            , USE_YN           = #{USE_YN}
+            , LAST_UPD_DT      = CURRENT_TIMESTAMP
+            , LAST_UPD_USR_UID = #{SESSION_USR_UID}
+    </insert>
+    
+    <!--  구매 상품 이력 조회 -->
+    <select id="selectProjectBuyList"  parameterType="paramMap" resultType="resultMap">
+        SELECT /* mapper.erd.project.selectProjectBuyList */
+               'Free' AS BUY_CD
+             , 'Free(무료)' AS BUY_NM
+          UNION ALL
+         SELECT 
+                UB.BUY_UID AS BUY_CD
+              , CONCAT(DATE_FORMAT(STR_TO_DATE(MIN(BUY_START_DT), '%Y%m%d'), '%Y-%m-%d')
+                      , '~'
+                      ,DATE_FORMAT(STR_TO_DATE(MIN(BUY_END_DT), '%Y%m%d'), '%Y-%m-%d')) AS BUY_NM
+              
+           FROM USR_BUY      UB
+              , USR_BUY_HIST UBH
+                LEFT OUTER JOIN USR_BUY_ADD UBA
+                            ON UBH.USR_UID = UBA.USR_UID
+                           AND UBH.BUY_UID = UBA.BUY_UID
+                           AND UBH.HIST_SEQ = UBA.HIST_SEQ
+          WHERE UB.USR_UID    = UBH.USR_UID
+            AND UB.BUY_UID    = UBH.BUY_UID
+            AND UB.USR_UID    = #{SESSION_USR_UID}
+          GROUP BY UB.USR_UID, UB.BUY_UID
+    </select>
+    
+    <!-- 프로젝트 count조회 -->
+    <select id="selectProjectCount"  parameterType="paramMap" resultType="resultMap">
+        SELECT /* mapper.erd.project.selectProjectCount */
+               #{SESSION_USR_UID} AS SESSION_USR_UID
+             , NVL((SELECT
+                           COUNT(*) 
+                      FROM PROJECT PJT
+                     WHERE PJT.CRT_USR_UID = #{SESSION_USR_UID}
+                     GROUP BY PJT.CRT_USR_UID ), 0) AS PROJECT_CNT
+    </select>
+        
+    <!--  프로젝트 기간 정보 -->
+    <select id="selectProjectBuyDetail"  parameterType="paramMap" resultType="resultMap">
+    SELECT /* mapper.erd.project.selectProjectBuyDetail */
+           SUB.PROJECT_ID
+         , SUB.ENTITY_CNT
+         , SUB.USER_CNT
+         , SUB.BUY_ENTITY_CNT
+         , SUB.BUY_USR_CNT
+         , SUB.BUY_START_DT
+         , SUB.BUY_END_DT
+         , SUB.VIEW_END_DT
+         , SUB.NOW_AVAIL_COUNT
+         , CASE WHEN DATE_FORMAT(CURRENT_TIMESTAMP, '%Y%m%d') 
+                     BETWEEN SUB.BUY_START_DT AND SUB.BUY_END_DT THEN 'Y'
+                ELSE 'N' END AS EDITABLE_YN
+         , CASE WHEN DATE_FORMAT(CURRENT_TIMESTAMP, '%Y%m%d') 
+                     BETWEEN SUB.BUY_START_DT AND SUB.VIEW_END_DT THEN 'Y'
+                ELSE 'N' END AS VIEWABLE_YN
+	  FROM (
+	        SELECT
+	                UP.PROJECT_ID
+		          , (SELECT COUNT(*) 
+		               FROM ENTITY 
+		              WHERE PROJECT_ID = UP.PROJECT_ID
+		                AND VERSN      = #{SESSION_VERSN}
+		                AND NVL(USE_YN, 'Y') = 'Y'     ) AS ENTITY_CNT
+		          , (SELECT COUNT(*) 
+		               FROM USR_PROJECT 
+		              WHERE PROJECT_ID = UP.PROJECT_ID
+		                AND APPR_SCD   = 'APPR_SCD_APP') AS USER_CNT
+		          , NVL(BUY.BUY_ENTITY_CNT, 5) AS BUY_ENTITY_CNT
+		          , NVL(BUY.BUY_USR_CNT, 2) AS BUY_USR_CNT
+		          , NVL(BUY.BUY_START_DT, DATE_FORMAT(CURRENT_TIMESTAMP, '%Y%m%d')) AS BUY_START_DT
+		          , NVL(BUY.BUY_END_DT, DATE_FORMAT(CURRENT_TIMESTAMP, '%Y%m%d')) AS BUY_END_DT
+		          , DATE_FORMAT(ADDDATE(NVL(BUY.BUY_END_DT, CURRENT_TIMESTAMP) ,INTERVAL 1 MONTH), '%Y%m%d') AS VIEW_END_DT
+		          , NVL(BUY.NOW_AVAIL_COUNT, 0) AS NOW_AVAIL_COUNT
+			  FROM USR_PROJECT UP 
+			       LEFT OUTER JOIN (SELECT 
+							               BUY.PROJECT_ID
+								         , SUM(NVL(BUYH.BASE_ENTITY_CNT, 0)) + SUM(NVL(BUYH.ADD_ENTITY_CNT, 0))+ SUM(NVL(BUY_ADD.ADD_ENTITY_CNT, 0)) AS BUY_ENTITY_CNT
+								         , SUM(NVL(BUYH.ADD_USR_CNT, 0)) + SUM(NVL(BUY_ADD.ADD_USR_CNT, 0)) AS BUY_USR_CNT
+								         , MIN(BUYH.BUY_START_DT) AS BUY_START_DT
+								         , MAX(BUYH.BUY_END_DT)   AS BUY_END_DT
+								         , COUNT(CASE WHEN DATE_FORMAT(CURRENT_TIMESTAMP, '%Y%m%d') 
+								                           BETWEEN BUYH.BUY_START_DT AND BUYH.BUY_END_DT THEN 1
+								                      ELSE NULL END) AS NOW_AVAIL_COUNT
+								      FROM USR_BUY      BUY
+								         , USR_BUY_HIST BUYH
+								           LEFT OUTER JOIN USR_BUY_ADD BUY_ADD
+								                       ON BUYH.USR_UID  = BUY_ADD.USR_UID
+                                                      AND BUYH.BUY_UID  = BUY_ADD.BUY_UID
+                                                      AND BUYH.HIST_SEQ = BUY_ADD.HIST_SEQ
+								     WHERE 1 = 1
+								       AND BUY.USR_UID    = BUYH.USR_UID
+                                       AND BUY.BUY_UID    = BUYH.BUY_UID
+                                       AND BUY.PROJECT_ID = #{SESSION_PROJECT_ID} 
+                                       AND BUY.USR_UID    = #{SESSION_USR_UID} 
+								     GROUP BY BUY.USR_UID, BUY.BUY_UID ) BUY
+						 ON UP.PROJECT_ID = BUY.PROJECT_ID
+			  WHERE UP.PROJECT_ID   = #{SESSION_PROJECT_ID} ) SUB
+     </select>
+     
 </mapper>
 

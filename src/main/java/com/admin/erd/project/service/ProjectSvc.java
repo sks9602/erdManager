@@ -25,6 +25,7 @@ import com.myframework.vo.MyFrameworkLoginVO;
 import com.myframework.was.param.RequestParamMap;
 import com.myframework.was.response.MyFrameworkResponseCud;
 import com.myframework.was.response.MyFrameworkResponseData;
+import com.myframework.was.response.MyFrameworkResponseGrid;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,7 +48,7 @@ public class ProjectSvc {
 
 
 	@Transactional
-	public MyFrameworkResponseCud projectInsert(ModelMap model, RequestParamMap paramMap) {
+	public MyFrameworkResponseCud projectInsert(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
 		MyFrameworkResponseCud myFrameworkResponseCud = MyFrameworkResponseCud.builder().modelMap(model).build();
 		
 		// request파라미터 -> sql파라미터 
@@ -67,6 +68,15 @@ public class ProjectSvc {
 			sqlParamMap.put("CD_GRP", "TABL_SCD");
 			sqlDao.update("mapper.erd.project.updateUserProject", sqlParamMap);
 			log.info(" projectSave : " + result);
+
+			LoginVo loginVo = (LoginVo) request.getSession().getAttribute(MyFrameworkLoginVO.MY_FRAMEWORK_LOGIN_SESSION_KEY);
+
+			sqlParamMap.put("USR_UID", loginVo.getUsrUid());
+			sqlParamMap.put("AUTH_CD", "MANAGER");
+			sqlParamMap.put("BASE_YN", "Y");
+			sqlParamMap.put("APPR_SCD", "APPR_SCD_APP"); // 승인
+			
+			sqlDao.update("mapper.erd.project.saveUserProject", sqlParamMap );
 			
 			sqlDao.insert("com.dao.system.CodeDao.deleteCodeProject", sqlParamMap);
 			
@@ -89,7 +99,7 @@ public class ProjectSvc {
 			
 			// 기본 도메인 정보 등록 
 			// TODO - DB변경시 도메인 변경..
-			if( !paramMap.get("DBASE_ORI").equals(paramMap.get("DBASE")) ) {
+			if( paramMap.get("DBASE_ORI") !=null && !paramMap.get("DBASE_ORI").equals(paramMap.get("DBASE")) ) {
 				sqlDao.insert("mapper.erd.domain.deleteDomainOfProject", sqlParamMap);
 				sqlDao.insert("mapper.erd.domain.insertDomainByDB", sqlParamMap);
 			}
@@ -110,7 +120,7 @@ public class ProjectSvc {
 	}
 
 	@Transactional
-	public MyFrameworkResponseCud projectUpdate(ModelMap model, RequestParamMap paramMap) {
+	public MyFrameworkResponseCud projectUpdate(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
 		MyFrameworkResponseCud myFrameworkResponseCud = MyFrameworkResponseCud.builder().modelMap(model).build();
 		
 		// request파라미터 -> sql파라미터 
@@ -118,6 +128,8 @@ public class ProjectSvc {
 		sqlParamMap.putAll(paramMap.getMap());
 
 		try {
+			
+			
 			
 			Integer result = sqlDao.insert("mapper.erd.project.saveProject", sqlParamMap);
 	
@@ -148,6 +160,16 @@ public class ProjectSvc {
 				myFrameworkResponseCud.setCudCount(result);
 				myFrameworkResponseCud.setSuccess(true);
 				myFrameworkResponseCud.setMessage("저장되었습니다.");
+				
+				LoginVo loginVo = (LoginVo) request.getSession().getAttribute(MyFrameworkLoginVO.MY_FRAMEWORK_LOGIN_SESSION_KEY);
+			
+				if( paramMap.get("PROJECT_ID").equals(loginVo.getProjectId())) {
+					
+					loginVo.setProjectNm(paramMap.get("PROJECT_NM"));
+					
+					request.getSession().setAttribute(MyFrameworkLoginVO.MY_FRAMEWORK_LOGIN_SESSION_KEY, loginVo);
+				}
+			
 			} else {
 				myFrameworkResponseCud.setSuccess(false);
 				myFrameworkResponseCud.setErrorMessage("저장시 오류가 발생했습니다.");
@@ -184,6 +206,11 @@ public class ProjectSvc {
 			detail = sqlDao.select("mapper.erd.project.selectProjectDetailBySession", sqlParamMap);
 		} else {
 			detail = sqlDao.select("mapper.erd.project.selectProjectDetail", sqlParamMap);
+		}
+		
+		if("Y".equals(sqlParamMap.getString("COMMON_COLUMN"))) {
+			SqlResultList<SqlResultMap<String, Object>> list = sqlDao.selectList("mapper.erd.column.selectCommonColumnList", sqlParamMap);
+			myFrameworkResponseData.put("commonColumnList", list);
 		}
 		
 		myFrameworkResponseData.put("detail", detail);
@@ -304,7 +331,11 @@ public class ProjectSvc {
 
 			}
 
+			SqlResultMap<String, Object> authInfo = sqlDao.select("mapper.erd.project.selectCountOfAuth", sqlParamMap);
 		
+			if( authInfo.getInt("MANAGER_CNT") == 0 ) {
+				throw new Exception("관리자는 1명이상 등록되어있어야 저장가능합니다.");
+			}
 			myFrameworkResponseCud.setCudCount(usr_uids.length);
 			myFrameworkResponseCud.setSuccess(true);
 			myFrameworkResponseCud.setMessage("저장되었습니다.");
@@ -313,9 +344,135 @@ public class ProjectSvc {
 			e.printStackTrace();
 			myFrameworkResponseCud.setSuccess(false);
 			myFrameworkResponseCud.setErrorMessage("저장시 오류가 발생했습니다.");
+			myFrameworkResponseCud.put("message", e.getMessage());
 			
 			throw e;
 		}
 		return myFrameworkResponseCud;
+	}
+
+
+	public void projectChgLogList(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseGrid myFrameworkResponseGrid = MyFrameworkResponseGrid.builder().modelMap(model).build();
+
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		SqlResultList<SqlResultMap<String, Object>> list = sqlDao.selectList("mapper.erd.project.selectProjectChgLogList", sqlParamMap);
+
+		myFrameworkResponseGrid.setData(list);
+	}
+	
+	public void selectProjectCdList(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseGrid myFrameworkResponseGrid = MyFrameworkResponseGrid.builder().modelMap(model).build();
+
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		sqlParamMap.put("CD_GRP", "TABL_SCD");
+		
+		SqlResultList<SqlResultMap<String, Object>> list = sqlDao.selectList("mapper.erd.project.selectProjectCdList", sqlParamMap);
+
+		myFrameworkResponseGrid.setData(list);
+	}
+	
+	public void projectSnippetList(ModelMap model, RequestParamMap paramMap) {
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		SqlResultList<SqlResultMap<String, Object>> list = sqlDao.selectList("mapper.erd.project.selectProjectSnippetList", sqlParamMap);
+
+		model.addAttribute("dataList", list);
+	}
+
+	public MyFrameworkResponseData projectSnippetDetail(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseData myFrameworkResponseData = MyFrameworkResponseData.builder().modelMap(model).build();
+		
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		SqlResultMap<String, Object> detail = null;
+		
+		detail = sqlDao.select("mapper.erd.project.selectProjectSnippetDetail", sqlParamMap);
+
+		
+		myFrameworkResponseData.put("detail", detail);
+		myFrameworkResponseData.put("totalCount", 0);
+		
+		return myFrameworkResponseData;
+	}
+	
+	@Transactional
+	public MyFrameworkResponseCud projectSnippetSave(ModelMap model, RequestParamMap paramMap) throws Exception {
+		MyFrameworkResponseCud myFrameworkResponseCud = MyFrameworkResponseCud.builder().modelMap(model).build();
+		
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		try {
+			
+			sqlParamMap.putAll(paramMap.getMap());
+			
+			if(StringUtils.isEmpty(sqlParamMap.getString("SNIPPET_UID"))) {
+
+				SqlResultMap<String, Object> uid = sqlDao.select("mapper.erd.user.selectUid", sqlParamMap);
+				sqlParamMap.put("SNIPPET_UID", "S"+uid.getString("UID"));
+			}
+			
+			Integer result = sqlDao.update("mapper.erd.project.insertProjectSnippeInfo", sqlParamMap);
+
+			myFrameworkResponseCud.put("SNIPPET_UID", sqlParamMap.getString("SNIPPET_UID"));
+			myFrameworkResponseCud.setSuccess(true);
+			myFrameworkResponseCud.setMessage("저장되었습니다.");
+
+		} catch(Exception e) {
+			e.printStackTrace();
+			myFrameworkResponseCud.setSuccess(false);
+			myFrameworkResponseCud.setErrorMessage("저장시 오류가 발생했습니다.");
+			myFrameworkResponseCud.put("message", e.getMessage());
+			
+			throw e;
+		}
+		return myFrameworkResponseCud;
+	}
+
+	public MyFrameworkResponseData projectCount(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseData myFrameworkResponseData = MyFrameworkResponseData.builder().modelMap(model).build();
+		
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		SqlResultMap<String, Object> detail = sqlDao.select("mapper.erd.project.selectProjectCount", sqlParamMap);
+
+		myFrameworkResponseData.put("detail", detail);
+		myFrameworkResponseData.put("totalCount", 0);
+		
+		return myFrameworkResponseData;
+	}
+
+	public void projectBuyList(ModelMap model, RequestParamMap paramMap) {
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		SqlResultList<SqlResultMap<String, Object>> list = sqlDao.selectList("mapper.erd.project.selectProjectBuyList", sqlParamMap);
+
+		model.addAttribute("dataList", list);
+	}
+
+	public void projectBuyDetail(ModelMap model, RequestParamMap paramMap) {
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		SqlResultMap<String, Object> data = sqlDao.select("mapper.erd.project.selectProjectBuyDetail", sqlParamMap);
+
+		model.addAttribute("data", data);
 	}
 }

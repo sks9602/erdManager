@@ -3,12 +3,13 @@
 
 <mapper namespace="mapper.erd.entity">
 
-         <!--  도메인 목록 조회. -->
+    <!--  테이블 목록 조회. -->
     <select id="selectErdEntityList"  parameterType="paramMap" resultType="resultMap">
      SELECT /* mapper.erd.entity.selectErdEntityList */
             ENTT.ENTITY_ID   AS ENTITY_ID
           , ENTT.ENTITY_NM
-          , CASE WHEN NVL(ENTT.TRT_DT, CURRENT_TIMESTAMP) >= date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 
+          , ENTT.ENTITY_TCD
+          , CASE WHEN NVL(ENTT.DML_DT, CURRENT_TIMESTAMP) >= date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 
                       CASE WHEN ENTT.DML_TCD = 'DML_TCD_C' THEN '+'
                            WHEN ENTT.DML_TCD = 'DML_TCD_U' THEN '*'
                            WHEN ENTT.DML_TCD IN( 'DML_TCD_I_D', 'DML_TCD_U_D') THEN '-'
@@ -41,14 +42,15 @@
               WHERE PROJECT_ID = ENTT.PROJECT_ID
                 AND VERSN      = ENTT.VERSN
                 AND ENTITY_ID  = ENTT.ENTITY_ID
-                AND PK_YN = 'Y'
+                AND PK_YN  = 'Y'
+                AND USE_YN = 'Y'
                 LIMIT 1)    AS HAS_PK
           , CASE WHEN ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END AS  USE_YN
        FROM ENTITY ENTT
       WHERE ENTT.PROJECT_ID = #{SESSION_PROJECT_ID}
         AND ENTT.VERSN      = #{SESSION_VERSN}
            AND CASE WHEN ENTT.TABL_SCD  = 'TABL_SCD_020' AND CASE WHEN ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END = 'N' THEN 'N'
-                    WHEN CASE WHEN ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END AND NVL(ENTT.TRT_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]>  date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 'N' 
+                    WHEN CASE WHEN ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END AND NVL(ENTT.DML_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]>  date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 'N' 
                     ELSE 'Y' END = 'Y'
         <if test="ENTITY_LIST != null">
             <foreach collection="ENTITY_LIST" item="item" open=" AND ENTT.ENTITY_ID IN (" close=")" separator=",">
@@ -64,13 +66,31 @@
         SELECT /* mapper.erd.entity.selectEntityList */
                ETT.PROJECT_ID        
              , ETT.ENTITY_ID         
+             , ETT.ENTITY_TCD
              , ETT.ENTITY_NM         
              , ETT.TABL_NM           
              , ETT.TABL_SCD          
-             , (SELECT CD_NM
-                 FROM CD
-                WHERE CD_GRP = 'TABL_SCD'
-                  AND CD     = ETT.TABL_SCD)  AS TABL_SCD_NM    
+             , (SELECT ALIAS_NM
+                  FROM ENTITY_ALIAS_NM
+                 WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                   AND ENTITY_ID   = ETT.ENTITY_ID    
+                   AND VERSN       = ETT.VERSN    
+                   AND USR_UID     = #{SESSION_USR_UID} )  AS ALIAS_NM
+             , (SELECT GROUP_CONCAT(CD.CD_VAL_A ORDER BY CD.CD ASC)
+                 FROM ENTITY_SCD ESCD
+                    , CD         CD
+                WHERE ESCD.PROJECT_ID = ETT.PROJECT_ID
+                  AND ESCD.VERSN      = ETT.VERSN
+                  AND ESCD.ENTITY_ID  = ETT.ENTITY_ID
+                  AND CD.CD_GRP = 'TABL_SCD'
+                  AND CD.CD     = ESCD.TABL_SCD
+                GROUP BY ESCD.ENTITY_ID)  AS TABL_SCD_NM    
+             , (SELECT GROUP_CONCAT(ESCD.TABL_SCD ORDER BY ESCD.TABL_SCD ASC)
+                 FROM ENTITY_SCD ESCD
+                WHERE ESCD.PROJECT_ID = ETT.PROJECT_ID
+                  AND ESCD.VERSN      = ETT.VERSN
+                  AND ESCD.ENTITY_ID  = ETT.ENTITY_ID
+                GROUP BY ESCD.ENTITY_ID)  AS TABL_SCD_ALL    
              , ETT.DML_TCD          
              , (SELECT CD_NM
                   FROM CD
@@ -93,18 +113,109 @@
                   FROM COLMN
                  WHERE PROJECT_ID = ETT.PROJECT_ID
                    AND ENTITY_ID  = ETT.ENTITY_ID
-                   AND VERSN      = (SELECT VERSN FROM PROJECT WHERE PROJECT_ID = ETT.PROJECT_ID)) AS COLUMN_CNT
+                   AND VERSN      = ETT.VERSN
+                   AND USE_YN      = 'Y') AS COLUMN_CNT
              , (SELECT 'Y'
                   FROM ENTITY_FAVOR
                  WHERE USR_UID     = #{SESSION_USR_UID} 
                    AND PROJECT_ID  = ETT.PROJECT_ID 
                    AND ENTITY_ID   = ETT.ENTITY_ID 
                    AND VERSN       = ETT.VERSN ) AS FAVOR_YN
+
+
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM ENTITY_SCD WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                                              AND VERSN       = ETT.VERSN 
+                                              AND ENTITY_ID   = ETT.ENTITY_ID 
+                                              AND TABL_SCD   = 'TABL_SCD_030') AS TABL_SCD_030
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM ENTITY_SCD WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                                              AND VERSN       = ETT.VERSN 
+                                              AND ENTITY_ID   = ETT.ENTITY_ID 
+                                              AND TABL_SCD   = 'TABL_SCD_040') AS TABL_SCD_040
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM ENTITY_SCD WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                                              AND VERSN       = ETT.VERSN 
+                                              AND ENTITY_ID   = ETT.ENTITY_ID 
+                                              AND TABL_SCD   = 'TABL_SCD_050') AS TABL_SCD_050
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM ENTITY_SCD WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                                              AND VERSN       = ETT.VERSN 
+                                              AND ENTITY_ID   = ETT.ENTITY_ID 
+                                              AND TABL_SCD   = 'TABL_SCD_060') AS TABL_SCD_060
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM ENTITY_SCD WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                                              AND VERSN       = ETT.VERSN 
+                                              AND ENTITY_ID   = ETT.ENTITY_ID 
+                                              AND TABL_SCD   = 'TABL_SCD_070') AS TABL_SCD_070
+                                              
+            , (SELECT COUNT(CASE WHEN SCD.TRT_DT IS NOT NULL THEN 'true' ELSE NULL END)
+                 FROM COLMN COL
+                      LEFT OUTER JOIN COLMN_SCD SCD
+                             ON COL.PROJECT_ID  = SCD.PROJECT_ID 
+                            AND COL.VERSN       = SCD.VERSN 
+                            AND COL.ENTITY_ID   = SCD.ENTITY_ID 
+                            AND COL.COLMN_ID    = SCD.COLMN_ID
+                            AND 'TABL_SCD_030'  = SCD.COLMN_SCD 
+                      WHERE COL.PROJECT_ID  = ETT.PROJECT_ID 
+                        AND COL.VERSN       = ETT.VERSN 
+                        AND COL.ENTITY_ID   = ETT.ENTITY_ID
+                        AND COL.USE_YN      = 'Y' ) AS TABL_SCD_030_COL_CNT
+            , (SELECT COUNT(CASE WHEN SCD.TRT_DT IS NOT NULL THEN 'true' ELSE NULL END)
+                 FROM COLMN COL
+                      LEFT OUTER JOIN COLMN_SCD SCD
+                             ON COL.PROJECT_ID  = SCD.PROJECT_ID 
+                            AND COL.VERSN       = SCD.VERSN 
+                            AND COL.ENTITY_ID   = SCD.ENTITY_ID 
+                            AND COL.COLMN_ID    = SCD.COLMN_ID
+                            AND 'TABL_SCD_040'  = SCD.COLMN_SCD 
+                      WHERE COL.PROJECT_ID  = ETT.PROJECT_ID 
+                        AND COL.VERSN       = ETT.VERSN 
+                        AND COL.ENTITY_ID   = ETT.ENTITY_ID
+                        AND COL.USE_YN      = 'Y') AS TABL_SCD_040_COL_CNT
+            , (SELECT COUNT(CASE WHEN SCD.TRT_DT IS NOT NULL THEN 'true' ELSE NULL END)
+                 FROM COLMN COL
+                      LEFT OUTER JOIN COLMN_SCD SCD
+                             ON COL.PROJECT_ID  = SCD.PROJECT_ID 
+                            AND COL.VERSN       = SCD.VERSN 
+                            AND COL.ENTITY_ID   = SCD.ENTITY_ID 
+                            AND COL.COLMN_ID    = SCD.COLMN_ID
+                            AND 'TABL_SCD_050'  = SCD.COLMN_SCD 
+                      WHERE COL.PROJECT_ID  = ETT.PROJECT_ID 
+                        AND COL.VERSN       = ETT.VERSN 
+                        AND COL.ENTITY_ID   = ETT.ENTITY_ID
+                        AND COL.USE_YN      = 'Y') AS TABL_SCD_050_COL_CNT
+            , (SELECT COUNT(CASE WHEN SCD.TRT_DT IS NOT NULL THEN 'true' ELSE NULL END)
+                 FROM COLMN COL
+                      LEFT OUTER JOIN COLMN_SCD SCD
+                             ON COL.PROJECT_ID  = SCD.PROJECT_ID 
+                            AND COL.VERSN       = SCD.VERSN 
+                            AND COL.ENTITY_ID   = SCD.ENTITY_ID 
+                            AND COL.COLMN_ID    = SCD.COLMN_ID
+                            AND 'TABL_SCD_060'  = SCD.COLMN_SCD 
+                      WHERE COL.PROJECT_ID  = ETT.PROJECT_ID 
+                        AND COL.VERSN       = ETT.VERSN 
+                        AND COL.ENTITY_ID   = ETT.ENTITY_ID
+                        AND COL.USE_YN      = 'Y') AS TABL_SCD_060_COL_CNT
+            , (SELECT COUNT(CASE WHEN SCD.TRT_DT IS NOT NULL THEN 'true' ELSE NULL END)
+                 FROM COLMN COL
+                      LEFT OUTER JOIN COLMN_SCD SCD
+                             ON COL.PROJECT_ID  = SCD.PROJECT_ID 
+                            AND COL.VERSN       = SCD.VERSN 
+                            AND COL.ENTITY_ID   = SCD.ENTITY_ID 
+                            AND COL.COLMN_ID    = SCD.COLMN_ID
+                            AND 'TABL_SCD_070'  = SCD.COLMN_SCD 
+                      WHERE COL.PROJECT_ID  = ETT.PROJECT_ID 
+                        AND COL.VERSN       = ETT.VERSN 
+                        AND COL.ENTITY_ID   = ETT.ENTITY_ID
+                        AND COL.USE_YN      = 'Y') AS TABL_SCD_070_COL_CNT
+
+
           FROM ENTITY         ETT
          WHERE ETT.PROJECT_ID = #{SESSION_PROJECT_ID}
            AND ETT.VERSN      = #{SESSION_VERSN}
            AND CASE WHEN ETT.TABL_SCD  = 'TABL_SCD_020' AND CASE WHEN ETT.USE_YN = 'N' THEN 'N' ELSE 'Y' END = 'N' THEN 'N'
-                    WHEN CASE WHEN ETT.USE_YN = 'N' THEN 'N' ELSE 'Y' END AND NVL(ETT.TRT_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]>  date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 'N' 
+                    WHEN CASE WHEN ETT.USE_YN = 'N' THEN 'N' ELSE 'Y' END AND NVL(ETT.DML_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]>  date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 'N' 
                     ELSE 'Y' END = 'Y'
            <if test="ENTITY_NM != null ">
            AND((<choose>
@@ -135,7 +246,22 @@
                )
             </if>
             <if test='TABL_SCD != null and !"".equals(TABL_SCD) '>
-                AND ETT.TABL_SCD = #{TABL_SCD}
+                AND EXISTS ( SELECT 'Y'
+                               FROM ENTITY_SCD
+                              WHERE PROJECT_ID = ETT.PROJECT_ID
+                                AND VERSN      = ETT.VERSN
+                                AND ENTITY_ID  = ETT.ENTITY_ID
+                                AND TABL_SCD   = REPLACE(#{TABL_SCD}, '_NOT', '')
+                <choose>
+                    <when test='TABL_SCD.indexOf("NOT") > 0 '>
+                        AND TRT_DT IS NULL 
+                    </when>
+                    <otherwise>
+                        AND TRT_DT IS NOT NULL 
+                    </otherwise>
+                </choose>
+                             )            
+
             </if>
             <if test='FAVOR_YN != null and "Y".equals(FAVOR_YN) '>
                 AND EXISTS (SELECT 'Y'
@@ -153,6 +279,7 @@
         SELECT /* mapper.erd.entity.selectEntityColumnTree */
               ETT.ENTITY_ID AS ID
             , ETT.ENTITY_ID AS ENTITY_ID     
+            , ETT.ENTITY_TCD
             , 'TOP'  AS UP_ENTITY_ID
             , ETT.ENTITY_ID AS COLMN_ID      
             , ETT.ENTITY_NM AS COLMN_NM      
@@ -279,6 +406,7 @@
       SELECT 
               COL.COLMN_ID  AS ID
             , COL.ENTITY_ID     
+            , NULL           AS ENTITY_TCD
             , COL.ENTITY_ID  AS UP_ENTITY_ID
             , COL.COLMN_ID      
             , COL.COLMN_NM      
@@ -400,7 +528,8 @@
     <select id="selectColumnList"  parameterType="paramMap" resultType="resultMap">
       SELECT /* mapper.erd.entity.selectColumnList */
               COL.COLMN_ID  AS ID
-            , COL.ENTITY_ID     
+            , COL.ENTITY_ID    
+            , ETT.ENTITY_TCD 
             , (SELECT ENTITY_NM
                  FROM ENTITY
                 WHERE PROJECT_ID = COL.PROJECT_ID
@@ -461,26 +590,54 @@
             , COL.VERSN
             , COL.SEQ           
             , COL.COLOR 
+            , COL.DEFAULT_VAL
             , CASE WHEN COL.USE_YN = 'N' THEN 'N' ELSE 'Y' END AS USE_YN
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM COLMN_SCD WHERE PROJECT_ID  = COL.PROJECT_ID 
+                                              AND VERSN       = COL.VERSN 
+                                              AND ENTITY_ID   = COL.ENTITY_ID 
+                                              AND COLMN_ID    = COL.COLMN_ID
+                                              AND COLMN_SCD   = 'TABL_SCD_030') AS TABL_SCD_030
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM COLMN_SCD WHERE PROJECT_ID  = COL.PROJECT_ID 
+                                              AND VERSN       = COL.VERSN 
+                                              AND ENTITY_ID   = COL.ENTITY_ID 
+                                              AND COLMN_ID    = COL.COLMN_ID
+                                              AND COLMN_SCD   = 'TABL_SCD_040') AS TABL_SCD_040
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM COLMN_SCD WHERE PROJECT_ID  = COL.PROJECT_ID 
+                                              AND VERSN       = COL.VERSN 
+                                              AND ENTITY_ID   = COL.ENTITY_ID 
+                                              AND COLMN_ID    = COL.COLMN_ID
+                                              AND COLMN_SCD   = 'TABL_SCD_050') AS TABL_SCD_050
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM COLMN_SCD WHERE PROJECT_ID  = COL.PROJECT_ID 
+                                              AND VERSN       = COL.VERSN 
+                                              AND ENTITY_ID   = COL.ENTITY_ID 
+                                              AND COLMN_ID    = COL.COLMN_ID
+                                              AND COLMN_SCD   = 'TABL_SCD_060') AS TABL_SCD_060
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM COLMN_SCD WHERE PROJECT_ID  = COL.PROJECT_ID 
+                                              AND VERSN       = COL.VERSN 
+                                              AND ENTITY_ID   = COL.ENTITY_ID 
+                                              AND COLMN_ID    = COL.COLMN_ID
+                                              AND COLMN_SCD   = 'TABL_SCD_070') AS TABL_SCD_070
+
          FROM ENTITY   ETT
               LEFT OUTER JOIN COLMN    COL
                 ON ETT.PROJECT_ID = COL.PROJECT_ID
                AND ETT.ENTITY_ID  = COL.ENTITY_ID
                AND ETT.VERSN      = COL.VERSN
-           LEFT OUTER JOIN DTYPE DTYPE 
-                ON COL.DTYPE      = DTYPE.DTYPE
            LEFT OUTER JOIN DOMAIN DMN 
                 ON COL.PROJECT_ID = #{SESSION_PROJECT_ID}
                AND COL.DOMAIN_ID  = DMN.DOMAIN_ID
-           LEFT OUTER JOIN DTYPE DTYPE_1 
-                ON DMN.DTYPE      = DTYPE_1.DTYPE
         WHERE COL.PROJECT_ID = #{SESSION_PROJECT_ID}
           AND COL.VERSN       = #{SESSION_VERSN}
           AND COL.ENTITY_ID  = #{ENTITY_ID}
           AND ETT.PROJECT_ID = COL.PROJECT_ID
           AND ETT.ENTITY_ID  = COL.ENTITY_ID
           AND ETT.VERSN      = COL.VERSN
-          AND CASE WHEN COL.USE_YN = 'N' AND  NVL(COL.TRT_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]> date_add(CURRENT_TIMESTAMP , interval #{SESSION_COLUMN_DISPLAY_DAYCNT} day) THEN 'N'
+          AND CASE WHEN COL.USE_YN = 'N' AND  NVL(COL.DML_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]> date_add(CURRENT_TIMESTAMP , interval #{SESSION_COLUMN_DISPLAY_DAYCNT} day) THEN 'N'
                    ELSE 'Y' END = 'Y'
           <if test='!"ALL".equals(USE_YN)'>
           /* AND CASE WHEN COL.USE_YN = '' THEN 'Y' ELSE NVL(COL.USE_YN, 'Y') END = 'Y' */
@@ -495,17 +652,20 @@
       SELECT /* mapper.erd.entity.selectEntityColumList */
               COL.COLMN_ID  AS ID
             , ETT.ENTITY_ID     
-            , CONCAT(ETT.ENTITY_ID , '@', ETT.TABL_NM, ' / ', ETT.ENTITY_NM, ' [상태:', NVL((SELECT CD_NM
-                                                                        FROM CD
-                                                                       WHERE CD_GRP = 'TABL_SCD'
-                                                                         AND CD     = ETT.TABL_SCD), '미등록'), ']') AS ENTITY_NM
-            , ETT.TABL_NM AS TABL_NM 
- 
-            , ETT.TABL_SCD AS TABL_SCD 
-            , (SELECT CD_NM
-                 FROM CD
-                WHERE CD_GRP = 'TABL_SCD'
-                  AND CD     = ETT.TABL_SCD) AS TABL_SCD_NM
+            , ETT.ENTITY_TCD
+            , CONCAT(ETT.TABL_NM, ' / ', ETT.ENTITY_NM, ' [상태:', NVL(ENTT_SCD.TABL_SCD_NM, '미등록'), ']', '@', ETT.ENTITY_ID) AS ENTITY_UNIQUE_NM
+            , ETT.ENTITY_NM AS ENTITY_NM
+            , ETT.TABL_NM   AS TABL_NM 
+
+             , NVL((SELECT ALIAS_NM
+                  FROM ENTITY_ALIAS_NM
+                 WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                   AND ENTITY_ID   = ETT.ENTITY_ID    
+                   AND VERSN       = ETT.VERSN    
+                   AND USR_UID     = #{SESSION_USR_UID} ), ETT.ENTITY_NM)  AS ENTITY_NM_ALIAS
+                   
+            , ENTT_SCD.TABL_SCD 
+            , ENTT_SCD.TABL_SCD_NM
 
             , ETT.DML_TCD  AS    ENTITY_DML_TCD   
             , (SELECT CD_NM
@@ -514,22 +674,29 @@
                   AND CD     = ETT.DML_TCD)  AS ENTITY_DML_TCD_NM
             , COL.COLMN_ID        
             , COL.COLMN_NM  AS  COLMN_NM   
+            , COL.COLMN_NM  AS  COLMN_NM_ALIAS_NM
             , COL.DOMAIN_ID     
             , DMN.DOMAIN_NM     
+            /*
             , CONCAT(DMN.DTYPE
                       , CASE WHEN DTYPE_1.SCALE_YN = 'Y' AND DMN.LEN1 IS NOT NULL THEN CONCAT('(', DMN.LEN1) ELSE '' END
                       , CASE WHEN DTYPE_1.SCALE_YN = 'Y' AND DTYPE_1.COMMA_YN = 'Y' AND DMN.LEN2 IS NOT NULL THEN CONCAT(',', DMN.LEN2) ELSE '' END
                       , CASE WHEN DTYPE_1.SCALE_YN = 'Y' OR DTYPE_1.COMMA_YN = 'Y' OR DMN.LEN1 IS NOT NULL OR DMN.LEN2 IS NOT NULL THEN ')'  ELSE '' END)
-                 AS  DOMAIN_DATA_TYPE           
+                 AS  DOMAIN_DATA_TYPE      
+             */  
+            , DMN.DATA_TYPE    AS  DOMAIN_DATA_TYPE     
             , COL.ATTR_NM       
-
+             
+            /* 
             , NVL(CONCAT(COL.DTYPE
                        , CASE WHEN DTYPE.SCALE_YN = 'Y' AND COL.LEN1 IS NOT NULL THEN CONCAT('(', COL.LEN1) ELSE '' END
                        , CASE WHEN DTYPE.SCALE_YN = 'Y' AND DTYPE.COMMA_YN = 'Y' AND COL.LEN2 IS NOT NULL THEN CONCAT(',', COL.APLY_DT) ELSE '' END
                        , CASE WHEN DTYPE.SCALE_YN = 'Y' OR DTYPE.COMMA_YN = 'Y' OR COL.LEN1 IS NOT NULL OR COL.LEN2 IS NOT NULL THEN ')'  ELSE '' END)
                   , 'NOT-DEFINED')
                    AS DATA_TYPE
-
+             */
+            , COL.DATA_TYPE
+            
             , COL.DTYPE  
             , COL.LEN1          
             , COL.LEN2          
@@ -566,36 +733,100 @@
             , COL.VERSN
             , COL.SEQ           
             , COL.COLOR 
+            , COL.DEFAULT_VAL
             , 'N' AS SELECTED_YN
             , 'N' AS EXPAND_YN
-            , CAST(ROW_NUMBER() OVER(PARTITION BY ETT.ENTITY_ID ORDER BY SEQ, COLMN_NM) AS CHAR) AS RNUM
+            , 1 AS INDENT
+            , LENGTHB(COL.COLMN_NM)+3  AS COL_NM_LEN
+            , LENGTHB(REPLACE(COL.COLMN_NM, '_', ''))+3  AS COL_NM_PLAIN_LEN
+            , LENGTHB(COL.ATTR_NM)+3   AS ATTR_NM_LEN
+            , LENGTHB(ETT.ENTITY_NM)+3 AS ENTITY_NM_LEN
+            , LENGTHB(ETT.TABL_NM)+3   AS TABL_NM_LEN
+            , CAST(ROW_NUMBER() OVER(PARTITION BY ETT.ENTITY_ID ORDER BY CASE WHEN PK_YN = 'Y' THEN 1 ELSE 2 END, SEQ, COLMN_NM) AS CHAR) AS RNUM
+
+
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM COLMN_SCD WHERE PROJECT_ID  = COL.PROJECT_ID 
+                                              AND VERSN       = COL.VERSN 
+                                              AND ENTITY_ID   = COL.ENTITY_ID 
+                                              AND COLMN_ID    = COL.COLMN_ID
+                                              AND COLMN_SCD   = 'TABL_SCD_030') AS TABL_SCD_030
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM COLMN_SCD WHERE PROJECT_ID  = COL.PROJECT_ID 
+                                              AND VERSN       = COL.VERSN 
+                                              AND ENTITY_ID   = COL.ENTITY_ID 
+                                              AND COLMN_ID    = COL.COLMN_ID
+                                              AND COLMN_SCD   = 'TABL_SCD_040') AS TABL_SCD_040
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM COLMN_SCD WHERE PROJECT_ID  = COL.PROJECT_ID 
+                                              AND VERSN       = COL.VERSN 
+                                              AND ENTITY_ID   = COL.ENTITY_ID 
+                                              AND COLMN_ID    = COL.COLMN_ID
+                                              AND COLMN_SCD   = 'TABL_SCD_050') AS TABL_SCD_050
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM COLMN_SCD WHERE PROJECT_ID  = COL.PROJECT_ID 
+                                              AND VERSN       = COL.VERSN 
+                                              AND ENTITY_ID   = COL.ENTITY_ID 
+                                              AND COLMN_ID    = COL.COLMN_ID
+                                              AND COLMN_SCD   = 'TABL_SCD_060') AS TABL_SCD_060
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM COLMN_SCD WHERE PROJECT_ID  = COL.PROJECT_ID 
+                                              AND VERSN       = COL.VERSN 
+                                              AND ENTITY_ID   = COL.ENTITY_ID 
+                                              AND COLMN_ID    = COL.COLMN_ID
+                                              AND COLMN_SCD   = 'TABL_SCD_070') AS TABL_SCD_070
          FROM ENTITY   ETT
               LEFT OUTER JOIN COLMN    COL
                 ON ETT.PROJECT_ID = COL.PROJECT_ID
                AND ETT.ENTITY_ID  = COL.ENTITY_ID
                AND ETT.VERSN      = COL.VERSN
                AND 'Y'            = CASE WHEN COL.USE_YN = 'N' THEN 'N' ELSE 'Y' END
+           /*
            LEFT OUTER JOIN DTYPE DTYPE 
                 ON COL.DTYPE      = DTYPE.DTYPE
+                */
            LEFT OUTER JOIN DOMAIN DMN 
                 ON COL.PROJECT_ID = #{SESSION_PROJECT_ID}
                AND COL.DOMAIN_ID  = DMN.DOMAIN_ID
+           /*
            LEFT OUTER JOIN DTYPE DTYPE_1 
                 ON DMN.DTYPE      = DTYPE_1.DTYPE
+           */
+           LEFT OUTER JOIN (SELECT ENTT_SCD.PROJECT_ID, ENTT_SCD.VERSN, ENTT_SCD.ENTITY_ID
+                                 , GROUP_CONCAT(CD.CD ORDER BY CD.CD) AS TABL_SCD
+                                 , REPLACE(GROUP_CONCAT(CD.CD_NM ORDER BY CD.CD), '반영','') AS TABL_SCD_NM
+                              FROM ENTITY_SCD ENTT_SCD
+                                 , CD         CD
+                           WHERE ENTT_SCD.TABL_SCD  = CD.CD
+                             AND PROJECT_ID  = #{SESSION_PROJECT_ID}
+                             AND VERSN       = #{SESSION_VERSN}
+                             AND CD.CD_GRP   = 'TABL_SCD'
+                             AND ENTT_SCD.TRT_DT IS NOT NULL 
+                           GROUP BY ENTT_SCD.PROJECT_ID, ENTT_SCD.VERSN, ENTT_SCD.ENTITY_ID ) ENTT_SCD
+                ON ETT.PROJECT_ID = ENTT_SCD.PROJECT_ID
+               AND ETT.ENTITY_ID  = ENTT_SCD.ENTITY_ID
+               AND ETT.VERSN      = ENTT_SCD.VERSN
         WHERE ETT.PROJECT_ID = #{SESSION_PROJECT_ID}
           AND ETT.VERSN       = #{SESSION_VERSN}
           AND CASE WHEN ETT.USE_YN = 'N' THEN 'N' ELSE 'Y' END = 'Y'
             <if test='TABL_SCD != null and !"".equals(TABL_SCD) '>
-                AND ETT.TABL_SCD = #{TABL_SCD}
-            </if>
-            <if test='COLMN_SCD != null and !"".equals(COLMN_SCD) '>
-                AND EXISTS ( SELECT 'Y' 
-                             FROM COLMN COL
-                            WHERE PROJECT_ID = ETT.PROJECT_ID
-                              AND ENTITY_ID  = ETT.ENTITY_ID
-                              AND VERSN      = ETT.VERSN
-                              AND COL.COLMN_SCD = #{COLMN_SCD} )
-            </if>
+                AND EXISTS ( SELECT 'Y'
+                               FROM ENTITY_SCD
+                              WHERE PROJECT_ID = COL.PROJECT_ID
+                                AND VERSN      = COL.VERSN
+                                AND ENTITY_ID  = COL.ENTITY_ID
+                                AND TABL_SCD   = REPLACE(#{TABL_SCD}, '_NOT', '')
+                <choose>
+                    <when test='TABL_SCD.indexOf("NOT") > 0 '>
+                        AND TRT_DT IS NULL 
+                    </when>
+                    <otherwise>
+                        AND TRT_DT IS NOT NULL 
+                    </otherwise>
+                </choose>
+                             )            
+           </if>
+
            <if test="ENTITY_NM != null ">
                AND (
                        (<choose>
@@ -671,7 +902,24 @@
             </if> 
 
             <if test='COLMN_SCD != null and !"".equals(COLMN_SCD) '>
-                AND COL.COLMN_SCD = #{COLMN_SCD}
+                AND EXISTS ( SELECT 'Y'
+                               FROM COLMN_SCD
+                              WHERE PROJECT_ID = COL.PROJECT_ID
+                                AND VERSN      = COL.VERSN
+                                AND ENTITY_ID  = COL.ENTITY_ID
+                                AND COLMN_ID   = COL.COLMN_ID
+                                AND COLMN_SCD  = REPLACE(#{COLMN_SCD}, '_NOT', '')
+                                
+                <choose>
+                    <when test='COLMN_SCD.indexOf("NOT") > 0 '>
+                        AND TRT_DT IS NULL 
+                    </when>
+                    <otherwise>
+                        AND TRT_DT IS NOT NULL 
+                    </otherwise>
+                </choose>
+
+                                )
             </if>
            <if test="ENTITY_NM != null ">
                AND (
@@ -732,7 +980,372 @@
                        </choose>)
                   )
             </if>
-       ORDER BY ETT.ENTITY_ID, CASE WHEN PK_YN = 'Y' THEN 1 ELSE 2 END, SEQ, COLMN_NM
+       ORDER BY ETT.TABL_NM, ETT.ENTITY_NM, ETT.ENTITY_ID, CASE WHEN PK_YN = 'Y' THEN 1 ELSE 2 END, SEQ, COLMN_NM
+    </select>
+    
+        <!--  테이블 목록 조회. -->
+    <select id="selectEntityColumTableList"  parameterType="paramMap" resultType="resultMap">
+    SELECT  /* mapper.erd.entity.selectEntityColumTableList */
+
+              ETT.ID
+            , ETT.ENTITY_ID     
+            , ETT.ENTITY_TCD
+            , ETT.ENTITY_UNIQUE_NM
+            , ETT.ENTITY_NM
+            , ETT.TABL_NM 
+ 
+            , ETT.TABL_SCD 
+            , ETT.TABL_SCD_NM
+
+            , ETT.ENTITY_DML_TCD   
+            , ETT.ENTITY_DML_TCD_NM
+            , ETT.COLMN_ID        
+            , ETT.COLMN_NM   
+            , ETT.DOMAIN_ID     
+            , ETT.DOMAIN_NM     
+            , ETT.DOMAIN_DATA_TYPE           
+            , ETT.ATTR_NM       
+
+            , ETT.DATA_TYPE
+
+            , ETT.DTYPE  
+            , ETT.LEN1          
+            , ETT.LEN2          
+            , ETT.DML_TCD      
+            , ETT.DML_TCD_NM
+            , ETT.DML_DT        
+            , ETT. DML_DT_FMT
+            , ETT.APLY_USR_UID  
+            , ETT.APLY_DT       
+            , ETT.TRT_USR_UID   
+            , ETT.TRT_DT        
+            , ETT.COLMN_SCD     
+            , ETT.COLMN_SCD_NM
+            , ETT.NOTNULL_YN    
+            , ETT. NOTNULL_YN_BOOL
+            , ETT.PK_YN         
+            , ETT. PK_YN_BOOL
+            , ETT.FK_ENTITY_NM            
+            , ETT.FK_ENTITY_ID  
+            , ETT.FK_COLMN_NM   
+            , ETT.COLMN_DESC    
+            , ETT.NUMB_MTH      
+            , ETT.VERSN
+            , ETT.SEQ           
+            , ETT.COLOR 
+            , ETT.SELECTED_YN
+            , ETT.EXPAND_YN
+            , ETT.RNUM
+      FROM (
+
+	      SELECT 
+	              COL.COLMN_ID  AS ID
+	            , ETT.ENTITY_ID     
+	            , ETT.ENTITY_TCD
+	            , CONCAT(ETT.TABL_NM, ' / ', ETT.ENTITY_NM, ' [상태:', NVL(ENTT_SCD.TABL_SCD_NM, '미등록'), ']', '@', ETT.ENTITY_ID) AS ENTITY_UNIQUE_NM
+	            , ETT.ENTITY_NM AS ENTITY_NM
+	            , ETT.TABL_NM   AS TABL_NM 
+	 
+	            , ENTT_SCD.TABL_SCD 
+	            , ENTT_SCD.TABL_SCD_NM
+	
+	            , ETT.DML_TCD  AS    ENTITY_DML_TCD   
+	            , (SELECT CD_NM
+	                 FROM CD
+	                WHERE CD_GRP = 'DML_TCD'
+	                  AND CD     = ETT.DML_TCD)  AS ENTITY_DML_TCD_NM
+	            , COL.COLMN_ID        
+	            , COL.COLMN_NM  AS  COLMN_NM   
+	            , COL.DOMAIN_ID     
+	            , DMN.DOMAIN_NM     
+	            , CONCAT(DMN.DTYPE
+	                      , CASE WHEN DTYPE_1.SCALE_YN = 'Y' AND DMN.LEN1 IS NOT NULL THEN CONCAT('(', DMN.LEN1) ELSE '' END
+	                      , CASE WHEN DTYPE_1.SCALE_YN = 'Y' AND DTYPE_1.COMMA_YN = 'Y' AND DMN.LEN2 IS NOT NULL THEN CONCAT(',', DMN.LEN2) ELSE '' END
+	                      , CASE WHEN DTYPE_1.SCALE_YN = 'Y' OR DTYPE_1.COMMA_YN = 'Y' OR DMN.LEN1 IS NOT NULL OR DMN.LEN2 IS NOT NULL THEN ')'  ELSE '' END)
+	                 AS  DOMAIN_DATA_TYPE           
+	            , COL.ATTR_NM       
+	
+	            , NVL(CONCAT(COL.DTYPE
+	                       , CASE WHEN DTYPE.SCALE_YN = 'Y' AND COL.LEN1 IS NOT NULL THEN CONCAT('(', COL.LEN1) ELSE '' END
+	                       , CASE WHEN DTYPE.SCALE_YN = 'Y' AND DTYPE.COMMA_YN = 'Y' AND COL.LEN2 IS NOT NULL THEN CONCAT(',', COL.APLY_DT) ELSE '' END
+	                       , CASE WHEN DTYPE.SCALE_YN = 'Y' OR DTYPE.COMMA_YN = 'Y' OR COL.LEN1 IS NOT NULL OR COL.LEN2 IS NOT NULL THEN ')'  ELSE '' END)
+	                  , 'NOT-DEFINED')
+	                   AS DATA_TYPE
+	
+	            , COL.DTYPE  
+	            , COL.LEN1          
+	            , COL.LEN2          
+	            , COL.DML_TCD      
+	            , (SELECT CD_NM
+	                 FROM CD
+	                WHERE CD_GRP = 'DML_TCD'
+	                  AND CD     = COL.DML_TCD) AS DML_TCD_NM
+	            , COL.DML_DT        
+	            , CASE WHEN DATE_FORMAT(COL.DML_DT, '%Y-%m-%d') = DATE_FORMAT(CURRENT_TIMESTAMP, '%Y-%m-%d') THEN DATE_FORMAT(COL.DML_DT, '%H:%i:%S')
+	                   ELSE DATE_FORMAT(COL.DML_DT, '%Y-%m-%d') END AS DML_DT_FMT
+	            , COL.APLY_USR_UID  
+	            , COL.APLY_DT       
+	            , COL.TRT_USR_UID   
+	            , COL.TRT_DT        
+	            , COL.COLMN_SCD     
+	            , (SELECT CD_NM
+	                 FROM CD
+	                WHERE CD_GRP = 'TABL_SCD'
+	                  AND CD     = COL.COLMN_SCD) AS COLMN_SCD_NM
+	            , COL.NOTNULL_YN    
+	            , CASE WHEN COL.PK_YN = 'Y'  THEN 'true'
+	                   WHEN COL.NOTNULL_YN = 'Y' THEN 'true' 
+	                   ELSE 'false' END AS NOTNULL_YN_BOOL
+	            , COL.PK_YN         
+	            , CASE WHEN COL.PK_YN = 'Y' THEN 'true' ELSE 'false' END AS PK_YN_BOOL
+	            , (SELECT ENTITY_NM
+	                 FROM ENTITY
+	                WHERE PROJECT_ID = COL.PROJECT_ID
+	                  AND ENTITY_ID  = COL.FK_ENTITY_ID) AS FK_ENTITY_NM            
+	            , COL.FK_ENTITY_ID  
+	            , COL.FK_COLMN_NM   
+	            , COL.COLMN_DESC    
+	            , COL.NUMB_MTH      
+	            , COL.VERSN
+	            , COL.SEQ           
+	            , COL.COLOR 
+	            , 'N' AS SELECTED_YN
+	            , 'N' AS EXPAND_YN
+                , CAST(ROW_NUMBER() OVER(PARTITION BY ETT.ENTITY_ID ORDER BY SEQ, COLMN_NM) AS CHAR) AS RNUM
+	         FROM ENTITY   ETT
+	              LEFT OUTER JOIN COLMN    COL
+	                ON ETT.PROJECT_ID = COL.PROJECT_ID
+	               AND ETT.ENTITY_ID  = COL.ENTITY_ID
+	               AND ETT.VERSN      = COL.VERSN
+	               AND 'Y'            = CASE WHEN COL.USE_YN = 'N' THEN 'N' ELSE 'Y' END
+	           LEFT OUTER JOIN DTYPE DTYPE 
+	                ON COL.DTYPE      = DTYPE.DTYPE
+	           LEFT OUTER JOIN DOMAIN DMN 
+	                ON COL.PROJECT_ID = #{SESSION_PROJECT_ID}
+	               AND COL.DOMAIN_ID  = DMN.DOMAIN_ID
+	           LEFT OUTER JOIN DTYPE DTYPE_1 
+	                ON DMN.DTYPE      = DTYPE_1.DTYPE
+	           LEFT OUTER JOIN (SELECT ENTT_SCD.PROJECT_ID, ENTT_SCD.VERSN, ENTT_SCD.ENTITY_ID
+	                                 , GROUP_CONCAT(CD.CD ORDER BY CD.CD) AS TABL_SCD
+	                                 , REPLACE(GROUP_CONCAT(CD.CD_NM ORDER BY CD.CD), '반영','') AS TABL_SCD_NM
+	                              FROM ENTITY_SCD ENTT_SCD
+	                                 , CD         CD
+	                           WHERE ENTT_SCD.TABL_SCD  = CD.CD
+	                             AND PROJECT_ID  = #{SESSION_PROJECT_ID}
+	                             AND VERSN       = #{SESSION_VERSN}
+	                             AND CD.CD_GRP   = 'TABL_SCD'
+	                             AND ENTT_SCD.TRT_DT IS NOT NULL 
+	                           GROUP BY ENTT_SCD.PROJECT_ID, ENTT_SCD.VERSN, ENTT_SCD.ENTITY_ID ) ENTT_SCD
+	                ON ETT.PROJECT_ID = ENTT_SCD.PROJECT_ID
+	               AND ETT.ENTITY_ID  = ENTT_SCD.ENTITY_ID
+	               AND ETT.VERSN      = ENTT_SCD.VERSN
+	        WHERE ETT.PROJECT_ID = #{SESSION_PROJECT_ID}
+	          AND ETT.VERSN       = #{SESSION_VERSN}
+	          AND CASE WHEN ETT.USE_YN = 'N' THEN 'N' ELSE 'Y' END = 'Y'
+	            <if test='TABL_SCD != null and !"".equals(TABL_SCD) '>
+	                AND ETT.TABL_SCD = #{TABL_SCD}
+	            </if>
+	            <if test='COLMN_SCD != null and !"".equals(COLMN_SCD) '>
+	                AND EXISTS ( SELECT 'Y' 
+	                             FROM COLMN COL
+	                            WHERE PROJECT_ID = ETT.PROJECT_ID
+	                              AND ENTITY_ID  = ETT.ENTITY_ID
+	                              AND VERSN      = ETT.VERSN
+	                              AND COL.COLMN_SCD = #{COLMN_SCD} )
+	            </if>
+	           <if test="ENTITY_NM != null ">
+	               AND (
+	                       (<choose>
+	                            <when test='"Y".equals(EXACT_YN)'>
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.ENTITY_NM) IN (" close=")" separator=",">
+	                                 UPPER(REPLACE(#{ITEM},' ',''))
+	                                </foreach>
+	                            </when>
+	                            <otherwise>                    
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="( " close=")" separator=" OR ">
+	                                  ETT.ENTITY_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+	                                </foreach>
+	                            </otherwise>
+	                       </choose>)
+	                       OR
+	                       (<choose>
+	                            <when test='"Y".equals(EXACT_YN)'>
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.TABL_NM) IN (" close=")" separator=",">
+	                                 UPPER(REPLACE(#{ITEM},' ',''))
+	                                </foreach>
+	                            </when>
+	                            <otherwise>                    
+	                                <foreach collection="ENTITY_NM" item="ITEM" open=" ( " close=")" separator=" OR ">
+	                                  ETT.TABL_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+	                                </foreach>
+	                            </otherwise>
+	                       </choose>)
+	                <if test="COLUMN_NM == null or COLUMN_NM=='' ">
+	                  )
+	                </if>
+	           </if>
+	
+	            <if test='COLMN_SCD != null and !"".equals(COLMN_SCD) '>
+	                AND COL.COLMN_SCD = #{COLMN_SCD}
+	            </if>
+	           <if test="ENTITY_NM != null ">
+	               AND (
+	                       (<choose>
+	                            <when test='"Y".equals(EXACT_YN)'>
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.ENTITY_NM) IN (" close=")" separator=",">
+	                                 UPPER(REPLACE(#{ITEM},' ',''))
+	                                </foreach>
+	                            </when>
+	                            <otherwise>                    
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="( " close=")" separator=" OR ">
+	                                  ETT.ENTITY_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+	                                </foreach>
+	                            </otherwise>
+	                       </choose>)
+	                       OR
+	                       (<choose>
+	                            <when test='"Y".equals(EXACT_YN)'>
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.TABL_NM) IN (" close=")" separator=",">
+	                                 UPPER(REPLACE(#{ITEM},' ',''))
+	                                </foreach>
+	                            </when>
+	                            <otherwise>                    
+	                                <foreach collection="ENTITY_NM" item="ITEM" open=" ( " close=")" separator=" OR ">
+	                                  ETT.TABL_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+	                                </foreach>
+	                            </otherwise>
+	                       </choose>)
+	                  )
+	            </if>
+	
+	      UNION ALL
+	      SELECT 
+	              ETT.ENTITY_ID  AS ID
+	            , ETT.ENTITY_ID     
+	            , ETT.ENTITY_TCD
+	            , CONCAT('흫흫흫', ' / ', 'ZZZZZZ', '@FROM_ZZZZZZ') AS ENTITY_UNIQUE_NM
+	            , ETT.ENTITY_NM AS ENTITY_NM
+	            , ETT.TABL_NM   AS TABL_NM 
+	 
+	            , NULL  AS TABL_SCD 
+	            , NULL  AS TABL_SCD_NM
+	
+	            , ETT.DML_TCD  AS    ENTITY_DML_TCD   
+	            , (SELECT CD_NM
+	                 FROM CD
+	                WHERE CD_GRP = 'DML_TCD'
+	                  AND CD     = ETT.DML_TCD)  AS ENTITY_DML_TCD_NM
+	            , NULL  AS COLMN_ID        
+	            , NULL  AS COLMN_NM   
+	            , NULL  AS DOMAIN_ID     
+	            , NULL  AS DOMAIN_NM     
+	            , NULL  AS DOMAIN_DATA_TYPE           
+	            , NULL  AS ATTR_NM       
+	
+	            , NULL  AS DATA_TYPE
+	
+	            , NULL  AS DTYPE  
+	            , NULL  AS LEN1          
+	            , NULL  AS LEN2          
+	            , NULL  AS DML_TCD      
+	            , NULL  AS DML_TCD_NM
+	            , NULL  AS DML_DT        
+	            , NULL  AS  DML_DT_FMT
+	            , NULL  AS APLY_USR_UID  
+	            , NULL  AS APLY_DT       
+	            , NULL  AS TRT_USR_UID   
+	            , NULL  AS TRT_DT        
+	            , NULL  AS COLMN_SCD     
+	            , NULL  AS COLMN_SCD_NM
+	            , NULL  AS NOTNULL_YN    
+	            , NULL  AS  NOTNULL_YN_BOOL
+	            , NULL  AS PK_YN         
+	            , NULL  AS  PK_YN_BOOL
+	            , NULL  AS FK_ENTITY_NM            
+	            , NULL  AS FK_ENTITY_ID  
+	            , NULL  AS FK_COLMN_NM   
+	            , NULL  AS COLMN_DESC    
+	            , NULL  AS NUMB_MTH      
+	            , NULL  AS VERSN
+	            , NULL  AS SEQ           
+	            , NULL  AS COLOR 
+	            , 'N' AS SELECTED_YN
+	            , 'N' AS EXPAND_YN
+	            , NULL  AS RNUM
+	         FROM ENTITY   ETT
+	
+	        WHERE ETT.PROJECT_ID = #{SESSION_PROJECT_ID}
+	          AND ETT.VERSN       = #{SESSION_VERSN}
+	          AND CASE WHEN ETT.USE_YN = 'N' THEN 'N' ELSE 'Y' END = 'Y'
+	            <if test='TABL_SCD != null and !"".equals(TABL_SCD) '>
+	                AND ETT.TABL_SCD = #{TABL_SCD}
+	            </if>
+	           <if test="ENTITY_NM != null ">
+	               AND (
+	                       (<choose>
+	                            <when test='"Y".equals(EXACT_YN)'>
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.ENTITY_NM) IN (" close=")" separator=",">
+	                                 UPPER(REPLACE(#{ITEM},' ',''))
+	                                </foreach>
+	                            </when>
+	                            <otherwise>                    
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="( " close=")" separator=" OR ">
+	                                  ETT.ENTITY_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+	                                </foreach>
+	                            </otherwise>
+	                       </choose>)
+	                       OR
+	                       (<choose>
+	                            <when test='"Y".equals(EXACT_YN)'>
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.TABL_NM) IN (" close=")" separator=",">
+	                                 UPPER(REPLACE(#{ITEM},' ',''))
+	                                </foreach>
+	                            </when>
+	                            <otherwise>                    
+	                                <foreach collection="ENTITY_NM" item="ITEM" open=" ( " close=")" separator=" OR ">
+	                                  ETT.TABL_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+	                                </foreach>
+	                            </otherwise>
+	                       </choose>)
+	                <if test="COLUMN_NM == null or COLUMN_NM=='' ">
+	                  )
+	                </if>
+	           </if>
+	
+	            <if test='COLMN_SCD != null and !"".equals(COLMN_SCD) '>
+	                AND COL.COLMN_SCD = #{COLMN_SCD}
+	            </if>
+	           <if test="ENTITY_NM != null ">
+	               AND (
+	                       (<choose>
+	                            <when test='"Y".equals(EXACT_YN)'>
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.ENTITY_NM) IN (" close=")" separator=",">
+	                                 UPPER(REPLACE(#{ITEM},' ',''))
+	                                </foreach>
+	                            </when>
+	                            <otherwise>                    
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="( " close=")" separator=" OR ">
+	                                  ETT.ENTITY_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+	                                </foreach>
+	                            </otherwise>
+	                       </choose>)
+	                       OR
+	                       (<choose>
+	                            <when test='"Y".equals(EXACT_YN)'>
+	                                <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.TABL_NM) IN (" close=")" separator=",">
+	                                 UPPER(REPLACE(#{ITEM},' ',''))
+	                                </foreach>
+	                            </when>
+	                            <otherwise>                    
+	                                <foreach collection="ENTITY_NM" item="ITEM" open=" ( " close=")" separator=" OR ">
+	                                  ETT.TABL_NM LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+	                                </foreach>
+	                            </otherwise>
+	                       </choose>)
+	                  )
+	            </if>
+	       ) ETT
+       ORDER BY ETT.TABL_NM, ETT.ENTITY_NM, ETT.ENTITY_ID, CASE WHEN PK_YN = 'Y' THEN 1 ELSE 2 END, SEQ, COLMN_NM
     </select>
     
     <!--  테이블 목록 조회. -->
@@ -740,6 +1353,8 @@
         SELECT /* mapper.erd.entity.selectEntityInfo */
                ETT.PROJECT_ID        
              , ETT.ENTITY_ID         
+             , ETT.ENTITY_TCD
+             , (SELECT CD_NM FROM CD WHERE CD_GRP = 'ENTITY_TCD' AND CD = ETT.ENTITY_TCD) AS ENTITY_TCD_NM
              , ETT.ENTITY_NM         
              , ETT.TABL_NM           
              , ETT.TABL_SCD          
@@ -769,6 +1384,43 @@
              , ETT.LAST_UPD_USR_UID  
              , ETT.VERSN             
              , ETT.USE_YN            
+             , NVL((SELECT 'Y'
+                      FROM SUBJECT        SUBJ
+                         , SUBJECT_ENTITY SUBJ_ETT
+                     WHERE SUBJ.PROJECT_ID = SUBJ_ETT.PROJECT_ID
+                       AND SUBJ.VERSN      = SUBJ_ETT.VERSN
+                       AND SUBJ.SUBJECT_ID = SUBJ_ETT.SUBJECT_ID
+                       AND SUBJ_ETT.PROJECT_ID = ETT.PROJECT_ID
+                       AND SUBJ_ETT.VERSN      = ETT.VERSN
+                       AND SUBJ_ETT.ENTITY_ID  = ETT.ENTITY_ID
+                       AND SUBJ.EDIT_USR_UID   = #{SESSION_USR_UID}
+                       LIMIT 1 ), 'N') AS EDITABLE_YN
+
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM ENTITY_SCD WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                                              AND VERSN       = ETT.VERSN 
+                                              AND ENTITY_ID   = ETT.ENTITY_ID
+                                              AND TABL_SCD    = 'TABL_SCD_030') AS TABL_SCD_030
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM ENTITY_SCD WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                                              AND VERSN       = ETT.VERSN 
+                                              AND ENTITY_ID   = ETT.ENTITY_ID
+                                              AND TABL_SCD    = 'TABL_SCD_040') AS TABL_SCD_040
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM ENTITY_SCD WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                                              AND VERSN       = ETT.VERSN 
+                                              AND ENTITY_ID   = ETT.ENTITY_ID
+                                              AND TABL_SCD    = 'TABL_SCD_050') AS TABL_SCD_050
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM ENTITY_SCD WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                                              AND VERSN       = ETT.VERSN 
+                                              AND ENTITY_ID   = ETT.ENTITY_ID
+                                              AND TABL_SCD    = 'TABL_SCD_060') AS TABL_SCD_060
+            , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'true' ELSE NULL END
+                 FROM ENTITY_SCD WHERE PROJECT_ID  = ETT.PROJECT_ID 
+                                              AND VERSN       = ETT.VERSN 
+                                              AND ENTITY_ID   = ETT.ENTITY_ID
+                                              AND TABL_SCD    = 'TABL_SCD_070') AS TABL_SCD_070
           FROM ENTITY         ETT
          WHERE ETT.PROJECT_ID = #{SESSION_PROJECT_ID}
            AND ETT.VERSN      = #{SESSION_VERSN}
@@ -781,6 +1433,7 @@
              PROJECT_ID      
            , VERSN
            , ENTITY_ID
+           , ENTITY_TCD
            , ENTITY_NM
            , TABL_NM
            , TABL_SCD
@@ -807,6 +1460,7 @@
              #{SESSION_PROJECT_ID}      
            , #{SESSION_VERSN}
            , #{ENTITY_ID}
+           , NVL(#{ENTITY_TCD}, 'TABLE')
            , #{ENTITY_NM}
            , #{TABL_NM}
            , #{TABL_SCD}
@@ -838,23 +1492,24 @@
         ON DUPLICATE KEY UPDATE
              LOG_ID   = #{LOG_ID}
            , CHG_CTNT = CASE WHEN ENTITY_NM = #{ENTITY_NM} AND TABL_NM   = #{TABL_NM} AND TABL_SCD  = #{TABL_SCD} THEN NULL
-                             WHEN USE_YN = 'Y' AND NVL(#{USE_YN}, 'Y') = 'N' THEN CONCAT('테이블 "', #{TABL_NM}, '(', #{ENTITY_NM}, ')"이 삭제 되었습니다.')
+                             WHEN USE_YN = 'Y' AND NVL(#{USE_YN}, 'Y') = 'N' THEN CONCAT('테이블 "', #{TABL_NM}, '(', #{ENTITY_NM}, ')"이(가) 삭제 되었습니다.')
                              WHEN USE_YN = 'N' AND NVL(#{USE_YN}, 'Y') = 'Y' THEN
                                   CASE WHEN ENTITY_NM = #{ENTITY_NM} AND TABL_NM   = #{TABL_NM} AND TABL_SCD  != #{TABL_SCD} THEN
-                                              CONCAT('테이블 "', #{TABL_NM}, '(', #{ENTITY_NM}, ')"이 삭제취소되어 "', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"') ,'되었습니다.')
+                                              CONCAT('테이블 "', #{TABL_NM}, '(', #{ENTITY_NM}, ')"이(가) 삭제취소되어 "', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"') ,'되었습니다.')
                                        WHEN (ENTITY_NM != #{ENTITY_NM} OR TABL_NM   != #{TABL_NM}) AND TABL_SCD  = #{TABL_SCD} THEN
-                                              CONCAT('테이블 "', ENTITY_NM, '(',TABL_NM, ')"이 삭제취소되어 -> "',   #{TABL_NM}, '(', #{ENTITY_NM}, ')"로 변경 되었습니다.')
+                                              CONCAT('테이블 "', ENTITY_NM, '(',TABL_NM, ')"이(가) 삭제취소되어 -> "',   #{TABL_NM}, '(', #{ENTITY_NM}, ')"로 변경 되었습니다.')
                                        WHEN (ENTITY_NM != #{ENTITY_NM} OR TABL_NM   != #{TABL_NM}) AND TABL_SCD  != #{TABL_SCD} THEN
-                                              CONCAT('테이블 "', ENTITY_NM, '(',TABL_NM, ')"이 삭제취소되어 -> "',   #{TABL_NM}, '(', #{ENTITY_NM}, ')"로 변경되어 "', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"') ,'되었습니다.')
+                                              CONCAT('테이블 "', ENTITY_NM, '(',TABL_NM, ')"이(가) 삭제취소되어 -> "',   #{TABL_NM}, '(', #{ENTITY_NM}, ')"로 변경되어 "', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"') ,'되었습니다.')
                                        ELSE NULL END 
                              WHEN ENTITY_NM = #{ENTITY_NM} AND TABL_NM   = #{TABL_NM} AND TABL_SCD  != #{TABL_SCD} THEN
-                                  CONCAT('테이블 "', #{TABL_NM}, '(', #{ENTITY_NM}, ')"이 "', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"') ,'되었습니다.')
+                                  CONCAT('테이블 "', #{TABL_NM}, '(', #{ENTITY_NM}, ')"이(가) "', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"') ,'되었습니다.')
                              WHEN (ENTITY_NM != #{ENTITY_NM} OR TABL_NM   != #{TABL_NM}) AND TABL_SCD  = #{TABL_SCD} THEN
-                                  CONCAT('테이블 "', ENTITY_NM, '(',TABL_NM, ')"이 -> "',   #{TABL_NM}, '(', #{ENTITY_NM}, ')"로 변경 되었습니다.')
+                                  CONCAT('테이블 "', ENTITY_NM, '(',TABL_NM, ')"이(가) -> "',   #{TABL_NM}, '(', #{ENTITY_NM}, ')"로 변경 되었습니다.')
                              WHEN (ENTITY_NM != #{ENTITY_NM} OR TABL_NM   != #{TABL_NM}) AND TABL_SCD  != #{TABL_SCD} THEN
-                                  CONCAT('테이블 "', ENTITY_NM, '(',TABL_NM, ')"이 -> "',   #{TABL_NM}, '(', #{ENTITY_NM}, ')"로 변경되어 "', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"') ,'되었습니다.')
+                                  CONCAT('테이블 "', ENTITY_NM, '(',TABL_NM, ')"이(가) -> "',   #{TABL_NM}, '(', #{ENTITY_NM}, ')"로 변경되어 "', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"') ,'되었습니다.')
                              ELSE NULL END
-
+           , PRE_ENTITY_NM  = CASE WHEN ENTITY_NM != #{ENTITY_NM} THEN #{ENTITY_NM} ELSE PRE_ENTITY_NM END
+           , ENTITY_TCD =  NVL(#{ENTITY_TCD}, 'TABLE')
            , ENTITY_NM = #{ENTITY_NM}
            , TABL_NM   = #{TABL_NM}
            , TABL_SCD  = #{TABL_SCD}
@@ -935,6 +1590,64 @@
            , LAST_UPD_USR_UID =#{SESSION_USR_UID}
     </insert>
 
+
+  <insert  id="saveSubjectEntityUser"  parameterType="paramMap">
+        INSERT /* mapper.erd.entity.saveSubjectEntityUser */
+          INTO SUBJECT_ENTITY_USR (
+                 PROJECT_ID 
+               , SUBJECT_ID 
+               , VERSN 
+               , USR_UID
+               , ENTITY_ID
+               , X
+               , Y
+               , COLOR 
+               , LINE_COLOR 
+               , NM_BG_COLOR
+               , BG_COLOR 
+               , WIDTH 
+               , HEIGHT 
+               
+               , FRST_INS_DT 
+               , FRST_INS_USR_UID
+               , LAST_UPD_DT 
+               , LAST_UPD_USR_UID
+          
+        ) VALUES (
+             #{SESSION_PROJECT_ID}    
+           , #{SUBJECT_ID}      
+           , #{SESSION_VERSN}
+           , #{SESSION_USR_UID}
+           , #{ENTITY_ID}
+           , #{X}
+           , #{Y}
+           , #{COLOR}
+           , #{LINE_COLOR}
+           , #{NM_BG_COLOR}
+           , #{BG_COLOR}
+           , #{WIDTH}
+           , #{HEIGHT}
+           
+           , CURRENT_TIMESTAMP     
+           , #{SESSION_USR_UID}
+           , CURRENT_TIMESTAMP   
+           , #{SESSION_USR_UID}
+        )
+        ON DUPLICATE KEY UPDATE
+              X           = CASE WHEN #{X}           IS NULL THEN X           ELSE #{X}           END 
+            , Y           = CASE WHEN #{Y}           IS NULL THEN Y           ELSE #{Y}           END 
+            , COLOR       = CASE WHEN #{COLOR}       IS NULL THEN COLOR       ELSE #{COLOR}       END 
+            , LINE_COLOR  = CASE WHEN #{LINE_COLOR}  IS NULL THEN LINE_COLOR  ELSE #{LINE_COLOR}  END 
+            , NM_BG_COLOR = CASE WHEN #{NM_BG_COLOR} IS NULL THEN NM_BG_COLOR ELSE #{NM_BG_COLOR} END 
+            , BG_COLOR    = CASE WHEN #{BG_COLOR}    IS NULL THEN BG_COLOR    ELSE #{BG_COLOR}    END 
+            , WIDTH       = CASE WHEN #{WIDTH}       IS NULL THEN WIDTH       ELSE #{WIDTH}       END 
+            , HEIGHT      = CASE WHEN #{HEIGHT}      IS NULL THEN HEIGHT      ELSE #{HEIGHT}      END 
+           
+           , LAST_UPD_DT     = CURRENT_TIMESTAMP 
+           , LAST_UPD_USR_UID =#{SESSION_USR_UID}
+    </insert>
+    
+    
     <update  id="updateEntityWidthHeight"  parameterType="paramMap">
         UPDATE /* mapper.erd.entity.updateEntityWidthHeight */
                ENTITY
@@ -983,9 +1696,6 @@
              
              , DML_DT      = CURRENT_TIMESTAMP
              , DML_USR_UID = #{SESSION_USR_UID} 
-
-             , APLY_USR_UID = CASE WHEN #{TABL_SCD} = 'TABL_SCD_010' THEN #{SESSION_USR_UID} ELSE APLY_USR_UID END
-             , APLY_DT      = CASE WHEN #{TABL_SCD} = 'TABL_SCD_010' THEN CURRENT_TIMESTAMP ELSE APLY_DT END
 
              , TRT_USR_UID  = #{SESSION_USR_UID}
              , TRT_DT       = CURRENT_TIMESTAMP
@@ -1183,7 +1893,8 @@
            
        SET 
            LOG_ID          = #{LOG_ID}
-         , CHG_CTNT        = CONCAT('테이블 "', TABL_NM,'(', ENTT.ENTITY_NM, ')"이 -> "', TABL_NM, '(', WORD.ENTITY_NM ,')"로 변경 되었습니다.')
+         , CHG_CTNT        = CONCAT('테이블 "', TABL_NM,'(', ENTT.ENTITY_NM, ')"이(가) -> "', TABL_NM, '(', WORD.ENTITY_NM ,')"로 변경 되었습니다.')
+         , PRE_ENTITY_NM    = ENTT.ENTITY_NM
          , ENTT.ENTITY_NM   = WORD.ENTITY_NM
          , ENTT.DML_TCD     = CASE WHEN ENTT.DML_TCD IN ('DML_TCD_I_D', 'DML_TCD_U_D') THEN ENTT.DML_TCD
                                    ELSE 'DML_TCD_U' END
@@ -1201,32 +1912,32 @@
     
     <!--  즐겨찾기 추가 -->
     <insert id="addEntityFavorite"  parameterType="paramMap">
-		INSERT /* mapper.erd.entity.addEntityFavorite */
-		  INTO ENTITY_FAVOR
-		(
-		  USR_UID            
-		, PROJECT_ID         
-		, ENTITY_ID          
-		, VERSN              
-		, FRST_INS_DT        
-		, FRST_INS_USR_UID   
-		, LAST_UPD_DT        
-		, LAST_UPD_USR_UID   
-		)
-		VALUES (
-		  #{SESSION_USR_UID}
-		, #{SESSION_PROJECT_ID}
-		, #{ENTITY_ID}
-		, #{SESSION_VERSN}
-		, CURRENT_TIMESTAMP
-		, #{SESSION_USR_UID}
+        INSERT /* mapper.erd.entity.addEntityFavorite */
+          INTO ENTITY_FAVOR
+        (
+          USR_UID            
+        , PROJECT_ID         
+        , ENTITY_ID          
+        , VERSN              
+        , FRST_INS_DT        
+        , FRST_INS_USR_UID   
+        , LAST_UPD_DT        
+        , LAST_UPD_USR_UID   
+        )
+        VALUES (
+          #{SESSION_USR_UID}
+        , #{SESSION_PROJECT_ID}
+        , #{ENTITY_ID}
+        , #{SESSION_VERSN}
         , CURRENT_TIMESTAMP
         , #{SESSION_USR_UID}
-		)
-		ON DUPLICATE KEY UPDATE
+        , CURRENT_TIMESTAMP
+        , #{SESSION_USR_UID}
+        )
+        ON DUPLICATE KEY UPDATE
              LAST_UPD_DT     = CURRENT_TIMESTAMP 
            , LAST_UPD_USR_UID =#{SESSION_USR_UID}
-		
+        
     </insert>
 
     <!--  즐겨찾기 추가 -->
@@ -1238,4 +1949,737 @@
            AND ENTITY_ID     = #{ENTITY_ID}
            AND VERSN         = #{SESSION_VERSN}
     </delete>
+
+     <delete id="deleteEntityStatus"  parameterType="paramMap" >
+        DELETE /* mapper.erd.entity.deleteEntityStatus */
+          FROM ENTITY_SCD
+         WHERE PROJECT_ID    = #{SESSION_PROJECT_ID}
+           AND VERSN         = #{SESSION_VERSN}
+           AND ENTITY_ID     = #{ENTITY_ID}
+     </delete>
+     
+     
+     <update id="upateEntityStatusInit"  parameterType="paramMap" >
+        UPDATE /* mapper.erd.entity.upateEntityStatusInit */
+               ENTITY_SCD
+           SET 
+               TRT_DT      = NULL
+             , TRT_USR_UID = NULL
+         WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+           AND VERSN      = #{SESSION_VERSN}
+           AND ENTITY_ID  = #{ENTITY_ID}
+              
+     </update>
+     
+     <insert id="insertEntityStatus"  parameterType="paramMap" >
+        INSERT /* mapper.erd.entity.insertEntityStatus */
+          INTO ENTITY_SCD (
+                PROJECT_ID  
+              , VERSN       
+              , ENTITY_ID   
+              , TABL_SCD    
+              , TRT_DT      
+              , TRT_USR_UID 
+              , LOG_ID
+              , CHG_CTNT
+           ) VALUES (
+                #{SESSION_PROJECT_ID}
+              , #{SESSION_VERSN}
+              , #{ENTITY_ID}
+              , #{TABL_SCD}
+              , CASE WHEN #{IS_CHECKED} != 'true' THEN NULL ELSE CURRENT_TIMESTAMP END
+              , CASE WHEN #{IS_CHECKED} != 'true' THEN NULL ELSE #{SESSION_USR_UID} END
+              , #{LOG_ID}
+              , CASE WHEN #{IS_CHECKED} != 'true' THEN NULL 
+                     ELSE 
+                          (SELECT CONCAT('테이블 "', ENTITY_NM, '(',TABL_NM, ')"이(가) "', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '" 되었습니다.'))
+                             FROM ENTITY
+                            WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+                              AND VERSN      = #{SESSION_VERSN}
+                              AND ENTITY_ID  = #{ENTITY_ID} ) END
+           )
+        ON DUPLICATE KEY UPDATE
+             LOG_ID          = #{LOG_ID}
+           , CHG_CTNT        = CASE WHEN TRT_DT IS NULL AND (#{IS_CHECKED} != 'true') THEN NULL 
+                                    WHEN TRT_DT IS NOT NULL AND (#{IS_CHECKED} != 'true') THEN 
+                                         (SELECT CONCAT('테이블 "', ENTITY_NM, '(',TABL_NM, ')"이(가) "', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), ''), '취소" 되었습니다.')
+                                            FROM ENTITY
+                                           WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+                                             AND VERSN      = #{SESSION_VERSN}
+                                             AND ENTITY_ID  = #{ENTITY_ID} ) 
+                                    WHEN TRT_DT IS NULL AND #{TABL_SCD} IS NOT NULL THEN
+                                         (SELECT CONCAT('테이블 "', ENTITY_NM, '(',TABL_NM, ')"이(가) "', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), ''), '" 되었습니다.')
+                                            FROM ENTITY
+                                           WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+                                             AND VERSN      = #{SESSION_VERSN}
+                                             AND ENTITY_ID  = #{ENTITY_ID} ) 
+                                    ELSE NULL END
+           , TRT_DT          = CASE WHEN #{IS_CHECKED} != 'true' THEN NULL ELSE CURRENT_TIMESTAMP END
+           , TRT_USR_UID     = CASE WHEN #{IS_CHECKED} != 'true' THEN NULL ELSE #{SESSION_USR_UID} END
+     </insert>
+ 
+     <delete id="deleteColumnStatus"  parameterType="paramMap" >
+        DELETE /* mapper.erd.entity.deleteColumnStatus */
+          FROM COLMN_SCD
+         WHERE PROJECT_ID    = #{SESSION_PROJECT_ID}
+           AND VERSN         = #{SESSION_VERSN}
+           AND ENTITY_ID     = #{ENTITY_ID}
+           AND COLMN_ID      = #{COLMN_ID}
+     </delete>
+     
+     <insert id="insertColumnStatus"  parameterType="paramMap" >
+        INSERT /* mapper.erd.entity.insertColumnStatus */
+          INTO COLMN_SCD (
+                PROJECT_ID  
+              , VERSN       
+              , ENTITY_ID   
+              , COLMN_ID
+              , COLMN_SCD    
+              , TRT_DT      
+              , TRT_USR_UID 
+              , LOG_ID
+              , CHG_CTNT
+           ) VALUES (
+                #{SESSION_PROJECT_ID}
+              , #{SESSION_VERSN}
+              , #{ENTITY_ID}
+              , #{COLMN_ID}
+              , #{COLMN_SCD}
+              , CASE WHEN #{IS_CHECKED} != 'true' THEN NULL ELSE CURRENT_TIMESTAMP END  
+              , CASE WHEN #{IS_CHECKED} != 'true' THEN NULL ELSE #{SESSION_USR_UID} END
+              , #{LOG_ID}
+              , CASE WHEN #{IS_CHECKED} != 'true' THEN NULL 
+                     ELSE 
+                          (SELECT CONCAT('테이블 "', ETT.ENTITY_NM, '(',ETT.TABL_NM, ')의 ', COL.COLMN_NM, '(', COL.ATTR_NM ,')" 컬럼이(가)', NVL((SELECT CD_NM FROM CD WHERE CD = #{COLMN_SCD}), ''), '" 되었습니다.')
+                             FROM ENTITY ETT
+                                , COLMN  COL
+                            WHERE ETT.PROJECT_ID = COL.PROJECT_ID
+                              AND ETT.VERSN      = COL.VERSN     
+                              AND ETT.ENTITY_ID  = COL.ENTITY_ID 
+                              AND COL.PROJECT_ID = #{SESSION_PROJECT_ID}
+                              AND COL.VERSN      = #{SESSION_VERSN}
+                              AND COL.ENTITY_ID  = #{ENTITY_ID}
+                              AND COL.COLMN_ID   = #{COLMN_ID} ) END
+           )
+        ON DUPLICATE KEY UPDATE
+             LOG_ID          = #{LOG_ID}
+           , CHG_CTNT        = CASE WHEN TRT_DT IS NULL AND (#{IS_CHECKED} != 'true') THEN NULL 
+                                    WHEN TRT_DT IS NOT NULL AND (#{IS_CHECKED} != 'true') THEN 
+                                         (SELECT CONCAT('테이블 "', ETT.ENTITY_NM, '(',ETT.TABL_NM, ')의 ', COL.COLMN_NM, '(', COL.ATTR_NM ,')" 컬럼이(가)', NVL((SELECT CD_NM FROM CD WHERE CD = #{COLMN_SCD}), ''), '취소" 되었습니다.')
+                                            FROM ENTITY ETT
+                                               , COLMN  COL
+                                           WHERE ETT.PROJECT_ID = COL.PROJECT_ID
+                                             AND ETT.VERSN      = COL.VERSN     
+                                             AND ETT.ENTITY_ID  = COL.ENTITY_ID 
+                                             AND COL.PROJECT_ID = #{SESSION_PROJECT_ID}
+                                             AND COL.VERSN      = #{SESSION_VERSN}
+                                             AND COL.ENTITY_ID  = #{ENTITY_ID}
+                                             AND COL.COLMN_ID   = #{COLMN_ID} ) 
+                                    WHEN TRT_DT IS NULL AND #{IS_CHECKED} = 'true' THEN
+                                         (SELECT CONCAT('테이블 "', ETT.ENTITY_NM, '(',ETT.TABL_NM, ')의 ', COL.COLMN_NM, '(', COL.ATTR_NM ,')" 컬럼이(가)', NVL((SELECT CD_NM FROM CD WHERE CD = #{COLMN_SCD}), ''), '" 되었습니다.')
+                                            FROM ENTITY ETT
+                                               , COLMN  COL
+                                           WHERE ETT.PROJECT_ID = COL.PROJECT_ID
+                                             AND ETT.VERSN      = COL.VERSN     
+                                             AND ETT.ENTITY_ID  = COL.ENTITY_ID 
+                                             AND COL.PROJECT_ID = #{SESSION_PROJECT_ID}
+                                             AND COL.VERSN      = #{SESSION_VERSN}
+                                             AND COL.ENTITY_ID  = #{ENTITY_ID}
+                                             AND COL.COLMN_ID   = #{COLMN_ID} ) 
+                                    ELSE NULL END
+           , TRT_DT          = CASE WHEN #{IS_CHECKED} != 'true' THEN NULL ELSE CURRENT_TIMESTAMP END
+           , TRT_USR_UID     = CASE WHEN #{IS_CHECKED} != 'true' THEN NULL ELSE #{SESSION_USR_UID} END
+     </insert>
+
+    <!--  인덱스 정보 조회. -->
+    <select id="indexInfo"  parameterType="paramMap" resultType="resultMap">
+      SELECT /* mapper.erd.entity.indexInfo */
+            ETT.ENTITY_ID
+          , ETT.ENTITY_NM
+          , ETT.TABL_NM
+          , INDX.INDX_ID AS INDEX_ID
+          , INDX.INDX_NM AS INDEX_NM
+          , INDX.APLY_USR_UID  
+          , (SELECT USR_NM FROM USR WHERE USR_UID = INDX.APLY_USR_UID) AS APLY_USER_NM
+          , INDX.APLY_DT       
+          , CASE WHEN DATE_FORMAT(INDX.APLY_DT, '%Y-%m-%d') = DATE_FORMAT(CURRENT_TIMESTAMP, '%Y-%m-%d') 
+                      THEN DATE_FORMAT(INDX.APLY_DT, '%H:%i:%S') 
+                 ELSE DATE_FORMAT(INDX.APLY_DT, '%Y-%m-%d') END AS APLY_DT_FMT
+          , INDX.TRT_USR_UID   
+          , (SELECT USR_NM FROM USR WHERE USR_UID = INDX.TRT_USR_UID) AS TRT_USER_NM
+          , INDX.TRT_DT        
+          , CASE WHEN DATE_FORMAT(INDX.TRT_DT, '%Y-%m-%d') = DATE_FORMAT(CURRENT_TIMESTAMP, '%Y-%m-%d') 
+                      THEN DATE_FORMAT(INDX.TRT_DT, '%H:%i:%S') 
+                 ELSE DATE_FORMAT(INDX.TRT_DT, '%Y-%m-%d') END AS TRT_DT_FMT
+          , INDX.USE_YN
+       FROM INDX       INDX
+          , ENTITY     ETT
+      WHERE INDX.PROJECT_ID = ETT.PROJECT_ID
+        AND INDX.VERSN      = ETT.VERSN
+        AND INDX.ENTITY_ID  = ETT.ENTITY_ID
+        AND INDX.PROJECT_ID     = #{SESSION_PROJECT_ID}
+        AND INDX.VERSN          = #{SESSION_VERSN}
+        AND INDX.INDX_ID        = #{INDEX_ID}
+    </select>
+    
+    <!--  인덱스 매핑되지 않은 컬럼 목록 조회. -->
+    <select id="columnListNotIndexed"  parameterType="paramMap" resultType="resultMap">
+      SELECT /* mapper.erd.entity.columnListNotIndexed */
+             COL.ID
+           , COL.ENTITY_ID     
+           , COL.ENTITY_NM
+           , COL.UP_ENTITY_ID
+           , COL.COLMN_ID      
+           , COL.COLMN_NM      
+           , COL.ATTR_NM
+           , COL.DOMAIN_ID     
+           , COL.DOMAIN_NM     
+           , COL.DATA_TYPE
+
+           , COL.DTYPE  
+           , COL.LEN1          
+           , COL.LEN2          
+           , COL.DML_TCD      
+           , COL.DML_TCD_NM
+           , COL.DML_DT        
+           , COL.DML_DT_FMT
+           , COL.APLY_USR_UID  
+           , COL.APLY_DT       
+           , COL.TRT_USR_UID   
+           , COL.TRT_DT        
+           , COL.COLMN_SCD     
+           , COL.COLMN_SCD_NM
+           , COL.NOTNULL_YN    
+           , COL.NOTNULL_YN_BOOL
+           , COL.PK_YN         
+           , COL.PK_YN_BOOL
+           , COL.FK_ENTITY_ID  
+           , COL.FK_ENTITY_NM
+           , COL.FK_COLMN_NM   
+           , COL.COLMN_DESC    
+           , COL.NUMB_MTH      
+           , COL.VERSN
+           , COL.SEQ           
+           , COL.COLOR 
+           , COL.USE_YN
+           , COL.RNUM1
+           , COL.RNUM
+       FROM (
+              SELECT
+                      COL.PROJECT_ID
+                    , COL.ID
+                    , COL.ENTITY_ID     
+                    , COL.ENTITY_NM
+                    , COL.UP_ENTITY_ID
+                    , COL.COLMN_ID      
+                    , COL.COLMN_NM      
+                    , COL.ATTR_NM
+                    , COL.DOMAIN_ID     
+                    , COL.DOMAIN_NM     
+                    , COL.DATA_TYPE
+        
+                    , COL.DTYPE  
+                    , COL.LEN1          
+                    , COL.LEN2          
+                    , COL.DML_TCD      
+                    , COL.DML_TCD_NM
+                    , COL.DML_DT        
+                    , COL.DML_DT_FMT
+                    , COL.APLY_USR_UID  
+                    , COL.APLY_DT       
+                    , COL.TRT_USR_UID   
+                    , COL.TRT_DT        
+                    , COL.COLMN_SCD     
+                    , COL.COLMN_SCD_NM
+                    , COL.NOTNULL_YN    
+                    , COL.NOTNULL_YN_BOOL
+                    , COL.PK_YN         
+                    , COL.PK_YN_BOOL
+                    , COL.FK_ENTITY_ID  
+                    , COL.FK_ENTITY_NM
+                    , COL.FK_COLMN_NM   
+                    , COL.COLMN_DESC    
+                    , COL.NUMB_MTH      
+                    , COL.VERSN
+                    , COL.SEQ           
+                    , COL.COLOR 
+                    , COL.USE_YN
+                    , COL.RNUM1
+                    , @ROWNUM:=@ROWNUM+1 AS RNUM
+                 FROM (
+                      SELECT
+                              COL.PROJECT_ID
+                            , COL.COLMN_ID  AS ID
+                            , COL.ENTITY_ID     
+                            , (SELECT ENTITY_NM
+                                 FROM ENTITY
+                                WHERE PROJECT_ID = COL.PROJECT_ID
+                                  AND ENTITY_ID  = COL.ENTITY_ID) AS ENTITY_NM
+                            , COL.ENTITY_ID  AS UP_ENTITY_ID
+                            , COL.COLMN_ID      
+                            , COL.COLMN_NM      
+                            , COL.ATTR_NM
+                            , COL.DOMAIN_ID     
+                            , DMN.DOMAIN_NM     
+                            , COL.DATA_TYPE   AS DATA_TYPE
+                
+                            , COL.DTYPE  
+                            , COL.LEN1          
+                            , COL.LEN2          
+                            , COL.DML_TCD      
+                            , (SELECT CD_NM
+                                 FROM CD
+                                WHERE CD_GRP = 'DML_TCD'
+                                  AND CD     = COL.DML_TCD) AS DML_TCD_NM
+                            , COL.DML_DT        
+                            , CASE WHEN DATE_FORMAT(COL.DML_DT, '%Y-%m-%d') = DATE_FORMAT(CURRENT_TIMESTAMP, '%Y-%m-%d') THEN DATE_FORMAT(COL.DML_DT, '%H:%i:%S')
+                                   ELSE DATE_FORMAT(COL.DML_DT, '%Y-%m-%d') END AS DML_DT_FMT
+                            , COL.APLY_USR_UID  
+                            , COL.APLY_DT       
+                            , COL.TRT_USR_UID   
+                            , COL.TRT_DT        
+                            , COL.COLMN_SCD     
+                            , (SELECT CD_NM
+                                 FROM CD
+                                WHERE CD_GRP = 'TABL_SCD'
+                                  AND CD     = COL.COLMN_SCD) AS COLMN_SCD_NM
+                            , COL.NOTNULL_YN    
+                            , CASE WHEN COL.PK_YN = 'Y'  THEN 'true'
+                                   WHEN COL.NOTNULL_YN = 'Y' THEN 'true' 
+                                   ELSE 'false' END AS NOTNULL_YN_BOOL
+                            , COL.PK_YN         
+                            , CASE WHEN COL.PK_YN = 'Y' THEN 'true' ELSE 'false' END AS PK_YN_BOOL
+                            , COL.FK_ENTITY_ID  
+                            , (SELECT ENTITY_NM
+                                 FROM ENTITY
+                                WHERE PROJECT_ID = COL.PROJECT_ID
+                                  AND ENTITY_ID  = COL.FK_ENTITY_ID) AS FK_ENTITY_NM
+                            , COL.FK_COLMN_NM   
+                            , COL.COLMN_DESC    
+                            , COL.NUMB_MTH      
+                            , COL.VERSN
+                            , COL.SEQ           
+                            , COL.COLOR 
+                            , CASE WHEN COL.USE_YN = 'N' THEN 'N' ELSE 'Y' END AS USE_YN
+                            , @ROWNUM1:=@ROWNUM1+1 AS RNUM1
+                         FROM ENTITY   ETT
+                              LEFT OUTER JOIN COLMN    COL
+                                ON ETT.PROJECT_ID = COL.PROJECT_ID
+                               AND ETT.ENTITY_ID  = COL.ENTITY_ID
+                               AND ETT.VERSN      = COL.VERSN
+                           LEFT OUTER JOIN DTYPE DTYPE 
+                                ON COL.DTYPE      = DTYPE.DTYPE
+                           LEFT OUTER JOIN DOMAIN DMN 
+                                ON COL.PROJECT_ID = #{SESSION_PROJECT_ID}
+                               AND COL.DOMAIN_ID  = DMN.DOMAIN_ID
+                           LEFT OUTER JOIN DTYPE DTYPE_1 
+                                ON DMN.DTYPE      = DTYPE_1.DTYPE
+                            , (SELECT @ROWNUM1:=0) AS R
+                        WHERE COL.PROJECT_ID = #{SESSION_PROJECT_ID}
+                          AND COL.VERSN      = #{SESSION_VERSN}
+                          AND COL.ENTITY_ID  = #{ENTITY_ID}
+                          AND ETT.PROJECT_ID = COL.PROJECT_ID
+                          AND ETT.ENTITY_ID  = COL.ENTITY_ID
+                          AND ETT.VERSN      = COL.VERSN
+                        ORDER BY COL.ENTITY_ID, CASE WHEN COL.PK_YN = 'Y' THEN 1 ELSE 2 END, COL.SEQ, COL.COLMN_NM
+                ) COL
+                , (SELECT @ROWNUM:=0) AS R
+     ) COL
+     WHERE 1 = 1
+       AND NOT EXISTS (SELECT 'Y' 
+                         FROM INDX_COLMN INDX_COL
+                            , INDX       INDX
+                        WHERE INDX_COL.PROJECT_ID = INDX.PROJECT_ID
+                          AND INDX_COL.VERSN      = INDX.VERSN
+                          AND INDX_COL.INDX_ID    = INDX.INDX_ID
+                          AND INDX.PROJECT_ID     = COL.PROJECT_ID
+                          AND INDX.VERSN          = COL.VERSN
+                          AND INDX.ENTITY_ID      = COL.ENTITY_ID
+                          AND INDX.INDX_ID        = #{INDEX_ID}
+                          AND INDX_COL.COLMN_ID   = COL.COLMN_ID )
+    </select>
+
+    <!--  인덱스 컬럼 목록 조회. -->
+    <select id="columnListIndexed"  parameterType="paramMap" resultType="resultMap">
+      SELECT  /* mapper.erd.entity.columnListIndexed */
+              COL.INDX_ID
+            , COL.COLMN_ID
+            , COL.COLMN_NM
+            , COL.ATTR_NM
+            , COL.DATA_TYPE
+            , COL.NOTNULL_YN
+            , COL.NOTNULL_YN_BOOL
+            , COL.FK_ENTITY_ID  
+            , COL.FK_ENTITY_NM
+            , COL.FK_COLMN_NM   
+            , COL.DEFAULT_VAL
+            , COL.SEQ           
+            , COL.USE_YN
+            , COL.PK_YN         
+            , COL.PK_YN_BOOL
+            , COL.SORT_BASE 
+            , COL.RNUM
+       FROM (
+             SELECT        
+                      COL.INDX_ID
+                    , COL.COLMN_ID
+                    , COL.COLMN_NM
+                    , COL.ATTR_NM
+                    , COL.DATA_TYPE
+                    , COL.NOTNULL_YN
+                    , COL.NOTNULL_YN_BOOL
+                    , COL.FK_ENTITY_ID  
+                    , COL.FK_ENTITY_NM
+                    , COL.FK_COLMN_NM   
+                    , COL.DEFAULT_VAL
+                    , COL.SEQ           
+                    , COL.USE_YN
+                    , COL.PK_YN         
+                    , COL.PK_YN_BOOL
+                    , COL.SORT_BASE 
+                    , @ROWNUM:=@ROWNUM+1 AS RNUM
+                 FROM (
+                      SELECT 
+                            INDX_COL.INDX_ID
+                          , INDX_COL.COLMN_ID
+                          , COL.COLMN_NM
+                          , COL.ATTR_NM
+                          , COL.DATA_TYPE
+                          , COL.NOTNULL_YN
+                          , CASE WHEN COL.PK_YN = 'Y'  THEN 'true'
+                                 WHEN COL.NOTNULL_YN = 'Y' THEN 'true' 
+                                 ELSE 'false' END AS NOTNULL_YN_BOOL
+                          , COL.FK_ENTITY_ID  
+                          , (SELECT ENTITY_NM
+                               FROM ENTITY
+                              WHERE PROJECT_ID = COL.PROJECT_ID
+                                AND ENTITY_ID  = COL.FK_ENTITY_ID) AS FK_ENTITY_NM
+                          , COL.FK_COLMN_NM   
+                          , COL.DEFAULT_VAL
+                          , COL.SEQ           
+                          , CASE WHEN COL.USE_YN = 'N' THEN 'N' ELSE 'Y' END AS USE_YN
+                          , COL.PK_YN         
+                          , CASE WHEN COL.PK_YN = 'Y' THEN 'true' ELSE 'false' END AS PK_YN_BOOL
+                          , INDX_COL.SORT_BASE 
+                       FROM COLMN      COL
+                            LEFT OUTER JOIN INDX_COLMN INDX_COL
+                                    ON INDX_COL.PROJECT_ID = COL.PROJECT_ID
+                                   AND INDX_COL.VERSN      = COL.VERSN
+                                   AND INDX_COL.COLMN_ID   = COL.COLMN_ID
+                                   AND INDX_COL.INDX_ID    = #{INDEX_ID}
+                            LEFT OUTER JOIN INDX       INDX
+                                    ON INDX_COL.PROJECT_ID = INDX.PROJECT_ID
+                                   AND INDX_COL.VERSN      = INDX.VERSN
+                                   AND INDX_COL.INDX_ID    = INDX.INDX_ID
+                      WHERE COL.PROJECT_ID = #{SESSION_PROJECT_ID}
+                        AND COL.VERSN      = #{SESSION_VERSN}
+                        AND COL.ENTITY_ID  = #{ENTITY_ID}
+                      ORDER BY CASE WHEN COL.PK_YN = 'Y' THEN 1 ELSE 2 END, COL.SEQ, COL.COLMN_NM
+                    ) COL
+                , (SELECT @ROWNUM:=0) AS R
+       ) COL
+     WHERE COL.COLMN_ID IS NOT NULL
+    </select>
+
+     <insert id="saveIndex"  parameterType="paramMap" >
+        INSERT /* mapper.erd.entity.saveIndex */
+          INTO INDX
+            (
+                PROJECT_ID        
+              , VERSN             
+              , INDX_ID           
+              , INDX_NM           
+              , APLY_USR_UID      
+              , APLY_DT           
+              , TRT_USR_UID       
+              , TRT_DT            
+              , USE_YN
+              , ENTITY_ID         
+              , FRST_INS_DT       
+              , FRST_INS_USR_UID  
+              , LAST_UPD_DT       
+              , LAST_UPD_USR_UID  
+              , LOG_ID            
+              , CHG_CTNT          
+            )
+           VALUES (
+                #{SESSION_PROJECT_ID}        
+              , #{SESSION_VERSN}
+              , #{INDEX_ID}
+              , #{INDEX_NM}
+              , #{SESSION_USR_UID}      
+              , CURRENT_TIMESTAMP           
+              , #{SESSION_USR_UID}       
+              , CURRENT_TIMESTAMP            
+              , NVL(#{USE_YN}, 'Y')
+              , #{ENTITY_ID} 
+              , CURRENT_TIMESTAMP       
+              , #{SESSION_USR_UID}
+              , CURRENT_TIMESTAMP       
+              , #{SESSION_USR_UID}
+              , #{LOG_ID}
+              , CONCAT('인덱스 "', #{INDEX_NM},
+                        CASE WHEN NVL(#{COLMN_NM_PRE}, '') != NVL(#{COLMN_NM_POST}, '') AND NVL(#{COLMN_NM_POST}, '') != '' THEN CONCAT('컬럼 : ', #{COLMN_NM_POST}, ')') 
+                             WHEN NVL(#{COLMN_NM_PRE}, '') != NVL(#{COLMN_NM_POST}, '') AND NVL(#{COLMN_NM_POST}, '')  = '' THEN '(컬럼없음)' 
+                             ELSE '' END, 
+                       '"이(가) 등록되었습니다.')          
+           ) 
+        ON DUPLICATE KEY UPDATE
+             LOG_ID          = #{LOG_ID}
+           , CHG_CTNT        = CASE WHEN INDX_NM = #{INDEX_NM} AND USE_YN = #{USE_YN} THEN NULL 
+                                    WHEN INDX_NM != #{INDEX_NM} AND USE_YN = #{USE_YN} THEN 
+                                         CONCAT('인덱스 "', INDX_NM, '"이(가) -> "', #{INDEX_NM}, 
+                                                 CASE WHEN NVL(#{COLMN_NM_PRE}, '') != NVL(#{COLMN_NM_POST}, '') AND NVL(#{COLMN_NM_POST}, '') != '' THEN CONCAT('컬럼 : ', #{COLMN_NM_POST}, ')') 
+                                                      WHEN NVL(#{COLMN_NM_PRE}, '') != NVL(#{COLMN_NM_POST}, '') AND NVL(#{COLMN_NM_POST}, '')  = '' THEN '(컬럼없음)' 
+                                                      ELSE '' END, 
+                                                 '"(으)로 변경되었습니다.')
+                                    WHEN INDX_NM = #{INDEX_NM} AND USE_YN != #{USE_YN} AND #{USE_YN} = 'N' THEN
+                                         CONCAT('인덱스 "', INDX_NM, 
+                                                 CASE WHEN NVL(#{COLMN_NM_PRE}, '') != NVL(#{COLMN_NM_POST}, '') AND NVL(#{COLMN_NM_POST}, '') != '' THEN CONCAT('컬럼 : ', #{COLMN_NM_POST}, ')') 
+                                                      WHEN NVL(#{COLMN_NM_PRE}, '') != NVL(#{COLMN_NM_POST}, '') AND NVL(#{COLMN_NM_POST}, '')  = '' THEN '(컬럼없음)' 
+                                                      ELSE '' END, 
+                                                '"이(가) 삭제 되었습니다.')
+                                    WHEN INDX_NM = #{INDEX_NM} AND USE_YN != #{USE_YN} AND #{USE_YN} = 'Y' THEN
+                                         CONCAT('인덱스 "', INDX_NM,
+                                                 CASE WHEN NVL(#{COLMN_NM_PRE}, '') != NVL(#{COLMN_NM_POST}, '') AND NVL(#{COLMN_NM_POST}, '') != '' THEN CONCAT('컬럼 : ', #{COLMN_NM_POST}, ')') 
+                                                      WHEN NVL(#{COLMN_NM_PRE}, '') != NVL(#{COLMN_NM_POST}, '') AND NVL(#{COLMN_NM_POST}, '')  = '' THEN '(컬럼없음)' 
+                                                      ELSE '' END, 
+                                                '"이(가) 삭제취소 되었습니다.')
+                                    WHEN NVL(#{COLMN_NM_PRE}, '') != NVL(#{COLMN_NM_POST}, '') THEN 
+                                         CONCAT('인덱스 "', INDX_NM,
+                                                 CASE WHEN NVL(#{COLMN_NM_PRE}, '') != NVL(#{COLMN_NM_POST}, '') AND NVL(#{COLMN_NM_POST}, '') != '' THEN CONCAT('컬럼 : ', #{COLMN_NM_POST}, ')') 
+                                                      WHEN NVL(#{COLMN_NM_PRE}, '') != NVL(#{COLMN_NM_POST}, '') AND NVL(#{COLMN_NM_POST}, '')  = '' THEN '(컬럼없음)' 
+                                                      ELSE '' END, 
+                                                '"컬럼이 변경되었습니다.')
+                                    ELSE NULL END
+           , INDX_NM         = #{INDEX_NM}
+           , USE_YN          = NVL(#{USE_YN}, USE_YN)
+           , TRT_DT          = CASE WHEN INDX_NM != #{INDEX_NM} OR USE_YN != #{USE_YN} THEN CURRENT_TIMESTAMP ELSE NULL END
+           , TRT_USR_UID     = CASE WHEN INDX_NM != #{INDEX_NM} OR USE_YN != #{USE_YN} THEN #{SESSION_USR_UID} ELSE NULL END 
+           , LAST_UPD_DT      = CASE WHEN INDX_NM != #{INDEX_NM} OR USE_YN != #{USE_YN} THEN CURRENT_TIMESTAMP ELSE NULL END
+           , LAST_UPD_USR_UID = CASE WHEN INDX_NM != #{INDEX_NM} OR USE_YN != #{USE_YN} THEN #{SESSION_USR_UID} ELSE NULL END 
+     </insert>
+     
+     
+     <select id="selectIndexColumnAll" parameterType="paramMap" resultType="resultMap">
+        SELECT /* mapper.erd.entity.selectIndexColumnAll */
+               GROUP_CONCAT(COLMN.COLMN_NM ORDER BY CASE WHEN COLMN.PK_YN = 'Y' THEN 1 ELSE 2 END, COLMN.SEQ) COLMN_NM
+          FROM INDX_COLMN INDX_COLMN
+             , COLMN      COLMN
+         WHERE INDX_COLMN.PROJECT_ID = COLMN.PROJECT_ID
+           AND INDX_COLMN.VERSN      = COLMN.VERSN
+           AND INDX_COLMN.COLMN_ID   = COLMN.COLMN_ID
+           AND INDX_COLMN.PROJECT_ID = #{SESSION_PROJECT_ID}  
+           AND INDX_COLMN.VERSN      = #{SESSION_VERSN}  
+           AND INDX_COLMN.INDX_ID    = #{INDEX_ID}
+     </select>
+     
+     <delete id="deleteIndexColumn"  parameterType="paramMap" >
+        DELETE /* mapper.erd.entity.deleteIndexColumn */
+          FROM INDX_COLMN
+         WHERE PROJECT_ID = #{SESSION_PROJECT_ID}  
+           AND VERSN      = #{SESSION_VERSN}  
+           AND INDX_ID    = #{INDEX_ID}
+    </delete>
+    
+     <insert id="insertIndexColumn"  parameterType="paramMap" >
+        INSERT /* mapper.erd.entity.insertIndexColumn */
+          INTO INDX_COLMN
+            (
+                PROJECT_ID         
+              , VERSN              
+              , INDX_ID            
+              , COLMN_ID           
+              , SEQ
+              , SORT_BASE          
+              , FRST_INS_DT        
+              , FRST_INS_USR_UID   
+              , LAST_UPD_DT        
+              , LAST_UPD_USR_UID   
+            )
+            VALUES (
+                #{SESSION_PROJECT_ID}  
+              , #{SESSION_VERSN}
+              , #{INDEX_ID}   
+              , #{COLMN_ID}           
+              , #{SEQ}
+              , #{SORT_BASE}          
+              , CURRENT_TIMESTAMP        
+              , #{SESSION_USR_UID}   
+              , CURRENT_TIMESTAMP        
+              , #{SESSION_USR_UID}
+            )
+    </insert>
+    
+     <insert id="insertIndexStatus"  parameterType="paramMap" >
+        INSERT /* mapper.erd.entity.insertIndexStatus */
+          INTO INDX_SCD (
+                PROJECT_ID  
+              , VERSN       
+              , INDX_ID   
+              , INDX_SCD    
+              , TRT_DT      
+              , TRT_USR_UID 
+              , LOG_ID
+              , CHG_CTNT
+           ) VALUES (
+                #{SESSION_PROJECT_ID}
+              , #{SESSION_VERSN}
+              , #{INDEX_ID}
+              , #{INDEX_SCD}
+              , CASE WHEN #{INDEX_SCD_VAL} IS NULL OR #{INDEX_SCD_VAL} = '' THEN NULL ELSE CURRENT_TIMESTAMP END  
+              , CASE WHEN #{INDEX_SCD_VAL} IS NULL OR #{INDEX_SCD_VAL} = '' THEN NULL ELSE #{SESSION_USR_UID} END
+              , #{LOG_ID}
+              , CASE WHEN #{INDEX_SCD_VAL} IS NULL OR #{INDEX_SCD_VAL} = '' THEN NULL 
+                     ELSE 
+                          (SELECT CONCAT('인덱스 "', INDX_NM, '이(가) ', NVL((SELECT CD_NM FROM CD WHERE CD = #{INDEX_SCD}), ''), '반영" 되었습니다.')
+                             FROM INDX ETT
+                            WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+                              AND VERSN      = #{SESSION_VERSN}
+                              AND INDX_ID    = #{INDEX_ID} ) END
+           )
+        ON DUPLICATE KEY UPDATE
+             LOG_ID          = #{LOG_ID}
+           , CHG_CTNT        = CASE WHEN TRT_DT IS NULL AND (#{INDEX_SCD_VAL} IS NULL OR #{INDEX_SCD_VAL} = '') THEN NULL 
+                                    WHEN TRT_DT IS NOT NULL AND (#{INDEX_SCD_VAL} IS NULL OR #{INDEX_SCD_VAL} = '') THEN 
+                                         (SELECT CONCAT('인덱스 "', INDX_NM, '이(가) ', NVL((SELECT CD_NM FROM CD WHERE CD = #{INDEX_SCD}), ''), '반영취소" 되었습니다.')
+                                           FROM INDX ETT
+                                          WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+                                            AND VERSN      = #{SESSION_VERSN}
+                                            AND INDX_ID    = #{INDEX_ID} )
+                                    WHEN TRT_DT IS NULL AND #{INDEX_SCD_VAL} IS NOT NULL THEN
+                                         (SELECT CONCAT('인덱스 "', INDX_NM, '이(가) ', NVL((SELECT CD_NM FROM CD WHERE CD = #{INDEX_SCD}), ''), '반영" 되었습니다.')
+                                           FROM INDX ETT
+                                          WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+                                            AND VERSN      = #{SESSION_VERSN}
+                                            AND INDX_ID    = #{INDEX_ID} )
+                                    ELSE NULL END
+           , TRT_DT          = CASE WHEN #{INDEX_SCD_VAL} IS NULL OR #{INDEX_SCD_VAL} = '' THEN NULL ELSE CURRENT_TIMESTAMP END
+           , TRT_USR_UID     = CASE WHEN #{INDEX_SCD_VAL} IS NULL OR #{INDEX_SCD_VAL} = '' THEN NULL ELSE #{SESSION_USR_UID} END
+     </insert>
+     
+     
+     <select id="selectIndexTreeList" parameterType="paramMap" resultType="resultMap">
+        SELECT /* mapper.erd.entity.selectIndexTreeList */
+               INDX.INDX_ID AS ID  
+             , INDX.INDX_ID
+             , INDX.INDX_NM
+             , 'TOP' AS UP_INDX_ID
+             , INDX.TRT_DT        
+             , CASE WHEN DATE_FORMAT(INDX.TRT_DT, '%Y-%m-%d') = DATE_FORMAT(CURRENT_TIMESTAMP, '%Y-%m-%d') THEN DATE_FORMAT(INDX.TRT_DT, '%H:%i:%S')
+                    ELSE DATE_FORMAT(INDX.TRT_DT, '%Y-%m-%d') END AS TRT_DT_FMT
+             , INDX.USE_YN
+             , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'Y' ELSE NULL END
+                  FROM INDX_SCD WHERE PROJECT_ID  = INDX.PROJECT_ID 
+                                  AND VERSN       = INDX.VERSN 
+                                  AND INDX_ID     = INDX.INDX_ID 
+                                  AND INDX_SCD    = 'TABL_SCD_030') AS TABL_SCD_030
+             , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'Y' ELSE NULL END
+                  FROM INDX_SCD WHERE PROJECT_ID  = INDX.PROJECT_ID 
+                                  AND VERSN       = INDX.VERSN 
+                                  AND INDX_ID     = INDX.INDX_ID 
+                                  AND INDX_SCD    = 'TABL_SCD_040') AS TABL_SCD_040
+             , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'Y' ELSE NULL END
+                  FROM INDX_SCD WHERE PROJECT_ID  = INDX.PROJECT_ID 
+                                  AND VERSN       = INDX.VERSN 
+                                  AND INDX_ID     = INDX.INDX_ID 
+                                  AND INDX_SCD    = 'TABL_SCD_050') AS TABL_SCD_050
+             , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'Y' ELSE NULL END
+                  FROM INDX_SCD WHERE PROJECT_ID  = INDX.PROJECT_ID 
+                                  AND VERSN       = INDX.VERSN 
+                                  AND INDX_ID     = INDX.INDX_ID 
+                                  AND INDX_SCD    = 'TABL_SCD_060') AS TABL_SCD_060
+             , (SELECT CASE WHEN TRT_DT IS NOT NULL THEN 'Y' ELSE NULL END
+                  FROM INDX_SCD WHERE PROJECT_ID  = INDX.PROJECT_ID 
+                                  AND VERSN       = INDX.VERSN 
+                                  AND INDX_ID     = INDX.INDX_ID 
+                                  AND INDX_SCD    = 'TABL_SCD_070') AS TABL_SCD_070
+             , NULL AS COLMN_ID
+             , NULL AS COLMN_NM
+             , NULL AS ATTR_NM
+             , NULL AS DATA_TYPE
+             , NULL AS SORT_BASE
+             , 0 AS SEQ
+             , 1 AS ORD
+             , 'N' AS SELECTED_YN
+             , 'Y' AS EXPAND_YN
+          FROM INDX INDX
+         WHERE 1 = 1
+           AND INDX.PROJECT_ID     = #{SESSION_PROJECT_ID}
+           AND INDX.VERSN          = #{SESSION_VERSN}
+           AND INDX.ENTITY_ID      = #{ENTITY_ID}
+         UNION ALL
+        SELECT COL.COLMN_ID       AS ID
+             , INDX.INDX_ID
+             , COL.ATTR_NM  AS INDX_NM
+             , INDX.INDX_ID AS UP_INDX_ID
+             , NULL AS TRT_DT        
+             , NULL AS TRT_DT_FMT
+             , COL.USE_YN
+             , NULL AS TABL_SCD_030
+             , NULL AS TABL_SCD_040
+             , NULL AS TABL_SCD_050
+             , NULL AS TABL_SCD_060
+             , NULL AS TABL_SCD_070
+             , COL.COLMN_ID       AS COLMN_ID
+             , COL.COLMN_NM       AS COLMN_NM
+             , COL.ATTR_NM        AS ATTR_NM
+             , COL.DATA_TYPE      AS DATA_TYPE
+             , INDX_COL.SORT_BASE AS SORT_BASE
+             , INDX_COL.SEQ       AS SEQ
+             , 2 AS ORD
+             , 'N' AS SELECTED_YN
+             , 'Y' AS EXPAND_YN
+          FROM INDX INDX
+             , INDX_COLMN INDX_COL
+             , COLMN      COL
+         WHERE 1 = 1
+           AND INDX_COL.PROJECT_ID     = INDX.PROJECT_ID
+           AND INDX_COL.VERSN          = INDX.VERSN
+           AND INDX_COL.INDX_ID        = INDX.INDX_ID
+           
+           AND COL.PROJECT_ID     = INDX_COL.PROJECT_ID
+           AND COL.VERSN          = INDX_COL.VERSN
+           AND COL.ENTITY_ID      = INDX.ENTITY_ID
+           AND COL.COLMN_ID       = INDX_COL.COLMN_ID
+         
+           AND INDX.PROJECT_ID     = #{SESSION_PROJECT_ID}
+           AND INDX.VERSN          = #{SESSION_VERSN}
+           AND INDX.ENTITY_ID      = #{ENTITY_ID}
+          
+       ORDER BY INDX_ID, SEQ
+     </select>
+     
+     <insert id="insertEntityAlias"  parameterType="paramMap" >
+        INSERT /* mapper.erd.entity.insertEntityAlias */
+          INTO ENTITY_ALIAS_NM
+               (
+                   PROJECT_ID        , 
+                   VERSN             , 
+                   ENTITY_ID         , 
+                   USR_UID           , 
+                   ALIAS_NM          , 
+                   FRST_INS_DT       , 
+                   FRST_INS_USR_UID  , 
+                   LAST_UPD_DT       , 
+                   LAST_UPD_USR_UID  
+               )
+           VALUES 
+               (
+                   #{SESSION_PROJECT_ID}  , 
+                   #{SESSION_VERSN}       , 
+                   #{ENTITY_ID}           , 
+                   #{SESSION_USR_UID}     , 
+                   #{ALIAS_NM}            , 
+                   CURRENT_TIMESTAMP      , 
+                   #{SESSION_USR_UID}     , 
+                   CURRENT_TIMESTAMP      , 
+                   #{SESSION_USR_UID}  
+               )
+            ON DUPLICATE KEY UPDATE
+            
+                  ALIAS_NM        = #{ALIAS_NM}
+                , LAST_UPD_DT     = CURRENT_TIMESTAMP 
+                , LAST_UPD_USR_UID =#{SESSION_USR_UID}
+     </insert>
 </mapper>

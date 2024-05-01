@@ -33,7 +33,7 @@ public class ProjectCtrl {
 	@RequestMapping(value="/project/data/insert.do")
 	public String projectSave(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
 
-		MyFrameworkResponseCud myFrameworkResponseCud = projectSvc.projectInsert(model, paramMap);
+		MyFrameworkResponseCud myFrameworkResponseCud = projectSvc.projectInsert(model, paramMap, request);
 		
 		return "jsonView";
 	}
@@ -41,7 +41,7 @@ public class ProjectCtrl {
 	@RequestMapping(value="/project/data/update.do")
 	public String projectUpdate(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
 
-		MyFrameworkResponseCud myFrameworkResponseCud = projectSvc.projectUpdate(model, paramMap);
+		MyFrameworkResponseCud myFrameworkResponseCud = projectSvc.projectUpdate(model, paramMap, request);
 		
 		return "jsonView";
 	}
@@ -55,8 +55,8 @@ public class ProjectCtrl {
 	}
 
 	@RequestMapping(value="/project/data/detail.do")
-	public String damainDetail(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
-	
+	public String projectDetail(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+
 		MyFrameworkResponseData myFrameworkResponseData = projectSvc.projectDetail(model, paramMap);
 		
 		return "jsonView";
@@ -102,5 +102,59 @@ public class ProjectCtrl {
 		return "jsonView";
 	}
 	
+	@RequestMapping(value="/project/data/chgLogList.do")
+	public String projectChgLogList(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
 	
+		projectSvc.projectChgLogList(model, paramMap);
+		
+		return "jsonView";
+	}
+	
+	@RequestMapping(value="/project/data/snippetList.do")
+	public ResponseEntity projectSnippetList(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+	
+		projectSvc.projectSnippetList(model, paramMap);
+		
+		return ResponseEntity.ok(model.getAttribute("dataList"));
+	}
+
+	@RequestMapping(value="/project/data/snippetDetail.do")
+	public String projectSnippetDetail(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+
+		MyFrameworkResponseData myFrameworkResponseData = projectSvc.projectSnippetDetail(model, paramMap);
+		
+		return "jsonView";
+	}
+	
+	@RequestMapping(value="/project/data/snippetSave.do")
+	public String projectSnippetSave(ModelMap model, RequestParamMap paramMap, HttpServletRequest request)  throws Exception {
+	
+		MyFrameworkResponseCud myFrameworkResponseCud = projectSvc.projectSnippetSave(model, paramMap);
+		
+		return "jsonView";
+	}
+	
+	@RequestMapping(value="/project/data/count.do")
+	public String damainDetail(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+
+		MyFrameworkResponseData myFrameworkResponseData = projectSvc.projectCount(model, paramMap);
+		
+		return "jsonView";
+	}
+
+	@RequestMapping(value="/project/data/buyList.do")
+	public ResponseEntity projectBuyList(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+	
+		projectSvc.projectBuyList(model, paramMap);
+		
+		return ResponseEntity.ok(model.getAttribute("dataList"));
+	}
+
+	@RequestMapping(value="/project/data/buyDetail.do")
+	public String projectBuyDetail(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+	
+		projectSvc.projectBuyDetail(model, paramMap);
+		
+		return "jsonView";
+	}
 }

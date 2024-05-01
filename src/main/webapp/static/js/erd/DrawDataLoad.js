@@ -10,10 +10,11 @@ var DrawDataLoad = function() {
 	this.relationByButtonBegin = false; 
 	this.cursorStatus = null;
 	this.selectRectangular = {AREA_SELECT : false , X : 0, Y : 0, WIDTH : 0 , HEIGHT : 0};
-	this.entityForAddSubject = {ENTITY_ID : "", TABL_NM : "" };
+	this.entityForAddSubject = {ENTITY_ID : "", TABL_NM : "", ENTITY_TCD : "" };
 	
 	this.relationMarker = { };
 
+    this.projectBuyInfo = { LOADED : false, ENTITY_CNT : 0, USER_CNT : 0, BUY_ENTITY_CNT : 0, BUY_USR_CNT : 0, BUY_START_DT : '20200101', BUY_END_DT : '99991231', VIEW_END_DT : '99991231', EDITABLE_YN : 'N', VIEWABLE_YN : 'N'};
 	/* 
 	 * Project정보 조회.
 	 */
@@ -203,10 +204,45 @@ var DrawDataLoad = function() {
         });
         this.projectUserDatas = Ext.decode(response.responseText).data;
 
-        console.log( this.projectUserDatas )
+        this.loadProjectBuyInfo();
+
+        console.log( this.projectBuyInfo )
 		
 	}
 
+    this.reloadData = function(gbn) {
+
+        var response = Ext.Ajax.request({
+            async: false,
+            url: '/subject/data/list.do',
+            params: {
+                    
+            }
+        });
+        this.subjectAreaDatas = Ext.decode(response.responseText).data;
+    }
+
+    this.loadProjectBuyInfo = function() {
+        if( this.projectBuyInfo.LOADED == false ) {
+            var response = Ext.Ajax.request({
+                async: false,
+                url: '/project/data/buyDetail.do',
+                params: {
+    
+                }
+            });
+            this.projectBuyInfo = Ext.decode(response.responseText).data;
+            
+            if( this.projectBuyInfo == null || this.projectBuyInfo == undefined ) {
+                this.projectBuyInfo = { LOADED : true, ENTITY_CNT : 0, USER_CNT : 0, BUY_ENTITY_CNT : 0, BUY_USR_CNT : 0, BUY_START_DT : '20200101', BUY_END_DT : '99991231', VIEW_END_DT : '99991231', EDITABLE_YN : 'N', VIEWABLE_YN : 'N'};
+            } else {
+                this.projectBuyInfo.LOADED = true;
+            }
+            
+        }
+        
+        console.log( this.projectBuyInfo );
+    }
     /**
      * 모델링 권한 있는지..
      */
@@ -230,6 +266,21 @@ var DrawDataLoad = function() {
     
     this.getUserInfo = function( ) {
         return this.projectUserDatas;
+    }
+    
+    this.getProjectBuyInfo = function() {
+        return this.projectBuyInfo;
+    }
+
+    this.addProjectBuyInfo = function( gbn, _cnt) {
+        var cnt = _cnt||1;
+        if( gbn == 'ENTITY') {
+            this.projectBuyInfo.ENTITY_CNT += cnt;
+        } else if( gbn == 'USR') {
+            this.projectBuyInfo.USR += cnt;
+        } 
+        
+        console.log( this.projectBuyInfo);
     }
     
 	/**
@@ -413,7 +464,9 @@ var DrawDataLoad = function() {
 	this.setRelationPathValue  = function( subject_id, relation_id, linePath ) {
 		var _this = this;
 		var value = {};
-		console.log(  linePath )
+        if( !erdAuth.isEditable()) {
+            return ;
+        }
 		value["SUBJECT_ID"] = subject_id;
 		value["RELATION_ID"] = relation_id;
 		value["LINE_PATH"] = linePath.join(' ');
@@ -1122,8 +1175,9 @@ var DrawDataLoad = function() {
 		_this.getSelectedTables()["ENTITY_IDS"].forEach(function(entity_id, entity_id2, set) {
 			var table = _this.getDrawedTable(_this.getSelectedTables()["SUBJECT_ID"], entity_id);
 
-			table.tableNameText.findOne('tspan').fill('#'+color);
+			table.tableNameText.find('tspan').fill('#'+color); // .findOne('tspan')
 
+            console.log( table.tableNameText )
 			// 백그라운드속성변경
 			_this.updateTableInfo("tnColor", {"SUBJECT_ID": _this.getSelectedTables()["SUBJECT_ID"], "ENTITY_ID" : entity_id, "COLOR" : '#'+ color } );
 
@@ -1179,6 +1233,7 @@ var DrawDataLoad = function() {
 		// 업무영역에 테이블 추가 초기화.
 		this.initEntityForAddSubject();
 		
+		// 연계선 삭제.
 		var relation = _this.getDrawedRelation(this.getSelectedRelation()["SUBJECT_ID"], this.getSelectedRelation()["RELATION_ID"]);
 		
 		if( _this.getSelectedTables()["ENTITY_IDS"].size == 0  &&  !relation) {
@@ -1188,7 +1243,8 @@ var DrawDataLoad = function() {
 			
 			return;
 		}
-		 
+		
+		// entity삭제.
 		if( _this.getSelectedTables()["ENTITY_IDS"] && _this.getSelectedTables()["ENTITY_IDS"].size > 0 ) {
 			
 			ErdAppFunction.deleteTableWindow(_this, 'deleteSelectedObjects');
@@ -1329,7 +1385,15 @@ var DrawDataLoad = function() {
 	this.updateTableInfo = function(infoType, params ) {
 		params["ACTION"] = infoType;
 		// console.log(infoType, params);
-
+		
+        /*
+        if(!erdAuth.isEditable() ) {
+            return ;
+        }
+        */
+        
+        params["MANAGER_YN"] = erdAuth.isEditable() ? "Y" : "N";
+        
 		var response = Ext.Ajax.request({
 			async: false,
 			url: '/entity/data/updateAttr.do',
@@ -1338,7 +1402,8 @@ var DrawDataLoad = function() {
 		var result =  Ext.decode(response.responseText).success;
 		
 		this.tableOnSubjectAreaDatas.forEach(function(table) {
-			if( table["SUBJECT_ID"] == params["SUBJECT_ID"] && table["ENTITY_ID"] == params["ENTITY_ID"] ) {
+			if( table["SUBJECT_ID"] == params["SUBJECT_ID"] 
+			     && table["ENTITY_ID"] == params["ENTITY_ID"] ) {
 				for( var x in params ) {
 					if( table[x] && params[x] != null) {
 						table[x] = params[x];
@@ -1472,6 +1537,15 @@ var DrawDataLoad = function() {
 		params["ACTION"] = infoType;
 		// console.log(infoType, params);
 
+        /*
+        // 현재 선택된 업무영역이 편집 가능 한 경우.
+        if( !erdAuth.isEditable()) {
+            return ;
+        }
+        */
+       
+        params["MANAGER_YN"] = erdAuth.isEditable() ? "Y" : "N";
+
 		var response = Ext.Ajax.request({
 			async: false,
 			url: '/relation/data/update.do',
@@ -1596,11 +1670,34 @@ var DrawDataLoad = function() {
 		this.tableOnSubjectAreaDatas = this.tableOnSubjectAreaDatas.concat(entityList);
 		console.log( this.tableOnSubjectAreaDatas )
 
+        for( var i=0;pkInsertEntityList && i<pkInsertEntityList.length; i++) {
+            console.log(Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue(), pkInsertEntityList[i] );
+            // 상세테이블에 선택된 경우 컬럼 조회.
+            if( pkInsertEntityList[i] ==  Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue()) {
+                Ext.getStore("columnListStore").reload();
+                
+                break;
+            }
+        }
+        
+        for( var i=0;pkDeleteEntityList && i<pkDeleteEntityList.length; i++) {
+            console.log(Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue(), pkDeleteEntityList[i] );
+            // 상세테이블에 선택된 경우 컬럼 조회.
+            if( pkDeleteEntityList[i] ==  Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue()) {
+                Ext.getStore("columnListStore").reload();
+                
+                break;
+            }
+        }
+        
+        
 		for( var x in this.drawedSubectArea ) {
 			for( var i=0;pkInsertEntityList && i<pkInsertEntityList.length; i++) {
-				//console.log(x, pkInsertEntityList[i], this.getDrawedTable(x, pkInsertEntityList[i]) );
+				// console.log(x, pkInsertEntityList[i], this.getDrawedTable(x, pkInsertEntityList[i]) );
 				
 				// var table = this.tableOnSubjectAreaDatas.find((_table) => ( _table.SUBJECT_ID ==x && _table.ENTITY_ID == pkInsertEntityList[i]));
+				
+
 				
 				var table = this.tableOnSubjectAreaDatas.find(function(_table) {
 					console.log(_table.SUBJECT_ID ==x && _table.ENTITY_ID == pkInsertEntityList[i],  _table.SUBJECT_ID, x, _table.ENTITY_ID,  pkInsertEntityList[i] );
@@ -1620,7 +1717,8 @@ var DrawDataLoad = function() {
 				//console.log(x, pkDeleteEntityList[i], this.getDrawedTable(x, pkDeleteEntityList[i]) );
 
 				// var table = this.tableOnSubjectAreaDatas.find((_table) => (_table.SUBJECT_ID ==x  && _table.ENTITY_ID == pkDeleteEntityList[i]));
-
+                
+                
 				var table = this.tableOnSubjectAreaDatas.find(function(_table) {
 					console.log( _table.SUBJECT_ID ==x && _table.ENTITY_ID == pkDeleteEntityList[i], _table.SUBJECT_ID, x,_table.ENTITY_ID, x, pkDeleteEntityList[i] );
 					return (_table.SUBJECT_ID ==x && _table.ENTITY_ID == pkDeleteEntityList[i]);
@@ -1660,10 +1758,15 @@ var DrawDataLoad = function() {
 
 	}
 	
-	this.setEntityForAddSubject = function(entity_id, table_nm) {
-		this.entityForAddSubject = {ENTITY_ID : entity_id, TABL_NM : table_nm };
+	this.setEntityForAddSubject = function(entity_id, table_nm, entity_tcd) {
+		this.entityForAddSubject = {ENTITY_ID : entity_id, TABL_NM : table_nm, ENTITY_TCD : entity_tcd };
 		// '테이블 생성'선택
-		Ext.getCmp('DRAW_BUTTON').setValue('table');
+		if( entity_tcd == "TABLE") {
+            Ext.getCmp('DRAW_BUTTON').setValue('table');
+        } else {
+            Ext.getCmp('DRAW_BUTTON').setValue('view');
+        }
+		
 		
 		console.log( this.entityForAddSubject );
 	}
@@ -1674,7 +1777,7 @@ var DrawDataLoad = function() {
 	
 	this.initEntityForAddSubject = function(isButtonInit) {
 		isButtonInit = isButtonInit||false;
-		this.entityForAddSubject = {ENTITY_ID : "", TABL_NM : "" };
+		this.entityForAddSubject = {ENTITY_ID : "", TABL_NM : "", ENTITY_TCD : "" };
 		if( isButtonInit ) {
 			Ext.getCmp('DRAW_BUTTON').setValue('pointer');
 		}

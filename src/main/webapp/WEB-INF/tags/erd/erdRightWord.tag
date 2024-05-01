@@ -71,7 +71,7 @@
 											}
 										}
 									</tagErd:button>
-									<tagErd:button type="button" label="단어 삭제" iconCls="search" cls="btn_segmentedbutton">
+									<tagErd:button type="button" label="단어 삭제" iconCls="search" id="erdRightWordDelete" cls="btn_segmentedbutton">
 										disabled : ${sessionScope._sessionVO.notModelerRole} ,
 										listeners : {
 											click : function(_this, e, eOpts) { 
@@ -87,7 +87,7 @@
 											}
 										}
 									</tagErd:button>
-									<tagErd:button type="splitbutton" label="컬럼 추가" iconCls="search" cls="btn_segmentedbutton">
+									<tagErd:button type="splitbutton" label="컬럼 추가" iconCls="search" id="erdRightWordAdd" cls="btn_segmentedbutton">
 										disabled : ${sessionScope._sessionVO.notModelerRole} ,
 										listeners : {
 											click : function(_this, e, eOpts) { 
@@ -230,7 +230,7 @@
 										  },
 									</tagErd:button>
 									
-									<tagErd:button type="none" label="사전 적용" iconCls="search" cls="btn_segmentedbutton">
+									<tagErd:button type="none" label="사전 적용" iconCls="search" id="erdRightWordApply" cls="btn_segmentedbutton">
 										menu: {
 											plain: true,
 											items: [ 
@@ -315,7 +315,7 @@
 									</tagErd:button>
 									
 									
-									<tagErd:button type="button" label="저장" iconCls="search" cls="btn_segmentedbutton">
+									<tagErd:button type="button" label="저장" iconCls="search" id="erdRightWordSave" cls="btn_segmentedbutton">
 										disabled : ${sessionScope._sessionVO.notModelerRole} ,
 										listeners : {
 											click : function(_this, e, eOpts) { 
@@ -363,7 +363,15 @@
 									{ text: '약어', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div>약어</div>', dataIndex: 'ABBR', width : 120, minWidth : 100, locked : true, 
 										editor: {
 											allowBlank: true,
-											selectOnFocus: false
+											selectOnFocus: false,
+											listeners : {
+											    change : function( _this, newValue, oldValue, eOpts ) {
+		                                            _this.setValue( _this.getValue().toUpperCase().replace(/ /ig, "") )
+		                                        },
+			                                    keyup : function(_this, e, eOpts) {
+			                                        _this.setValue( _this.getValue().toUpperCase().replace(/ /ig, "") )
+			                                    },
+											}
 										},
 									},
 									{ text: '단어', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div>ENGLISH</div>', dataIndex: 'ENGLISH', width : 120, minWidth : 100, locked : false, 

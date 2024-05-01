@@ -1,4 +1,5 @@
 <%@ tag language="java" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@ taglib prefix="tagErd"  tagdir="/WEB-INF/tags/erd"%>
 
  {
@@ -7,6 +8,75 @@
       border : false,
       layout : 'hbox',
       items : [
+         {
+             xtype: 'segmentedbutton',
+             id : 'EDIT_BUTTON',
+             padding: 3,
+             forceSelection : false,
+             items: [
+                 {
+                     xtype: 'button', text: '편집시작'//, iconCls: 'add', cls : 'btn_segmentedbutton'
+                     , value : 'editStartSubject'
+                     , id : 'centerTop_EditStartButton'
+                     , pressed : false
+                     ,listeners : {
+                          click: function(el, opt, event){
+                                <c:choose>
+	                                <c:when test="${sessionScope._sessionVO.usrUid == null || sessionScope._sessionVO.usrUid == 'GUEST' }">
+	                                    Ext.Msg.confirm('안내', 'ERD편집은 로그인 후 사용 가능합니다.<br/>로그인 하시겠습니까?', function(btn) {
+	                                        if( btn == 'yes') {
+	                                            ErdAppFunction.loginWindow(false);
+	                                        }
+	                                    });
+	                                </c:when>
+	                                <c:otherwise>
+		                                erdAuth.startOrCheckSubjectEditInfo(Ext.getCmp("ERD-SUBJECTS").getActiveTab().getId(), true);
+		                                var form = Ext.getCmp("subjectAreaForm");
+		                                var store = Ext.getStore("subjectEntityListStore").load({page : 1, limit : 999999 , params: form.getValues(false, false, false, false)}); store.currentPage = 1; store.params = form.getForm().getFieldValues(false);
+		                            </c:otherwise>
+	                            </c:choose>
+                          }
+                      }                                        
+                 },
+                 {
+                     xtype: 'button', text: '편집종료'//, iconCls: 'add', cls : 'btn_segmentedbutton'
+                     , value : 'editStopSubject'
+                     , id : 'centerTop_EditEndButton'
+                     , disabled : true
+                     , pressed : false
+                     ,listeners : {
+                          click: function(el, opt, event){
+                                erdAuth.endSubjectEditInfo(Ext.getCmp("ERD-SUBJECTS").getActiveTab().getId(), true);
+                                Ext.getCmp('DRAW_BUTTON').setValue('pointer');
+                                drawDataLoad.cancelRelationByButton();
+                                var form = Ext.getCmp("subjectAreaForm");
+                                var store = Ext.getStore("subjectEntityListStore").load({page : 1, limit : 999999 , params: form.getValues(false, false, false, false)}); store.currentPage = 1; store.params = form.getForm().getFieldValues(false);
+                          }
+                      }                                        
+                 },
+                 {
+                     xtype: 'button', text: '편집상태확인'//, iconCls: 'add', cls : 'btn_segmentedbutton'
+                     , value : 'editStatusCheck'
+                     , id : 'centerTop_EditStatusCheckButton'
+                     , pressed : false
+                     ,listeners : {
+                          click: function(el, opt, event){
+                                <c:choose>
+                                    <c:when test="${sessionScope._sessionVO.usrUid == null || sessionScope._sessionVO.usrUid == 'GUEST' }">
+                                        Ext.Msg.confirm('안내', '편집상태확인은 로그인 후 사용 가능합니다.<br/>로그인 하시겠습니까?', function(btn) {
+                                            if( btn == 'yes') {
+                                                ErdAppFunction.loginWindow(false);
+                                            }
+                                        });
+                                    </c:when>
+                                    <c:otherwise>
+                                erdAuth.startOrCheckSubjectEditInfo(Ext.getCmp("ERD-SUBJECTS").getActiveTab().getId(), false, true);
+                                    </c:otherwise>
+                                </c:choose>                          }
+                      }                                        
+                 },
+             ]
+         },
          {
              xtype: 'segmentedbutton',
              id : 'DRAW_BUTTON',
@@ -120,7 +190,9 @@
              items: [
                  {
                      xtype: 'button', text: '라인색'//, iconCls: 'add16', cls : 'btn_segmentedbutton'
-                         , value : "line_color", disabled : ${sessionScope._sessionVO.notModelerRole}, id : 'COLOR_SPLIT_BUTTON_LINE'
+                         , value : "line_color"
+                         // , disabled : ${sessionScope._sessionVO.notModelerRole}
+                         , id : 'COLOR_SPLIT_BUTTON_LINE'
                          , listeners : {
                              click: function(el, opt, event){
                                 // 업무영역에 테이블 추가 초기화.
@@ -155,7 +227,9 @@
                          }
                  },{
                      xtype: 'button', text: '배경색'//, iconCls: 'add16', cls : 'btn_segmentedbutton'
-                         , value : "background_color" , disabled : ${sessionScope._sessionVO.notModelerRole}, id : 'COLOR_SPLIT_BUTTON_BACKGROUND'
+                         , value : "background_color" 
+                         // , disabled : ${sessionScope._sessionVO.notModelerRole}
+                         , id : 'COLOR_SPLIT_BUTTON_BACKGROUND'
                          , listeners : {
                              click: function(el, opt, event){
                                  // 업무영역에 테이블 추가 초기화.
@@ -182,7 +256,9 @@
                          }
                  },{
                      xtype: 'button', text: '테이블 글자색'//, iconCls: 'add16', cls : 'btn_segmentedbutton'
-                         , value : "table_name_color" , disabled : ${sessionScope._sessionVO.notModelerRole}, id : 'COLOR_SPLIT_BUTTON_TEXT'
+                         , value : "table_name_color" 
+                         // , disabled : ${sessionScope._sessionVO.notModelerRole}
+                         , id : 'COLOR_SPLIT_BUTTON_TEXT'
                          , listeners : {
                              click: function(el, opt, event){
                                  // 업무영역에 테이블 추가 초기화.
@@ -209,7 +285,9 @@
                          }
                  },{
                      xtype: 'button', text: '테이블 배경색'//, iconCls: 'add16', cls : 'btn_segmentedbutton'
-                         , value : "table_background_color" , disabled : ${sessionScope._sessionVO.notModelerRole}, id : 'COLOR_SPLIT_BUTTON_TABLE_BACKGROUND'
+                         , value : "table_background_color" 
+                         // , disabled : ${sessionScope._sessionVO.notModelerRole}
+                         , id : 'COLOR_SPLIT_BUTTON_TABLE_BACKGROUND'
                          , listeners : {
                              click: function(el, opt, event){
                                  // 업무영역에 테이블 추가 초기화.
@@ -335,6 +413,7 @@
                  },{
                      xtype: 'button', text: '논리+물리모델'//, iconCls: 'add16', cls : 'btn_segmentedbutton'
                          , value : 'LOGICAL_PHYSICAL'
+                         , pressed : true
                          , listeners : {
                              click: function(el, opt, event){
                                  var entities = drawDataLoad.getSelectedTablesIfNotSelectedThenAll();
@@ -356,6 +435,93 @@
                  }
             ]
          },
-
+         /*
+         {
+             xtype: 'segmentedbutton',
+             id : 'DOWNLOAD_BUTTON',
+             padding: 3,
+             items: [
+                 {
+                     xtype: 'button', text: '+'//, iconCls: 'add16', cls : 'btn_segmentedbutton'
+                         , value : 'SIZE_UP'
+                         , listeners : {
+                             click: function(el, opt, event){
+                                
+                             }
+                          }
+                  }, 
+                  {
+                     xtype: 'button', text: '-'//, iconCls: 'add16', cls : 'btn_segmentedbutton'
+                         , value : 'SIZE_DOWN'
+                         , listeners : {
+                             click: function(el, opt, event){
+                             
+                             }
+                          }
+                  }, 
+             ]
+          },
+          */
+//         {
+//             xtype: 'segmentedbutton',
+//             id : 'DOWNLOAD_BUTTON',
+//             padding: 3,
+//             items: [
+//                 {
+//                     xtype: 'button', text: '이미지다운로드'//, iconCls: 'add16', cls : 'btn_segmentedbutton'
+//                         , value : 'DOWNLOAD'
+//                         , listeners : {
+//                             click: function(el, opt, event){
+//
+//                                 let triggerDownload = (imgURI, fileName) => {
+//                                    let a = document.createElement('a')
+//                                
+//                                    a.setAttribute('download', 'image.svg')
+//                                    a.setAttribute('href', imgURI)
+//                                    a.setAttribute('target', '_blank')
+//                                
+//                                    a.click()
+//                                 }
+//                                 var subject_id = Ext.getCmp("ERD-SUBJECTS").getActiveTab().getId();
+//                                 
+//                                 var svg = document.querySelector('#'+subject_id+">svg")
+//
+//                                 var data = (new XMLSerializer()).serializeToString(svg)
+//                                 const blob = new Blob([data], {type: "image/svg+xml;charset=utf-8"});
+//                                 /*
+//                                 const {width, height} = svg.getBoundingClientRect();
+//
+//                                const $canvas = document.createElement("canvas");
+//								$canvas.width = width; 
+//								$canvas.height = height;
+//								
+//							    const ctx = $canvas.getContext('2d');
+//								 
+//								const img = new Image();
+//								
+//								img.onload = (e) => {
+//								    ctx.drawImage(e.target, 0, 0);
+//								
+//								    const $link = document.createElement("a");
+//								
+//								    $link.download = "image.png";
+//								    $link.href = $canvas.toDataURL("image/png");
+//								
+//								    $link.click();
+//								};
+//								
+//								img.src = URL.createObjectURL(blob);
+//								 
+//                                 */
+//							     var svgBlob = new Blob([data], {type: 'image/svg+xml;charset=utf-8'})
+//							     var url = URL.createObjectURL(blob)
+//    
+//                                 triggerDownload(url);
+//                                 
+//                             },
+//                         }
+//                 }
+//             ]
+//          },
       ]
 },

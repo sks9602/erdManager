@@ -187,41 +187,48 @@ public class RelationSvc {
 		try {
 			
 			Integer result = sqlDao.insert("mapper.erd.relation.saveRelation", sqlParamMap);
-			
-			sqlDao.insert("mapper.erd.relation.saveSubjectRelation", sqlParamMap);
-
-			// Non-identifing Relation일 경우.
-			sqlDao.insert("mapper.erd.relation.updateRelationNonIdenYN", sqlParamMap);
-			
-			List<SqlResultMap<String, Object>> relationList = sqlDao.selectList("mapper.erd.relation.selectRelationList", sqlParamMap);
-
-			MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList = new MapHasList("START_ENTITY_ID", relationList);
 
 			Set<String> pkInsertEntityList = new HashSet<String>();
 			Set<String> pkDeleteEntityList = new HashSet<String>();
-			int index = 0;
-			insertColumnPK(pkInsertEntityList, pkDeleteEntityList, paramMap.get("END_ENTITY_ID"), paramMap.get("START_ENTITY_ID"), mapHasList, paramMap, paramMap.get("NON_IDEN_YN"), index);
+
+			SqlResultList<SqlResultMap<String, Object>> entityColumnList = null;
+			SqlResultList<SqlResultMap<String, Object>> entityList = null;
 			
-			if( StringUtils.isNotEmpty(paramMap.get("ATTR")) && StringUtils.isNotEmpty(paramMap.get("VAL"))) {
-				sqlDao.insert("mapper.erd.relation.saveRelationAttr", sqlParamMap);
+			if("Y".equals(paramMap.get("MANAGER_YN"))) {
+				sqlDao.insert("mapper.erd.relation.saveSubjectRelation", sqlParamMap);
+				// Non-identifing Relation일 경우.
+				sqlDao.insert("mapper.erd.relation.updateRelationNonIdenYN", sqlParamMap);
+				
+				List<SqlResultMap<String, Object>> relationList = sqlDao.selectList("mapper.erd.relation.selectRelationList", sqlParamMap);
+
+				MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList = new MapHasList("START_ENTITY_ID", relationList);
+
+				int index = 0;
+				insertColumnPK(pkInsertEntityList, pkDeleteEntityList, paramMap.get("END_ENTITY_ID"), paramMap.get("START_ENTITY_ID"), mapHasList, paramMap, paramMap.get("NON_IDEN_YN"), index);
+				
+				if( StringUtils.isNotEmpty(paramMap.get("ATTR")) && StringUtils.isNotEmpty(paramMap.get("VAL"))) {
+					sqlDao.insert("mapper.erd.relation.saveRelationAttr", sqlParamMap);
+				}
+
+				// RELATION에 따라 변경되는 테이블 목록
+				Set<String> pkEntitySet = new HashSet<String>();
+				
+				pkEntitySet.addAll(pkInsertEntityList);
+				pkEntitySet.addAll(pkDeleteEntityList);
+				
+				List<String> pkEntityList = new ArrayList<String>();
+				pkEntityList.addAll(pkEntitySet);
+				sqlParamMap.put("ENTITY_LIST", pkEntityList);
+				
+				log.info(" ENTITY_LIST : " + sqlParamMap.get("ENTITY_LIST").toString() );
+				// 다시 조회.	
+				entityColumnList = sqlDao.selectList("mapper.erd.column.selectColumnErdList", sqlParamMap);
+
+				entityList = sqlDao.selectList("mapper.erd.subject.selectSubjectEntityList", sqlParamMap);
+
+			} else {
+				sqlDao.insert("mapper.erd.relation.saveSubjectRelationUsr", sqlParamMap);
 			}
-
-			// RELATION에 따라 변경되는 테이블 목록
-			Set<String> pkEntitySet = new HashSet<String>();
-			
-			pkEntitySet.addAll(pkInsertEntityList);
-			pkEntitySet.addAll(pkDeleteEntityList);
-			
-			List<String> pkEntityList = new ArrayList<String>();
-			pkEntityList.addAll(pkEntitySet);
-			sqlParamMap.put("ENTITY_LIST", pkEntityList);
-			
-			log.info(" ENTITY_LIST : " + sqlParamMap.get("ENTITY_LIST").toString() );
-			// 다시 조회.	
-			SqlResultList<SqlResultMap<String, Object>> entityColumnList = sqlDao.selectList("mapper.erd.column.selectColumnErdList", sqlParamMap);
-
-			SqlResultList<SqlResultMap<String, Object>> entityList = sqlDao.selectList("mapper.erd.subject.selectSubjectEntityList", sqlParamMap);
-
 			if( result == 1 || result == 2) {
 				myFrameworkResponseCud.setCudCount(result);
 				myFrameworkResponseCud.setSuccess(true);

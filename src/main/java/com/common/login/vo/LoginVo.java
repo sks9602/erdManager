@@ -28,6 +28,7 @@ public class LoginVo extends MyFrameworkLoginVO {
 	/**
 	 * 
 	 */
+	public final static String ERD_LOGIN_SESSION_KEY = "ERD_LOGIN_SESSION_KEY.sessionVO";
 	private static final long serialVersionUID = 7885774821781028800L;
 
 	private String usrUid;
@@ -81,6 +82,8 @@ public class LoginVo extends MyFrameworkLoginVO {
 	private Boolean success;
 	
 	private String errorCd;
+	
+	private String Dbase;
 	
 	/**
 	 * 모델러 권한 있는 지 확인.

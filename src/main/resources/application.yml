@@ -20,7 +20,18 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
-
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: web.erd.tools@gmail.com
+    password: bekslbxetbpwfgyr
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            
 mybatis:
   config-location: classpath:mybatis-config.xml
   mapper-locations: classpath:mapper/**/*.xml

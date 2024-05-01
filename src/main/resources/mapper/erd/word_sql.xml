@@ -6,34 +6,35 @@
     <!--   목록 조회. -->
     <select id="selectWordDetail"  parameterType="paramMap" resultType="resultMap">
     SELECT /* mapper.erd.word.selectWordDetail */
-           REPLACE(REPLACE(REPLACE(GROUP_CONCAT(NVL(WRD.ABBR, A.WORD) ORDER BY A.NO), ',@', ''), '@', ''), ',', '_') AS ABBR
-      FROM (SELECT 'A' AS GRP, NO, WORD
-              FROM (SELECT NULL AS NO, NULL AS WORD
-                     <foreach collection="VALUES" item="item" separator="" index="index">
-                        UNION ALL SELECT #{index} AS NO, #{item} AS WORD
-                     </foreach>
-                    ) A
-              WHERE NO IS NOT NULL
-              ORDER BY NO
-             ) A
-          LEFT OUTER JOIN (SELECT WRD.PROJECT_ID, WRD.WORD
-                                , CASE WHEN #{OBJ_TYPE}  = 'ENTITY' THEN
-                                            CASE WHEN PJT.ENTITY_CAPITALIZE = 'UPPER' THEN UPPER(WRD.ABBR)
-                                                 WHEN PJT.ENTITY_CAPITALIZE = 'LOWER' THEN LOWER(WRD.ABBR)
-                                                 ELSE WRD.ABBR END
-                                       ELSE 
-                                            CASE WHEN PJT.COLMN_CAPITALIZE = 'UPPER' THEN UPPER(WRD.ABBR)
-                                                 WHEN PJT.COLMN_CAPITALIZE = 'LOWER' THEN LOWER(WRD.ABBR)
-                                                 ELSE WRD.ABBR END
-                                       END AS ABBR
-                                   
-                             FROM WORD    WRD
-                                , PROJECT PJT
-                            WHERE PJT.PROJECT_ID = WRD.PROJECT_ID
-                              AND WRD.PROJECT_ID = #{SESSION_PROJECT_ID} )WRD
-               ON WRD.PROJECT_ID = #{SESSION_PROJECT_ID}
-              AND A.WORD         = WRD.WORD
-      GROUP BY A.GRP
+           REPLACE(REPLACE(REPLACE(GROUP_CONCAT(WRD.WORD ORDER BY WRD.NO), ',@', ''), '@', ''), ',', '_') AS ABBR
+      FROM (SELECT WRD.GRP, WRD.NO 
+                 , CASE WHEN #{OBJ_TYPE}  = 'ENTITY' AND PJT.ENTITY_CAPITALIZE = 'UPPER' THEN UPPER(WRD.WORD)
+                        WHEN #{OBJ_TYPE}  = 'ENTITY' AND PJT.ENTITY_CAPITALIZE = 'LOWER' THEN LOWER(WRD.WORD)
+                        WHEN #{OBJ_TYPE}  != 'ENTITY' AND PJT.ENTITY_CAPITALIZE = 'UPPER' THEN UPPER(WRD.WORD)
+                        WHEN #{OBJ_TYPE}  != 'ENTITY' AND PJT.ENTITY_CAPITALIZE = 'LOWER' THEN LOWER(WRD.WORD)
+                        ELSE WRD.WORD END WORD
+
+		      FROM (SELECT 
+		                   A.GRP, A.NO, NVL(WRD.ABBR, A.WORD) AS WORD
+				     FROM (SELECT 'A' AS GRP, NO, WORD
+				             FROM (SELECT NULL AS NO, NULL AS WORD
+				                    <foreach collection="VALUES" item="item" separator="" index="index">
+				                       UNION ALL SELECT #{index} AS NO, #{item} AS WORD
+				                    </foreach>
+				                   ) A
+				             WHERE NO IS NOT NULL
+				             ORDER BY NO
+				            ) A
+				         LEFT OUTER JOIN (SELECT WRD.PROJECT_ID, WRD.WORD, WRD.ABBR
+				                            FROM WORD    WRD
+				                           WHERE WRD.PROJECT_ID = #{SESSION_PROJECT_ID} )WRD
+				             ON A.WORD         = WRD.WORD
+				     ) WRD
+				    , (SELECT PJT.ENTITY_CAPITALIZE, PJT.COLMN_CAPITALIZE
+				         FROM PROJECT PJT
+				        WHERE PJT.PROJECT_ID = #{SESSION_PROJECT_ID} ) PJT
+			) WRD
+      GROUP BY WRD.GRP
     </select>
     
     <insert id="insertWord" parameterType="paramMap">
@@ -104,6 +105,8 @@
             , FRST_INS_USR_UID
             , LAST_UPD_DT
             , LAST_UPD_USR_UID
+            , LOG_ID
+            , CHG_CTNT
            ) 
            VALUES
            (
@@ -117,13 +120,21 @@
             , #{SESSION_USR_UID }      /* FRST_INS_USR_UID  */
             , CURRENT_TIMESTAMP        /* LAST_UPD_DT       */
             , #{SESSION_USR_UID }      /* LAST_UPD_USR_UID  */
+            , #{LOG_ID}
+            , CASE WHEN #{WORD} != #{ABBR} AND #{ABBR} IS NOT NULL 
+                        THEN CONCAT('단어 "', #{WORD}, '(', #{ABBR} ,')"이 등록되었습니다.')
+                   ELSE NULL END
            )
     </update>
     <update id="updateWord"  parameterType="paramMap">
         UPDATE /* mapper.erd.word.updateWord */
                WORD 
            SET
-              ABBR       = #{ABBR        }
+              LOG_ID     = #{LOG_ID}
+            , CHG_CTNT   = CASE WHEN ABBR != #{ABBR} 
+                                     THEN CONCAT('단어 "', #{WORD}, '의 용어가 "', ABBR , '"에서 "', #{ABBR} ,'"로 변경되었습니다.')
+                                ELSE NULL END
+            , ABBR       = #{ABBR        }
             , ENGLISH    = #{ENGLISH     }
             , WORD_DESC  = #{WORD_DESC   }
 

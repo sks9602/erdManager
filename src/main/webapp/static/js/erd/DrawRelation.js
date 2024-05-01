@@ -817,7 +817,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 			_this.end["y"] = Math.ceil(table["end"].transform('translateY') + rect["end"].height()+15+(draw_type == "init" ? 0 : _this.CONSTANT.CORRECT-1));
 		}
 		
-		console.log( _this.relationInfo, _this.start, _this.end);
+		// console.log( _this.relationInfo, _this.start, _this.end);
 	}
 	
 	/*
@@ -2360,6 +2360,11 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				var mover_rect = ev.target.instance;
 				var mover_index = mover_rect.remember("mover_index") ; 
 				
+				/*
+				if( !erdAuth.isEditable()) {
+                    return ;
+                }
+                */
 				if( mover_rect.remember("relation_SorE") == "start" && _this.moverDisplayMode == "relocate") {
 					var p = _this.pathRelation['start_info'].split(' ');
 					_this.pathRelation['start_info'] = p[0] + " " + (parseInt(p[1])-_this.moverBaseStart["mx"]) + " " + (parseInt(p[2])-_this.moverBaseStart["my"]);
@@ -2388,7 +2393,12 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				mover_box["x"] = Math.ceil(_mover_box.x);
 				mover_box["y"] = Math.ceil(_mover_box.y);
 				
-				
+				/*
+                if( !erdAuth.isEditable()) {
+                    return ;
+                }
+                */
+               
 				// 시작 mover
 				if( mover_rect.remember("relation_SorE") == "start" ) {
 					var pathPre = _this.pathRelation['start_info'].split(' ');
@@ -2525,6 +2535,12 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				var _mover_box = ev.detail.box;
 				var mover_box = {x:Math.ceil(_mover_box.x), y:Math.ceil(_mover_box.y)} ;
 				
+				/*
+				if( !erdAuth.isEditable()) {
+                    return ;
+                }
+                */ 
+               
 				/*
 				if( mover_rect.remember("relation_SorE") == "start" ) {
 					if( _this.moverBaseStart["idx"] == _this.moverBaseEnd["idx"] ) {

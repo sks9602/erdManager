@@ -3,6 +3,7 @@ package com.common.login.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.support.SessionStatus;
 
+import com.admin.erd.project.service.ProjectSvc;
 import com.common.login.vo.LoginVo;
 import com.myframework.dao.MyFrameworkSqlDao;
 import com.myframework.sql.SqlParamMap;
@@ -31,6 +33,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LoginService {
 
+	@Resource(name = "projectSvc")
+	private ProjectSvc projectSvc;
+	
 	@Autowired
 	private MyFrameworkSqlDao sqlDao;
 
@@ -90,6 +95,7 @@ public class LoginService {
 				loginUser.setEntityDisplayDaycnt(loginInfo.getString("ENTITY_DISPLAY_DAYCNT"));
 				loginUser.setColumnDisplayDaycnt(loginInfo.getString("COLMN_DISPLAY_DAYCNT"));
 				loginUser.setVersion(loginInfo.getString("VERSN"));
+				loginUser.setDbase(loginInfo.getString("DBASE"));
 				loginUser.setAuth(loginInfo.getString("AUTH_CD")); // MANAGER > MODELER > VIEWER
 			}
 			
@@ -168,7 +174,10 @@ public class LoginService {
 				
 			}
 		}
-		
+
+		paramMap.put("SESSION_PROJECT_ID", loginUser.getProjectId());
+		projectSvc.selectProjectCdList(model, paramMap);
+
 		return myFrameworkResponseData; 
 		
 	}
@@ -188,7 +197,20 @@ public class LoginService {
 		// 로그아웃 처리.
 		session.invalidate();
 		
-		myFrameworkResponseData.put("forwardUrl", "/common/login/loginView.do");
+		loginVo = new LoginVo();
+
+		loginVo.setProjectId("DEFAULT-PROJECT");
+		loginVo.setProjectNm("빈 프로젝트");
+		loginVo.setVersion("1.0");
+		loginVo.setUsrNm("Guest");
+		loginVo.setUsrUid("GUEST");
+		loginVo.setEntityDisplayDaycnt("-7");
+		loginVo.setColumnDisplayDaycnt("-7");
+		loginVo.setAuth("MODELER"); // MANAGER > MODELER > VIEWER
+		loginVo.setDbase("MariaDB");
+		
+		request.getSession().setAttribute(MyFrameworkLoginVO.MY_FRAMEWORK_LOGIN_SESSION_KEY, loginVo);
+				
 		myFrameworkResponseData.put("success", true);
 		
 		return myFrameworkResponseData;

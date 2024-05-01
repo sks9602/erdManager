@@ -77,6 +77,14 @@ public class EntityCtrl {
 		return "jsonView";
 	}
 	
+	@RequestMapping(value="/entity/data/entityColumListTable.do")
+	public String entityColumListTable(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+	
+		entitySvc.entityColumListTable(model, paramMap);
+		
+		return "jsonView";
+	}
+
 	
 	@RequestMapping(value="/entity/data/detail.do")
 	public String detail(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
@@ -114,7 +122,6 @@ public class EntityCtrl {
 	
 	
 	/**
-	 * ENTITY속성정보 삭제
 	 * @param model
 	 * @param paramMap
 	 * @return
@@ -126,6 +133,21 @@ public class EntityCtrl {
 		
 		return "jsonView";
 	}
+
+	/**
+	 * @param model
+	 * @param paramMap
+	 * @return
+	 */
+	@RequestMapping(value="/entity/data/restore.do")
+	public String entityRestore(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+
+		MyFrameworkResponseCud myFrameworkResponseCud = entitySvc.entityRestore(model, paramMap);
+		
+		return "jsonView";
+	}
+	
+
 	
 	@RequestMapping(value="/entity/data/updateScd.do")
 	public String entityUpdateScd(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
@@ -178,6 +200,88 @@ public class EntityCtrl {
 	public String saveFavorite(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
 
 		MyFrameworkResponseCud myFrameworkResponseCud = entitySvc.saveFavorite(model, paramMap);
+		
+		return "jsonView";
+	}
+
+	/**
+	 * 테이블 즐겨찾기
+	 * @param model
+	 * @param paramMap
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(value="/entity/data/indexInfo.do")
+	public String entityIndexInfo(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+
+		entitySvc.indexInfo(model, paramMap);
+		
+		return "jsonView";	}
+	
+	
+	/**
+	 * 테이블의 컬럼 상세 목록
+	 * @param model
+	 * @param paramMap
+	 * @return
+	 */
+	@RequestMapping(value="/entity/data/columnListNotIndexed.do")
+	public String columnListNotIndexed(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+	
+		entitySvc.columnListNotIndexed(model, paramMap);
+		
+		return "jsonView";
+	}
+	
+	/**
+	 * 테이블의 컬럼 상세 목록
+	 * @param model
+	 * @param paramMap
+	 * @return
+	 */
+	@RequestMapping(value="/entity/data/columnListIndexed.do")
+	public String columnListIndexed(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+	
+		entitySvc.columnListIndexed(model, paramMap);
+		
+		return "jsonView";
+	}
+	
+	/**
+	 * 테이블 즐겨찾기
+	 * @param model
+	 * @param paramMap
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(value="/entity/data/saveIndex.do")
+	public String saveIndex(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+
+		MyFrameworkResponseCud myFrameworkResponseCud = entitySvc.saveIndex(model, paramMap);
+		
+		return "jsonView";
+	}
+	
+	/**
+	 * 테이블 즐겨찾기
+	 * @param model
+	 * @param paramMap
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(value="/entity/data/indexTreeList.do")
+	public String indexTreeList(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+
+		entitySvc.indexTreeList(model, paramMap);
+		
+		return "/data/tree/data";
+	}
+	
+	
+	@RequestMapping(value="/entity/data/aliasSave.do")
+	public String entityAliasSave(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+
+		MyFrameworkResponseCud myFrameworkResponseCud = entitySvc.entityAliasSave(model, paramMap);
 		
 		return "jsonView";
 	}

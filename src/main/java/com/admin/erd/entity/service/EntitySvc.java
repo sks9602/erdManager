@@ -115,6 +115,24 @@ public class EntitySvc {
 		
 		myFrameworkResponseGrid.setData(list);
 	}
+
+	public void entityColumListTable(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseGrid myFrameworkResponseGrid = MyFrameworkResponseGrid.builder().modelMap(model).build();
+
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+		if(StringUtils.isNotEmpty(paramMap.get("ENTITY_NMS"))) {
+			sqlParamMap.put("ENTITY_NM", paramMap.get("ENTITY_NMS").split(";"));
+		}
+		if(StringUtils.isNotEmpty(paramMap.get("COLUMN_NMS"))) {
+			sqlParamMap.put("COLUMN_NM", paramMap.get("COLUMN_NMS").split(";"));
+		}
+		
+		SqlResultList<SqlResultMap<String, Object>> list = sqlDao.selectList("mapper.erd.entity.selectEntityColumTableList", sqlParamMap);
+		
+		myFrameworkResponseGrid.setData(list);
+	}
 	
 	public void detail(ModelMap model, RequestParamMap paramMap) {
 		MyFrameworkResponseGrid myFrameworkResponseGrid = MyFrameworkResponseGrid.builder().modelMap(model).build();
@@ -144,8 +162,6 @@ public class EntitySvc {
 			String log_id = RandomStringUtils.random(10, true, true);
 			sqlParamMap.put("LOG_ID", log_id);
 			
-			log.info( "entity_id : " + entity_id );
-			log.info( "entity_id : " + StringUtils.isEmpty(entity_id) );
 			if( StringUtils.isEmpty(entity_id)) {
 				// UID조회
 				SqlResultMap<String, Object> entityUid = sqlDao.select("mapper.erd.user.selectUid", sqlParamMap);
@@ -189,6 +205,24 @@ public class EntitySvc {
 		return myFrameworkResponseCud;
 	}	
 
+	@Transactional
+	public MyFrameworkResponseCud entityRestore(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseCud myFrameworkResponseCud = MyFrameworkResponseCud.builder().modelMap(model).build();
+
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+
+		try {	
+			sqlParamMap.putAll(paramMap.getMap());
+			
+			sqlDao.insert("mapper.erd.entity.updateEntityUseYn", sqlParamMap);
+		} catch(Exception e) {
+			e.printStackTrace();
+			myFrameworkResponseCud.setSuccess(false);
+			myFrameworkResponseCud.setErrorMessage("삭제 취소시 오류가 발생했습니다.");
+		}
+		return myFrameworkResponseCud;
+	}	
 	@Transactional
 	public MyFrameworkResponseCud entityDelete(ModelMap model, RequestParamMap paramMap) {
 		MyFrameworkResponseCud myFrameworkResponseCud = MyFrameworkResponseCud.builder().modelMap(model).build();
@@ -308,10 +342,16 @@ public class EntitySvc {
 		sqlParamMap.putAll(paramMap.getMap());
 
 		try {
-			
-			Integer result = sqlDao.insert("mapper.erd.entity.saveSubjectEntity", sqlParamMap);
-			
-			sqlDao.insert("mapper.erd.entity.updateEntityWidthHeight", sqlParamMap);
+			Integer result = 0;
+			if( "Y".equals(paramMap.get("MANAGER_YN"))) {
+				result = sqlDao.insert("mapper.erd.entity.saveSubjectEntity", sqlParamMap);
+				
+				sqlDao.insert("mapper.erd.entity.updateEntityWidthHeight", sqlParamMap);
+			} else {
+				result = sqlDao.insert("mapper.erd.entity.saveSubjectEntityUser", sqlParamMap);
+			}
+		
+		
 				
 			if( result == 1 || result == 2 ) {
 				myFrameworkResponseCud.setCudCount(result);
@@ -344,8 +384,8 @@ public class EntitySvc {
 			// 로그ID조회
 			String log_id = RandomStringUtils.random(10, true, true);
 			sqlParamMap.put("LOG_ID", log_id);
-			
-			Integer result = sqlDao.update("mapper.erd.entity.updateEntityScd", sqlParamMap);
+			Integer result = 0;
+			// result = sqlDao.update("mapper.erd.entity.updateEntityScd", sqlParamMap);
 			
 			SqlResultMap<String, Object> entityInfo = sqlDao.select("mapper.erd.entity.selectEntityInfo", sqlParamMap);
 
@@ -379,10 +419,39 @@ public class EntitySvc {
 
 			SqlResultList<SqlResultMap<String, Object>> entityList = sqlDao.selectList("mapper.erd.subject.selectSubjectEntityList", sqlParamMap);
 
+			// 반영상태 코드 삭제
+			// sqlDao.delete("mapper.erd.entity.deleteEntityStatus", sqlParamMap);
+
+			// 반영상태 코드 목록
+			sqlParamMap.put("CD_GRP", "TABL_SCD");
+			SqlResultList<SqlResultMap<String, Object>> tablScdList = sqlDao.selectList("mapper.erd.project.selectProjectCdList", sqlParamMap);
+			
+			// sqlDao.insert("mapper.erd.entity.upateEntityStatusInit", sqlParamMap);
+			
+			String [] tableScds = paramMap.getValues("TABL_SCD");
+						
+			for(SqlResultMap<String, Object> tablScd : tablScdList ) {
+				// 전송된 반여코드 값이 있을 경우
+				sqlParamMap.putAll(paramMap.getMap());
+				sqlParamMap.put("TABL_SCD", tablScd.getString("CD") );
+				sqlParamMap.put("IS_CHECKED", String.valueOf(!paramMap.getMap().containsKey(tablScd.getString("CD"))));
+				
+				result += sqlDao.insert("mapper.erd.entity.insertEntityStatus", sqlParamMap);
+				
+				/*
+				if( StringUtils.isNotEmpty(paramMap.get(tablScd.getString("CD"))) ) {
+					sqlParamMap = new SqlParamMap<String, Object>();
+					sqlParamMap.putAll(paramMap.getMap());
+					sqlParamMap.put("TABL_SCD", tablScd.getString("CD") );
+					result += sqlDao.insert("mapper.erd.entity.insertEntityStatus", sqlParamMap);
+				}
+				*/
+			}
+			
 			// 변경 로그 반영
 			sqlDao.insert("mapper.erd.project.projectChgLog", sqlParamMap);
 			
-			if( result == 1 || result == 2 ) {
+			if( result >= 0 ) {
 				myFrameworkResponseCud.setCudCount(result);
 				myFrameworkResponseCud.setSuccess(true);
 				myFrameworkResponseCud.setMessage("저장되었습니다.");
@@ -422,6 +491,13 @@ public class EntitySvc {
 			Set<String> pkEntitySet = new HashSet<String>();
 			Set<String> pkInsertEntityList = new HashSet<String>();
 
+			sqlParamMap = new SqlParamMap<String, Object>();
+			sqlParamMap.put("SESSION_PROJECT_ID", paramMap.get("SESSION_PROJECT_ID"));
+			
+			// 반영상태 코드 목록
+			sqlParamMap.put("CD_GRP", "TABL_SCD");
+			SqlResultList<SqlResultMap<String, Object>> tablScdList = sqlDao.selectList("mapper.erd.project.selectProjectCdList", sqlParamMap);
+
 			// 로그ID조회
 			String log_id = RandomStringUtils.random(10, true, true);
 			sqlParamMap.put("LOG_ID", log_id);
@@ -434,8 +510,8 @@ public class EntitySvc {
 				
 				pkInsertEntityList.add(paramMap.getValues("ENTITY_ID")[i]);
 				
-				sqlParamMap.put("PROJECT_ID", paramMap.get("SESSION_PROJECT_ID"));
-				sqlParamMap.put("VERSN", paramMap.get("SESSION_VERSN"));
+				sqlParamMap.put("SESSION_PROJECT_ID", paramMap.get("SESSION_PROJECT_ID"));
+				sqlParamMap.put("SESSION_VERSN", paramMap.get("SESSION_VERSN"));
 
 				if( StringUtils.isEmpty(colmn_ids[i])) {
 					// UID조회
@@ -506,9 +582,22 @@ public class EntitySvc {
 				sqlParamMap.put("TRT_DT", paramMap.getValues("TRT_DT")[i]);
 				sqlParamMap.put("TRT_USR_UID", paramMap.getValues("TRT_USR_UID")[i]);
 				sqlParamMap.put("UP_ENTITY_ID", paramMap.getValues("UP_ENTITY_ID")[i]);
+				sqlParamMap.put("DEFAULT_VAL", paramMap.getValues("DEFAULT_VAL")[i]);
 				
 				Integer result = sqlDao.update("mapper.erd.column.saveEntityColumn", sqlParamMap);
 
+				// 반영상태 코드 삭제
+				// sqlDao.delete("mapper.erd.entity.deleteColumnStatus", sqlParamMap);
+
+				for(SqlResultMap<String, Object> tablScd : tablScdList ) {
+					log.info(" >> {}, {}", tablScd.getString("CD") , paramMap.getValues(tablScd.getString("CD"))[i]);
+					// 전송된 반여코드 값이 있을 경우
+					if( StringUtils.isNotEmpty(paramMap.getValues(tablScd.getString("CD"))[i]) ) {
+						sqlParamMap.put("COLMN_SCD", tablScd.getString("CD") );
+						sqlParamMap.put("IS_CHECKED", paramMap.getValues(tablScd.getString("CD"))[i] );
+						sqlDao.insert("mapper.erd.entity.insertColumnStatus", sqlParamMap);
+					}
+				}
 			}
 			List<String> pkEntityList = new ArrayList<String>();
 			pkInsertEntityList.add(entity_id);
@@ -753,4 +842,211 @@ public class EntitySvc {
 		}
 		return myFrameworkResponseCud;
 	}
+
+
+	
+	public void columnListNotIndexed(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseGrid myFrameworkResponseGrid = MyFrameworkResponseGrid.builder().modelMap(model).build();
+
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+		
+		SqlResultList<SqlResultMap<String, Object>> list = sqlDao.selectList("mapper.erd.entity.columnListNotIndexed", sqlParamMap);
+		
+		myFrameworkResponseGrid.setData(list);
+	}
+
+	
+	
+	public void columnListIndexed(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseGrid myFrameworkResponseGrid = MyFrameworkResponseGrid.builder().modelMap(model).build();
+
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+		
+		SqlResultList<SqlResultMap<String, Object>> list = sqlDao.selectList("mapper.erd.entity.columnListIndexed", sqlParamMap);
+		
+		myFrameworkResponseGrid.setData(list);
+	}
+
+	/**
+	 * 테이블 즐겨찾기 처리
+	 * @param model
+	 * @param paramMap
+	 * @return
+	 */
+	@Transactional
+	public MyFrameworkResponseCud saveIndex(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseCud myFrameworkResponseCud = MyFrameworkResponseCud.builder().modelMap(model).build();
+		
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		try {
+			String index_id = paramMap.get("INDEX_ID");
+			log.info( paramMap.toString() );
+			
+			// 로그ID조회
+			String log_id = RandomStringUtils.random(10, true, true);
+			sqlParamMap.put("LOG_ID", log_id);
+			
+			if( StringUtils.isEmpty(index_id)) {
+				// UID조회
+				SqlResultMap<String, Object> entityUid = sqlDao.select("mapper.erd.user.selectUid", sqlParamMap);
+				index_id = entityUid.getString("UID");
+				sqlParamMap.put("INDEX_ID", index_id);
+			}
+
+			// 수정정 컬럼 목록
+			SqlResultMap<String, Object> colmnNmPre = sqlDao.select("mapper.erd.entity.selectIndexColumnAll", sqlParamMap);
+			sqlParamMap.put("COLMN_NM_PRE", colmnNmPre.getString("COLMN_NM"));
+			
+			// INDEX 컬럼 등록
+			sqlDao.insert("mapper.erd.entity.deleteIndexColumn", sqlParamMap);
+			for( int i=0; i< paramMap.getValues("COLMN_ID").length; i++ ) {
+				sqlParamMap = new SqlParamMap<String, Object>();
+				
+				sqlParamMap.put("SESSION_PROJECT_ID", paramMap.get("SESSION_PROJECT_ID"));
+				sqlParamMap.put("SESSION_VERSN", paramMap.get("SESSION_VERSN"));
+				sqlParamMap.put("INDEX_ID", index_id);
+				sqlParamMap.put("COLMN_ID", paramMap.getValues("COLMN_ID")[i]);
+				sqlParamMap.put("SEQ", i+1);
+				sqlParamMap.put("SORT_BASE", paramMap.getValues("SORT_BASE")[i]);
+				sqlParamMap.put("SESSION_USR_UID", paramMap.get("SESSION_USR_UID"));
+				
+				sqlDao.insert("mapper.erd.entity.insertIndexColumn", sqlParamMap);
+			}
+			// 수정 후 컬럼 목록
+			SqlResultMap<String, Object> colmnNmPost = sqlDao.select("mapper.erd.entity.selectIndexColumnAll", sqlParamMap);
+			sqlParamMap.put("COLMN_NM_POST", colmnNmPost.getString("COLMN_NM"));
+
+			sqlParamMap.putAll(paramMap.getMap());
+			sqlParamMap.put("INDEX_ID", index_id);
+			
+			// INDEX 정보 등록
+			int result = sqlDao.insert("mapper.erd.entity.saveIndex", sqlParamMap);
+			
+			sqlParamMap = new SqlParamMap<String, Object>();
+			sqlParamMap.put("SESSION_PROJECT_ID", paramMap.get("SESSION_PROJECT_ID"));
+			sqlParamMap.put("CD_GRP", "TABL_SCD");
+			SqlResultList<SqlResultMap<String, Object>> tablScdList = sqlDao.selectList("mapper.erd.project.selectProjectCdList", sqlParamMap);
+			
+			for(SqlResultMap<String, Object> tablScd : tablScdList ) {
+				// 전송된 반여코드 값이 있을 경우
+				sqlParamMap = new SqlParamMap<String, Object>();
+				if( StringUtils.isNotEmpty(paramMap.get(tablScd.getString("CD").replaceAll("TABL_SCD", "INDEX_SCD"))) ) {
+					sqlParamMap.putAll(paramMap.getMap());
+					sqlParamMap.put("INDEX_ID", index_id);
+					sqlParamMap.put("INDEX_SCD", tablScd.getString("CD") );
+					sqlParamMap.put("INDEX_SCD_VAL", tablScd.getString("CD") );
+					sqlParamMap.put("LOG_ID", log_id);
+				} else {
+					sqlParamMap.putAll(paramMap.getMap());
+					sqlParamMap.put("INDEX_ID", index_id);
+					sqlParamMap.put("INDEX_SCD", tablScd.getString("CD") );
+					sqlParamMap.put("INDEX_SCD_VAL", "" );
+					sqlParamMap.put("LOG_ID", log_id);
+				}
+				sqlDao.insert("mapper.erd.entity.insertIndexStatus", sqlParamMap);
+			}
+
+			sqlParamMap = new SqlParamMap<String, Object>();
+			sqlParamMap.put("LOG_ID", log_id);
+			sqlParamMap.put("SESSION_PROJECT_ID", paramMap.get("SESSION_PROJECT_ID"));
+			sqlParamMap.put("SESSION_USR_UID", paramMap.get("SESSION_USR_UID"));
+
+			// 변경 로그 반영
+			sqlDao.insert("mapper.erd.project.projectChgLog", sqlParamMap);
+
+			if( result == 1 || result == 2 ) {
+				myFrameworkResponseCud.setCudCount(result);
+				myFrameworkResponseCud.setSuccess(true);
+				myFrameworkResponseCud.setMessage("저장되었습니다.");
+
+			} else {
+				myFrameworkResponseCud.setSuccess(false);
+				myFrameworkResponseCud.setErrorMessage("저장시 오류가 발생했습니다.");
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+			myFrameworkResponseCud.setSuccess(false);
+			myFrameworkResponseCud.setErrorMessage("저장시 오류가 발생했습니다.");
+		}
+		return myFrameworkResponseCud;
+	}
+
+	public void indexInfo(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseGrid myFrameworkResponseGrid = MyFrameworkResponseGrid.builder().modelMap(model).build();
+
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		SqlResultList<SqlResultMap<String, Object>> indexInfo = sqlDao.selectList("mapper.erd.entity.indexInfo", sqlParamMap);
+		
+		myFrameworkResponseGrid.setData(indexInfo);
+	}
+
+	
+	public void indexTreeList(ModelMap model, RequestParamMap paramMap) {
+
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		SqlResultList<SqlResultMap<String, Object>> list = sqlDao.selectList("mapper.erd.entity.selectIndexTreeList", sqlParamMap);
+
+		ListToTree listToTree = new ListToTree();
+		model.addAttribute("treeList", listToTree.toTreeJson("TOP", "UP_INDX_ID", list));
+
+	}
+	
+	
+	@Transactional
+	public MyFrameworkResponseCud entityAliasSave(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseCud myFrameworkResponseCud = MyFrameworkResponseCud.builder().modelMap(model).build();
+		
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		try {
+			
+			Integer result = 0;
+			String [] entity_ids = paramMap.getValues("ENTITY_ID");
+			
+			for( int i=0 ; entity_ids!=null && i< entity_ids.length; i++) {
+				SqlParamMap<String, Object> sqlParamMapAlias = new SqlParamMap<String, Object>();
+				sqlParamMapAlias.put("SESSION_PROJECT_ID", sqlParamMap.get("SESSION_PROJECT_ID"));
+				sqlParamMapAlias.put("SESSION_VERSN", sqlParamMap.get("SESSION_VERSN"));
+				sqlParamMapAlias.put("ENTITY_ID", entity_ids[i]);
+				sqlParamMapAlias.put("SESSION_USR_UID", sqlParamMap.get("SESSION_USR_UID"));
+				sqlParamMapAlias.put("ALIAS_NM", paramMap.getValues("ALIAS_NM")[i]);
+				
+				result += sqlDao.update("mapper.erd.entity.insertEntityAlias", sqlParamMapAlias);
+			}
+			
+			
+			if( result >0 ) {
+				myFrameworkResponseCud.setCudCount(result);
+				myFrameworkResponseCud.setSuccess(true);
+				myFrameworkResponseCud.setMessage("저장되었습니다.");
+
+			} else {
+				myFrameworkResponseCud.setSuccess(false);
+				myFrameworkResponseCud.setErrorMessage("저장시 오류가 발생했습니다.");
+				
+				throw new Exception("저장시 오류가 발생했습니다.");
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+			myFrameworkResponseCud.setSuccess(false);
+			myFrameworkResponseCud.setErrorMessage("저장시 오류가 발생했습니다.");
+		}
+		return myFrameworkResponseCud;
+	}
+
 }

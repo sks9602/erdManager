@@ -49,6 +49,20 @@ public class DomainSvc {
 		
 		return myFrameworkResponseData;
 	}
+
+	public MyFrameworkResponseData damainDetailForAdd(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseData myFrameworkResponseData = MyFrameworkResponseData.builder().modelMap(model).build();
+		
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		SqlResultMap<String, Object> detail = sqlDao.select("mapper.erd.domain.selectDomainDetailForAdd", sqlParamMap);
+
+		myFrameworkResponseData.put("detail", detail);
+		
+		return myFrameworkResponseData;
+	}
 	
 	@Transactional
 	public MyFrameworkResponseCud domainSave(ModelMap model, RequestParamMap paramMap) {

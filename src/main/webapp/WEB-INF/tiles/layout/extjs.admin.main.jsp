@@ -33,6 +33,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
 
     <link href="https://cdn.jsdelivr.net/npm/svg.select.js@3.0.1/dist/svg.select.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css?family=Nanum+Gothic" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/earlyaccess/nanumgothiccoding.css" rel="stylesheet">
 
     <script src="//code.jquery.com/jquery-3.7.0.min.js" integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g="  crossorigin="anonymous"></script>
     <script src="//code.jquery.com/ui/1.12.0/jquery-ui.min.js"></script>
@@ -49,6 +51,8 @@
     <script src="/static/js/erd/DrawRelation.js"></script>
     <script src="/static/js/erd/ErdAppFunction.js"></script>
     <script src="/static/js/erd/ErdDrawFunction.js"></script>
+    <script src="/static/js/erd/ErdAuth.js"></script>
+    <script src="/static/js/erd/QueryMakeFunction.js"></script>
     
     <script src="/static/js/ext-ux/StringUtil.js"></script>
     <script src="/static/js/ext-ux/HoMessage.js"></script>
@@ -61,7 +65,11 @@
     <script src="/static/js/ext-ux/FormFieldUx.js"></script>
     <script src="/static/js/ext-ux/FormPanel.js"></script>
     <script src="/static/js/ext-ux/ColumnCheck.js"></script>
-    
+    <script src="/static/js/ext-ux/CheckboxGrouping.js"></script>
+    <style>
+      span.select:before {
+        content: "[+]";
+      }
 <!--
 로딩화면 만들기
  script type='text/javascript' src='/static/js/loadImg.js'></script>
@@ -86,8 +94,109 @@
                 // 'Ext.field' : 'http://127.0.0.1:9081/contents/extjs/field'
             });
         }
-        
+
+
         Ext.override(Ext.panel.Panel, {   // Ext.grid.Panel
+        	
+            getParamData : function(submitType) {
+                var params = {};
+                var me = this, store = this.getStore();
+                var records;
+                if( submitType.toLowerCase() == 'changed' ) {
+                    records = store.getModifiedRecords();
+                    console.log( records );
+
+                    console.log( store.getNewRecords() );
+                    // records.push.apply( records, store.getNewRecords() );
+                    // or records = records.concat( store.getNewRecords() );
+                }
+                // selected 된 내용을 submit
+                else if( submitType.toLowerCase() == 'checked' ) {
+                    records = this.getSelectionModel().getSelection();
+                }
+                // Grid의 모든 내용을 submit
+                else if( submitType.toLowerCase() == 'all' ) {
+                    if( !store.getRange || !store.getCount ) {
+                        hoAlert('지원되지 않는 형식 제출 방식 입니다.<br/>(submitType을 확인하세요.)');
+                        return;
+                    }
+                    records = store.getRange(0, store.getCount( ) );
+
+                }
+                // 이외는 오류
+                else {
+                    hoAlert('구분자가 정확하지 않습니다.(changed/checked)', Ext.exptyFn, 2000);
+                }
+
+                var keys = [], keySet = new Set();
+                
+                // var fields = records&&records[0]  ? records[0].fields : store.config.fields;
+                // var fields = store.config.fields;
+                
+                if( records&&records[0] ) {
+                    for( var i=0; i<records[0].fields.length; i++){
+                    	if( records[0].fields[i]['name']) {
+                    		keys.push(records[0].fields[i]['name']);
+                    		keySet.add(records[0].fields[i]['name']);
+                    	}
+                    }
+                }
+                
+                for( var i=0;i<store.config.fields.length; i++) {
+                	if( !keySet.has(store.config.fields[i]['name'])) {
+                		keys.push(store.config.fields[i]['name']);
+                	}
+                }
+                
+                console.log( keys );
+                
+                /*
+                var fields = [];
+                if( records&&records[0] ) {
+                	fields = records[0].fields;
+                }
+                
+                for( var i=0; i<fields.length; i++){
+                	var isExist = false;
+                    if( fields[i]['name'] == 'id' ) {
+                        break;
+                    }
+                    for( var j=0;j<store.config.fields.length; j++) {
+                    	if( fields[i]['name'] == store.config.fields[j]['name']) {
+	                    	isExist = true;
+                    	} 
+                    }
+                    if( !isExist) {
+                    	fields.push(store.config.fields[j]);
+                    }
+                }
+                
+                
+                for(var key =0; key< fields.length; key++){
+                	if( fields[key]&&fields[key]['name'] ) {
+	                    console.log( fields[key]['name'] );
+	                    keys.push(fields[key]['name'] );
+	                    // keys.push(records[0].fields.get(key)['name'] );
+                	}
+                }
+                */
+                /*
+                for(var key =0; key< fields.length; key++){
+                    console.log( fields[key]['name'] );
+                    keys.push(fields[key]['name'] );
+                }
+                console.log( " records.length : ", records.length)
+                */
+                
+                for(var k=0;k < keys.length;k++){
+                    params[keys[k]+"[]"] = params[keys[k]+"[]"]||[];
+                    for(var j=0;j < records.length;j++){
+                        params[keys[k]+"[]"].push(records[j].get(keys[k]));
+                    }
+                }
+                
+                return params;
+            },
             /**
              *  submitType
              *     1. 'changed' : Grid중 변경된 내용을 submit
@@ -322,7 +431,21 @@
                 return records;
             }
         });
-    </script>
+        
+        Ext.override(Ext.TabPanel, {
+            setTabTitle: function( tabNo, newTitle ) {
+                var _this = this;
+                console.log( _this, _this.xtype, _this.items.items[tabNo] )
+                // make sure we have a number and tab exists
+                if( tabNo>=0 && !Ext.isEmpty( _this.items.items[tabNo]) ) {
+                    var tabEl = _this.items.items[tabNo]; // walk down dom, update title span
+                    Ext.getDom(tabEl).tab.btnEl.dom.innerText = newTitle; 
+                }
+             }
+        });
+        
+        
+        </script>
     
     <tiles:insertAttribute name="body" flush="true"/>
 </head>

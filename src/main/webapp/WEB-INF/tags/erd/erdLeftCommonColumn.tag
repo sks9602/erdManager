@@ -26,7 +26,7 @@
 												}
 											}
 										</tagErd:button>
-										<tagErd:button type="button" label="컬럼 추가" iconCls="search" cls="btn_segmentedbutton">
+										<tagErd:button type="button" label="컬럼 추가" iconCls="search" id="erdLeftCommonColumnAdd" cls="btn_segmentedbutton">
 											disabled : ${sessionScope._sessionVO.notModelerRole} ,
 											listeners : {
 												click : function(_this, e, eOpts) { 
@@ -48,7 +48,7 @@
 												}
 											}
 										</tagErd:button>
-										<tagErd:button type="splitbutton" label="컬럼 삭제" iconCls="search" cls="btn_segmentedbutton">
+										<tagErd:button type="splitbutton" label="컬럼 삭제" iconCls="search" id="erdLeftCommonColumnDelete"  cls="btn_segmentedbutton">
 											disabled : ${sessionScope._sessionVO.notModelerRole} ,
 											listeners : {
 												click : function(_this, e, eOpts) { 
@@ -81,7 +81,7 @@
 												]
 											}
 										</tagErd:button>
-										<tagErd:button type="splitbutton" label="저장" iconCls="search" cls="btn_segmentedbutton">
+										<tagErd:button type="splitbutton" label="저장" iconCls="search" id="erdLeftCommonColumnSave"  cls="btn_segmentedbutton">
 											disabled : ${sessionScope._sessionVO.notModelerRole} ,
 											listeners : {
 												click : function(_this, e, eOpts) { 
@@ -197,12 +197,17 @@
 															
 															record.set('DOMAIN_ID',_this.getDomainId());// getSelection()[0]
 															record.set('DOMAIN_DATA_TYPE',_this.getDataType());// getSelection()[0]
-															if( !record.get('ATTR_NM') ) {
+															if( !record.get('COLMN_ID') ) {
 																record.set("ATTR_NM", newValue );
-															}
-															
-															if( !record.get('COLMN_NM') ) {
-																record.set("COLMN_NM", _this.getColmnNm() );
+                                                                record.set("COLMN_NM", _this.getColmnNm() );
+															} else {
+																if( !record.get('ATTR_NM') ) {
+																	record.set("ATTR_NM", newValue );
+																}
+																
+																if( !record.get('COLMN_NM') ) {
+																	record.set("COLMN_NM", _this.getColmnNm() );
+																}
 															}
 														}
 													}

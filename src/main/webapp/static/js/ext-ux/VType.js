@@ -57,3 +57,14 @@
         MariaDBDataTypeScaleText: '데이타타입[(숫자,숫자)]',
         MariaDBDataTypeScaleMask: /[A-Z0-9\,\(\)]*/i
     });
+    
+    Ext.define('Override.form.field.VTypes', {
+        override: 'Ext.form.field.VTypes',
+    
+        OracleDataTypeScale:  function(value) {
+            return this.OracleDataTypeScaleRe.test(value);
+        },// scale불필요|scale필수|scale옵션(,없이)|scale옵션(,포함)
+        OracleDataTypeScaleRe: /^(LONG|COMMENT|DATE|BINARY_FLOAT|BINARY_DOUBLE|LONG RAW|ROWID|CLOB|NCLOB|BLOB|BFILE)|((NVARCHAR2|RAW|NCHAR)\(\d{1,5}\))|(VARCHAR2|CHAR)\(\d{1,5}\)(BYTE|CHAR)?|(NUMBER(\(\d{1,2}(\,\d{1,})?\))?)|(FLOAT(\(\d{1,2}\)?)?)|(TIMESTAMP(\(\d{1}\)?)?(\s*WITH\s*LOCAL\s*TIME\s*ZONE)?)|(INTERVAL\s*YEAR(\(\d{1}\)?\s*TO\s*MONTH)?)|(INTERVAL\s*DAY(\(\d{1}\))?TO\s*SECOND\s*(\(\d{1}\))?)|(UROWID(\(\d{1,4}\)?)?)$/,
+        OracleDataTypeScaleText: '데이타타입[(숫자,숫자)]',
+        OracleDataTypeScaleMask: /[A-Z0-9\,\(\)]*/i
+    });

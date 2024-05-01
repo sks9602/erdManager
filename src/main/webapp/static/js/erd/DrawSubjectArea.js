@@ -16,6 +16,7 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
     this.phantomTableRect = _this.draw.rect(10, 10).attr({stroke: 'black', 'stroke-width': 0.5, fill: '#fff'}).hide();
     this.phantomTableText = this.draw.text("").hide();
     this.phantomViewRect = _this.draw.rect(10, 10).attr({stroke: 'black', 'stroke-width': 0.5, fill: '#fff', 'stroke-dasharray' : "2,2"}).hide();
+    this.phantomViewText = this.draw.text("").hide();
     this.phantomRelation1toNPath = " l 0 4 l 4 0 l 0 5 m 0 -3 l 3 3 m -3 -3 l -3 3 m 3 0";
     this.phantomRelation1to1Path = " l 0 4 l 4 0 l 0 5";
     this.phantomRelation1to0_1Path = " l 0 4 l 4 0 l 0 5 m -2 0 m 0 -3 a 2,2 0 1,0 4,0 a 2,2 0 1,0 -4,0 m -2 0";
@@ -30,6 +31,7 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
          _this.phantomTableRect.hide();
          _this.phantomTableText.hide();
          _this.phantomViewRect.hide();
+         _this.phantomViewText.hide();
          _this.phantomRelation1toN.hide();
          _this.phantomRelation1to1.hide();
          _this.phantomRelation1to0_1.hide();
@@ -100,12 +102,13 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
            _this.phantomTableRect.show();
            _this.phantomTableText.remove();
            // 이미 등록된 테이블을 추가할 경우 테이블명을 표시..
-           if( drawDataLoad.getEntityForAddSubject().ENTITY_ID ) {
+           if( drawDataLoad.getEntityForAddSubject().ENTITY_ID && drawDataLoad.getEntityForAddSubject().ENTITY_TCD == "TABLE" ) {
                 _this.phantomTableText = _this.draw.text(drawDataLoad.getEntityForAddSubject().TABL_NM);
                 _this.phantomTableText.show();
            }
            _this.phantomTableText.show();
            _this.phantomViewRect.hide();
+           _this.phantomViewText.hide();
            _this.phantomRelation1toN.hide();
            _this.phantomRelation1to1.hide();
            _this.phantomRelation1to0_1.hide();
@@ -124,8 +127,16 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
          else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'view' ) {
            _this.phantomTableRect.hide();
            _this.phantomTableText.remove();
-           drawDataLoad.initEntityForAddSubject();
            _this.phantomViewRect.show();
+           _this.phantomViewText.remove();
+           
+           // 이미 등록된 테이블을 추가할 경우 테이블명을 표시..
+           if( drawDataLoad.getEntityForAddSubject().ENTITY_ID 
+                    && (drawDataLoad.getEntityForAddSubject().ENTITY_TCD == "VIEW" || drawDataLoad.getEntityForAddSubject().ENTITY_TCD == "MVIEW"))  {
+                _this.phantomViewText = _this.draw.text(drawDataLoad.getEntityForAddSubject().TABL_NM);
+                _this.phantomViewText.show();
+           }
+           _this.phantomViewText.show();
            _this.phantomRelation1toN.hide();
            _this.phantomRelation1to1.hide();
            _this.phantomRelation1to0_1.hide();
@@ -133,7 +144,9 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
            _this.phantomViewRect.transform({
               translate: [scroll.left + ev.layerX+5, scroll.top + ev.layerY+5],
             });
-            
+            _this.phantomViewText.transform({
+              translate: [scroll.left + ev.layerX+17, scroll.top + ev.layerY],
+            });
            _this.draw.attr({"cursor": "crosshair"}).front().front();
          }          // 1:N관계선
          else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1toN' ) {
@@ -141,6 +154,7 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
            _this.phantomTableText.remove();
            drawDataLoad.initEntityForAddSubject();
            _this.phantomViewRect.hide();
+           _this.phantomViewText.remove();
            _this.phantomRelation1to1.hide();
            _this.phantomRelation1to0_1.hide();
            _this.phantomRelationNonIden.hide();
@@ -154,6 +168,7 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
            _this.phantomTableText.remove();
            drawDataLoad.initEntityForAddSubject();
            _this.phantomViewRect.hide();
+           _this.phantomViewText.remove();
            _this.phantomRelation1toN.hide();
            _this.phantomRelation1to0_1.hide();
            _this.phantomRelationNonIden.hide();
@@ -165,6 +180,7 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
          else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1to0_1' ) {
            _this.phantomTableRect.hide();
            _this.phantomTableText.remove();
+           _this.phantomViewText.remove();
            drawDataLoad.initEntityForAddSubject();
            _this.phantomViewRect.hide();
            _this.phantomRelation1toN.hide();
@@ -179,6 +195,7 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
            _this.phantomTableText.remove();
            drawDataLoad.initEntityForAddSubject();
            _this.phantomViewRect.hide();
+           _this.phantomViewText.remove();
            _this.phantomRelation1toN.hide();
            _this.phantomRelation1to0_1.hide();
            _this.phantomRelationNonIden.plot("M " + (scroll.left + ev.layerX+5) + " " + (scroll.top + ev.layerY+5) + _this.phantomRelation1toNPath ).show().front();
@@ -190,6 +207,7 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
            _this.phantomTableText.remove();
            drawDataLoad.initEntityForAddSubject();
            _this.phantomViewRect.hide();
+           _this.phantomViewText.remove();
            _this.phantomRelation1toN.hide();
            _this.phantomRelation1to1.hide();
            _this.phantomRelation1to0_1.hide();
@@ -203,6 +221,12 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
 
         console.log( "click", _this.drawDataLoad.getSelectRectangular()["OBJECT"]);
         // _this.drawDataLoad.setSelectRectangular('init', ev);
+        
+        console.log( _this.drawDataLoad.getProjectBuyInfo() );
+        
+        var projectBuyInfo = _this.drawDataLoad.getProjectBuyInfo();
+        
+
         
           if( Ext.getCmp('DRAW_BUTTON').getValue() == 'pointer' && _this.drawDataLoad.getSelectRectangular()["OBJECT"] == 'subject') {
              var areaSelect =  _this.drawDataLoad.getSelectRectangular();
@@ -247,8 +271,18 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
            var point = _this.draw.point(ev.layerX, ev.layerY);
           
            // 테이블 추가 일 경우
-           if( Ext.getCmp('DRAW_BUTTON').getValue() == 'table' ) {
-                
+           if( Ext.getCmp('DRAW_BUTTON').getValue() == 'table' || Ext.getCmp('DRAW_BUTTON').getValue() == 'view') {
+                if( projectBuyInfo.ENTITY_CNT >= projectBuyInfo.BUY_ENTITY_CNT ) {
+                    Ext.Msg.alert(
+                        '오류',
+                        '이 프로젝트는 최대 '+projectBuyInfo.BUY_ENTITY_CNT+'개의 ENTITY를 설계가능합니다.'
+                    ); 
+                    
+                    Ext.getCmp('DRAW_BUTTON').setValue('pointer');
+                    
+                    return;
+                }
+                        
                 if( drawDataLoad.getEntityForAddSubject().ENTITY_ID ) {
                     var entity_id = drawDataLoad.getEntityForAddSubject().ENTITY_ID;
                     var tableInfo = drawDataLoad.getTable(subjectAreaInfo["SUBJECT_ID"], entity_id);
@@ -289,6 +323,7 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
                     // 상태변경
                     var result = drawDataLoad.addEntityToSubject("updateDmlTcd", {"SUBJECT_ID" : subjectAreaInfo["SUBJECT_ID"] , "ENTITY_ID": entity_id, "DML_TCD" : "DML_TCD_D", "X" : tableInfo["X"], "Y" : tableInfo["Y"]})
                     if( result.success ) {
+                        
                         drawDataLoad.setDrawedTable(subjectAreaInfo["SUBJECT_ID"], entity_id, new DrawTable( _this.draw, subjectAreaInfo, tableInfo, drawDataLoad ));
                         
                         drawDataLoad.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], entity_id).drawTable();
@@ -317,7 +352,7 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
 
                     }
                 } else {
-                    ErdAppFunction.addTableWindow(_this.draw, _this.drawDataLoad, subjectAreaInfo, scroll, ev);
+                    ErdAppFunction.addTableWindow( Ext.getCmp('DRAW_BUTTON').getValue().toUpperCase(), _this.draw, _this.drawDataLoad, subjectAreaInfo, scroll, ev);
                 }
                 /*
                 Ext.MessageBox.prompt ( '신규 테이블명 생성', '테이블명', function(buttonId, value) {

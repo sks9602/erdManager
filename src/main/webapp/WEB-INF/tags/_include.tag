@@ -4,6 +4,7 @@
 
 <%@tag import="java.util.List"%>
 <%@tag import="java.util.Map"%>
+<%@tag import="org.apache.commons.lang3.StringUtils"%>
 
 <%@tag import="org.springframework.web.servlet.FrameworkServlet"%>
 <%@tag import="org.springframework.web.context.WebApplicationContext"%>
@@ -15,6 +16,7 @@
 <%@tag import="com.myframework.dao.MyFrameworkSqlDao"%>
 <%@tag import="com.common.login.vo.LoginVo"%>
 <%@tag import="com.myframework.vo.MyFrameworkLoginVO"%>
+
 	
 <%!
 	/**
@@ -54,9 +56,17 @@
 		
 		SqlResultList<SqlResultMap<String, Object>> cdGrpList = null;
 		
-		if( request.getAttribute("CODE_"+cdGrp) == null ){
+		String code = "CODE_"+cdGrp;
+        if( StringUtils.isNotEmpty(usedef1)) {
+        	code += ("_"+usedef1);
+        }
+		
+		if( request.getAttribute(code) == null ){
 			SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
 			sqlParamMap.put("CD_GRP", cdGrp );
+	        if( StringUtils.isNotEmpty(usedef1)) {
+	        	sqlParamMap.put("USEDEF1", usedef1 );
+	        }
 			
 			LoginVo loginVo = (LoginVo) request.getSession().getAttribute(MyFrameworkLoginVO.MY_FRAMEWORK_LOGIN_SESSION_KEY);
 			
@@ -64,12 +74,17 @@
 			sqlParamMap.put("SESSION_PROJECT_ID", loginVo.getProjectId());
 			sqlParamMap.put("SESSION_VERSN", loginVo.getVersion());
 			
-			cdGrpList = sqlDao.selectList("com.dao.system.CodeDao.selectCodeProjectList", sqlParamMap);
+			if( "DATA_TYPE".equals(cdGrp) ) {
+                cdGrpList = sqlDao.selectList("mapper.erd.dataType.selectDataTypeList", sqlParamMap);
+			} else {
+	            cdGrpList = sqlDao.selectList("com.dao.system.CodeDao.selectCodeProjectList", sqlParamMap);
+			}
 			
 			
-			request.setAttribute("CODE_"+cdGrp, cdGrpList);
+			
+			request.setAttribute(code, cdGrpList);
 		} else {
-			cdGrpList = (SqlResultList<SqlResultMap<String, Object>>) request.getAttribute("CODE_"+cdGrp);
+			cdGrpList = (SqlResultList<SqlResultMap<String, Object>>) request.getAttribute(code);
 		}
 		
 		for( java.util.Iterator<SqlResultMap<String, Object>> iter = cdGrpList.iterator(); iter.hasNext(); ) { 

@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -115,6 +116,9 @@ public class WordSvc {
 		// request파라미터 -> sql파라미터 
 		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
 
+		// 로그ID조회
+		String log_id = RandomStringUtils.random(10, true, true);
+
 		try {
 			String [] wordIds= paramMap.getValues("WORD_ID");
 			
@@ -122,6 +126,7 @@ public class WordSvc {
 			for( int i=0;wordIds!=null && i<wordIds.length; i++) {
 				sqlParamMap = new SqlParamMap<String, Object>();
 				
+				sqlParamMap.put("LOG_ID", log_id);
 				
 				sqlParamMap.put("SESSION_PROJECT_ID", paramMap.get("SESSION_PROJECT_ID"));
 				sqlParamMap.put("WORD_ID", wordIds[i]);
@@ -143,6 +148,8 @@ public class WordSvc {
 			
 			if("COLUMN".equals(paramMap.get("WORD_TARGET")) ||  "ALL".equals(paramMap.get("WORD_TARGET"))) {
 				sqlParamMap = new SqlParamMap<String, Object>();
+				sqlParamMap.put("LOG_ID", log_id);
+
 				sqlParamMap.put("SESSION_PROJECT_ID", paramMap.get("SESSION_PROJECT_ID"));
 				sqlParamMap.put("SESSION_VERSN", paramMap.get("SESSION_VERSN"));
 				
@@ -171,7 +178,13 @@ public class WordSvc {
 				myFrameworkResponseCud.put("PK_DELETE_ENTITY_LIST", pkDeleteEntityList);
 				myFrameworkResponseCud.put("ENTITY_LIST", subjectEntityList);
 			}
-			
+
+			sqlParamMap = new SqlParamMap<String, Object>();
+			sqlParamMap.put("LOG_ID", log_id);
+
+			// 변경 로그 반영
+			sqlDao.insert("mapper.erd.project.projectChgLog", sqlParamMap);
+
 			if( result >= 0 ) {
 				myFrameworkResponseCud.setCudCount(result);
 				myFrameworkResponseCud.setSuccess(true);

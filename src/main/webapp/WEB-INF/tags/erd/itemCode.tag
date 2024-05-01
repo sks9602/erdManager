@@ -154,6 +154,56 @@
                 })
             },
     </c:when>
+    
+    <c:when test="${type == 'ext-js-store'}">
+        <c:choose>
+            <c:when test="${cdGrp == 'DATA_TYPE'}">
+                Ext.create('Ext.data.Store', {
+                    id : "store_${not empty id ? id : name}",
+                    fields: [
+                         { name: 'DTYPE', type: 'string' },
+                         { name: 'DBASE', type: 'string' },
+                         { name: 'UP_DTYPE', type: 'string' },
+                         { name: 'DTYPE_DESC', type: 'string' },
+                         { name: 'SYNTAX', type: 'string' },
+                         { name: 'SCALE_YN', type: 'string' },
+                         { name: 'SCALE_NEED_YN', type: 'string' },
+                         { name: 'COMMA_YN', type: 'string' },       
+                    ],
+                    data : [
+                        <c:forEach items="${codeList }" var="code">
+                            {"DTYPE": "${code.DTYPE}" , "DBASE":"${code.DBASE}" , "UP_DTYPE":"${code.UP_DTYPE}", "SYNTAX":"${code.SYNTAX}", "SCALE_YN":"${code.SCALE_YN}", "SCALE_NEED_YN":"${code.SCALE_NEED_YN}", "COMMA_YN":"${code.COMMA_YN}" },
+                        </c:forEach>
+                    ]
+                })
+            </c:when>
+        </c:choose>
+
+    </c:when>
+    
+    <c:when test="${type == 'ext-js-checkbox'}">
+            {
+                xtype      : 'checkboxgroup_ux',
+                fieldLabel : '<%= label %>', <%= "Y".equals(require) ? "allowBlank : false, labelCls   : 'x-form-item-label x-form-item-label-required'," : "" %>
+                id : "${not empty id ? id : name}",
+                name : '<%= name %>[]',
+                msgTarget: 'side',
+                anchor: '100%',
+                width : 120+(${fn:length(codeList)}*100),
+                columns: ${fn:length(codeList)},
+                colspan: ${colspan},
+                style : {padding : "0 3 0 0"},
+                <jsp:doBody></jsp:doBody>
+                    items : [
+                        <c:if test="${ firstText !=null }" >
+
+                        </c:if>
+                        <c:forEach items="${codeList }" var="code">
+                            { xtype : 'checkbox', boxLabel: "${code.CD_NM}", inputValue : "${code.CD}", name : "${code.CD}" },
+                        </c:forEach>
+                    ]
+            },
+    </c:when>
     <c:when test="${type == 'combo-script'}">
 
     </c:when>

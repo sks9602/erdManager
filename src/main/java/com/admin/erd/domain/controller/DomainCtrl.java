@@ -37,6 +37,13 @@ public class DomainCtrl {
 		return "jsonView";
 	}
 	
+	@RequestMapping(value="/domain/data/detailForAdd.do")
+	public String damainDetailForAdd(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+	
+		MyFrameworkResponseData myFrameworkResponseData = domainSvc.damainDetailForAdd(model, paramMap);
+		
+		return "jsonView";
+	}
 	
 	@RequestMapping(value="/domain/data/save.do")
 	public String damainSave(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {

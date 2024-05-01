@@ -5,7 +5,7 @@
 
     <!--  그룹코드에 해당하는 코드 목록 조회. -->
     <select id="selectCodeListByGrpCd"  parameterType="paramMap" resultType="resultMap">
-            SELECT
+            SELECT /* com.dao.system.CodeDao.selectIndexCodeProjectList */
                    CD                 
                  , CD_GRP             
                  , CD_NM              
@@ -24,11 +24,20 @@
 
     <!--  그룹코드에 해당하는 코드 목록 조회. -->
     <select id="selectCodeProjectList"  parameterType="paramMap" resultType="resultMap">
-            SELECT
-                   CD.CD                 
+            SELECT /* com.dao.system.CodeDao.selectCodeProjectList */
+                   CASE WHEN A.USE_YN = 'Y' THEN CD.CD 
+                        ELSE CONCAT(CD.CD, '_NOT') END AS CD                
                  , CD.CD_GRP             
-                 , CD.CD_NM              
-                 , CD.CD_VAL_A           
+                 , CASE WHEN A.USE_YN = 'Y' THEN CD.CD_NM 
+                        ELSE REPLACE(CD.CD_NM, '반영', '미반영') END CD_NM           
+                 , <choose>
+                       <when test='USEDEF1 != null and !"".equals(USEDEF1)'>
+                        'Y' 
+                       </when>
+                       <otherwise>
+                       CD.CD_VAL_A 
+                       </otherwise>
+                   </choose>  AS CD_VAL_A        
                  , CD.CD_VAL_B           
                  , CD.CD_VAL_C           
                  , CASE WHEN PJT_CD.CD IS NOT NULL THEN 'Y'
@@ -44,6 +53,47 @@
                       ON CD.CD_GRP  = PJT_CD.CD_GRP
                      AND CD.CD      = PJT_CD.CD
                      AND #{SESSION_PROJECT_ID} = PJT_CD.PROJECT_ID
+                 
+                 ,(SELECT 'Y' AS USE_YN
+                 <if test='USEDEF1 != null and !"".equals(USEDEF1)'>
+                   UNION ALL
+                  SELECT 'N' AS USE_YN
+                  </if>
+                 ) A
+                 
+            WHERE CD.CD_GRP = #{CD_GRP}
+              AND NVL(CD.USE_YN, 'Y') = 'Y'
+            ORDER BY CD.ORD_TRN, 3
+    </select>
+    
+    <!--  그룹코드에 해당하는 코드 목록 조회. -->
+    <select id="selectIndexCodeProjectList"  parameterType="paramMap" resultType="resultMap">
+            SELECT /* com.dao.system.CodeDao.selectIndexCodeProjectList */
+                   CD.CD                 
+                 , CD.CD_GRP             
+                 , CD.CD_NM              
+                 , CD.CD_VAL_A           
+                 , CD.CD_VAL_B           
+                 , CD.CD_VAL_C           
+                 , CASE WHEN PJT_CD.CD IS NOT NULL THEN 'Y'
+                        ELSE 'N' END AS CD_VAL_D
+                 , CD.CD_VAL_1           
+                 , CD.CD_VAL_2           
+                 , CD.CD_VAL_3           
+                 , CD.ORD_TRN            
+                 , CASE WHEN INDX_SCD.TRT_DT IS NOT NULL THEN 'Y'
+                        ELSE 'N' END AS IS_CHECKED
+            FROM CD CD
+                 INNER JOIN PROJECT_CD PJT_CD
+                      ON CD.CD_GRP  = PJT_CD.CD_GRP
+                     AND CD.CD      = PJT_CD.CD
+                     AND #{SESSION_PROJECT_ID} = PJT_CD.PROJECT_ID
+                 LEFT OUTER JOIN INDX_SCD INDX_SCD
+                       ON INDX_SCD.PROJECT_ID = PJT_CD.PROJECT_ID
+                      AND INDX_SCD.VERSN      = #{SESSION_VERSN}
+                      AND INDX_SCD.INDX_ID    = #{INDEX_ID}
+                      AND INDX_SCD.INDX_SCD   = PJT_CD.CD
+                      AND INDX_SCD.TRT_DT     IS NOT NULL
             WHERE CD.CD_GRP = #{CD_GRP}
               AND NVL(CD.USE_YN, 'Y') = 'Y'
             ORDER BY CD.ORD_TRN, CD.CD_NM
@@ -59,7 +109,7 @@
     
     
     <insert id="insertCodeProject"  parameterType="paramMap">
-        INSERT /* com.dao.system.CodeDao.deleteCodeProject */
+        INSERT /* com.dao.system.CodeDao.insertCodeProject */
           INTO PROJECT_CD
           ( 
              PROJECT_ID

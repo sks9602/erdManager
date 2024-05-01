@@ -1,4 +1,120 @@
 class  ErdDrawFunction{
+    
+    static sqlEditionList = {};
+    
+    static makeOptionalQuery(snippet_cd, snippet, indent) {
+        var text = "";
+        if( snippet_cd == 'SELECT' ) {
+            text += "  , ";
+        } else if ( snippet_cd == 'WHERE' ) {
+            text += "";
+        } 
+        text += snippet;
+        
+        var text = text.replace(/</ig, '&lt;');
+        text = text.replace(/>/ig, '&gt;');
+        text = text.replace(/\n/ig, "<br/>" + indent+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+    
+        return QueryMakeFunction.toHtml(text); 
+    }
+    
+    static contextAddQuery(e, snippet_cd, entity_id, column_id, indent, params) {
+        
+        if( ErdDrawFunction.sqlEditionList[snippet_cd] == null ) {
+            
+            var response = Ext.Ajax.request({
+                async: false,
+                url: '/project/data/snippetList.do',
+                params: {
+                        'SNIPPET_CD' : snippet_cd
+                }
+            });
+            ErdDrawFunction.sqlEditionList[snippet_cd] = Ext.decode(response.responseText);
+        
+            /*
+            ErdDrawFunction.sqlEditionList = [
+                {SNIPPET_NM : "코드", SNIPPET : "(SELECT CD_NM <br/>  FROM CD<br/> WHERE CD_GRP = '#NUMB_MTH#'<br/>   AND CD     = #ENTITY_NM_ALIAS#.#COLMN_NM#) AS #COLMN_NM#_NM" },
+                {SNIPPET_NM : "CASE WHEN ~ WHEN END", SNIPPET : "CASE WHEN THEN<br/>    WHEN THEN<br/>    ELSE END AS #COLMN_NM#_X" },
+                {SNIPPET_NM : "CHAR_TO_DATE(YMDHMS)", SNIPPET : "TO_DATE(#COLMN_NM#, 'YYYYMMDDHH24MISS') AS #COLMN_NM#_DT" },
+                {SNIPPET_NM : "CHAR_TO_DATE(YMD)", SNIPPET : "TO_DATE(#COLMN_NM#, 'YYYYMMDD') AS #COLMN_NM#_DT" },
+                {SNIPPET_NM : "DATE_TO_CHAR(YMDHMS)", SNIPPET : "TO_CHAR(#COLMN_NM#, 'YYYY-MM-DD HH24:MI:SS') AS #COLMN_NM#_YMDHMS" },
+                {SNIPPET_NM : "DATE_TO_CHAR(YMD)", SNIPPET : "TO_CHAR(#COLMN_NM#, 'YYYY-MM-DD') AS #COLMN_NM#_YMD" },
+            ];
+            */
+        }
+        
+        var items = [];
+        
+        var isFirstAstar = true;
+        for( var i=0; i<ErdDrawFunction.sqlEditionList[snippet_cd].length; i++) {
+            var snippet = ErdDrawFunction.sqlEditionList[snippet_cd][i].SNIPPET;
+            
+            for( var param in params ) {
+                // console.log( ", { 'VAR_CD' : '"+ param + "', 'VAR_NM':''}" )
+                if( snippet.indexOf('#'+param) >=0 ) {
+                    var regexAllCase = null;
+                    // CamelCase
+                    var value = params[param];
+                    if( param == 'ENTITY_NM_ALIAS' && value == "" ) {
+                        value = params['ENTITY_NM']
+                    }
+                    if( snippet.indexOf('#'+param+".camelCase#") >=0) {
+                        regexAllCase = new RegExp('#'+param+'.camelCase#', "gi");
+                        snippet = snippet.replace(regexAllCase, QueryMakeFunction.getVarName(value, 'CAMEL_CASE' ));
+                    } 
+                    if( snippet.indexOf('#'+param+".snake_case#") >=0) {
+                        regexAllCase = new RegExp('#'+param+'.snake_case#', "g");
+                        snippet = snippet.replace(regexAllCase, QueryMakeFunction.getVarName(value, 'SNAKE_CASE_LOWER' ));
+                    } 
+                    if( snippet.indexOf('#'+param+".SNAKE_CASE#") >=0) {
+                        regexAllCase = new RegExp('#'+param+'.SNAKE_CASE#', "g");
+                        snippet = snippet.replace(regexAllCase, QueryMakeFunction.getVarName(value, 'SNAKE_CASE_UPPER' ));
+                    } 
+                    if( snippet.indexOf('#'+param+"#") >=0) {
+                        regexAllCase = new RegExp('#'+param+'#', "gi")
+                        snippet = snippet.replace(regexAllCase, value);
+                    }
+                    
+                }
+                
+            }
+
+            if( ErdDrawFunction.sqlEditionList[snippet_cd][i].USR_UID  == '*' && isFirstAstar ){
+                items.push({
+                    xtype: 'menuseparator'
+                });
+                
+                isFirstAstar = false;
+            }
+            items.push(Ext.create('Ext.Action', {
+                     text: ErdDrawFunction.sqlEditionList[snippet_cd][i].SNIPPET_NM,
+                     snippet : snippet ,
+                     handler : function(_this, e) {
+                         Ext.DomHelper.append(Ext.get('col_'+snippet_cd+ '_'+entity_id + '_'+column_id), {
+                            tag: 'div',
+                            style : QueryMakeFunction.getStyleSyntax(),
+                            html: indent + ErdDrawFunction.makeOptionalQuery(snippet_cd, _this.snippet, indent)
+                        });
+                     }
+                 }));
+        }
+
+        items.push({
+            xtype: 'menuseparator'
+        });
+                                                 
+        items.push(Ext.create('Ext.Action', {
+                 text: "스니핏 관리",
+                 handler : function(_this, e) {
+                     ErdAppFunction.snippetWindow("SELECT");
+                 }
+             }));
+                 
+        var contextMenu = Ext.create('Ext.menu.Menu', {
+             items: items
+         });
+         contextMenu.showAt([e.clientX+10, e.clientY]);
+    }
     /**
      * subjectAreaDatas : Subject Area datas
      * idxSa : index of Subject Area;
@@ -9,7 +125,6 @@ class  ErdDrawFunction{
         var viewSize = Ext.getBody().getViewSize();
         
         var subjectAreaInfo = subjectAreaDatas[idxSa];
-        
         erdSujects.add({
             title: subjectAreaInfo["SUBJECT_NM"],
             xtype : 'component',
@@ -36,13 +151,13 @@ class  ErdDrawFunction{
                     
                     // Table 그리기..
                     for( var idxTbl=0; tables && idxTbl<tables.length; idxTbl++) {
-                        
                         var tableInfo = tables[idxTbl];
-                        if( tableInfo["DEL_YN"] != "Y") {
+                        //if( tableInfo["DEL_YN"] != "Y") {
+                            
                             drawDataLoad.setDrawedTable(subjectAreaInfo["SUBJECT_ID"], tableInfo["ENTITY_ID"], new DrawTable( draw, subjectAreaInfo, tableInfo, drawDataLoad ));
                             
                             drawDataLoad.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], tableInfo["ENTITY_ID"]).drawTable();
-                        }
+                        //}
                     }
     
                     // relation 그리기.
@@ -93,7 +208,8 @@ class  ErdDrawFunction{
     
                     }, 1000);
                     $( "#minimap-"+subjectAreaInfo["SUBJECT_ID"] ).minimap( $("#"+subjectAreaInfo["SUBJECT_ID"]) );
-    
+                    
+                    // erdAuth.startOrCheckSubjectEditInfo(subjectAreaInfo["SUBJECT_ID"], false);
                 }
             }
     
@@ -105,8 +221,11 @@ class  ErdDrawFunction{
     }
     
     static loadTableInfo(entity_id, isForceLoad) {
+        Ext.getCmp("entityDetailTabPanel").setActiveTab(0);
         if( Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue()!=entity_id || isForceLoad == true) {
-            Ext.getStore("columnListStore").load({page : 1, limit : 999999 , params: { 'PROJECT_ID' : 'PROJECT', 'ENTITY_ID' : entity_id}});
+            Ext.getStore("columnListStore").load({page : 1, limit : 999999 , params: { 'ENTITY_ID' : entity_id}});
+            Ext.getStore("indexTreeListStore").load({page : 1, limit : 999999 , params: {  'ENTITY_ID' : entity_id}});
+            Ext.getStore("columnChangeLogStore").load({page : 1, limit : 999999 , params: {  'ENTITY_ID' : entity_id}});
             var store = Ext.create('Ext.data.Store', {
                 id : "entityDetailStore",
                 fields: [
@@ -135,6 +254,7 @@ class  ErdDrawFunction{
                    { name : "LAST_UPD_USR_UID" , type : "string"},
                    { name : "VERSN"            , type : "string"},
                    { name : "USE_YN"           , type : "string"},
+                   { name : "EDITABLE_YN"      , type : "string"},
                 ], 
                 proxy : {
                     type : 'ajax',
@@ -164,6 +284,34 @@ class  ErdDrawFunction{
                 }
                 Ext.getCmp("btn_tableDelete").setHidden(false);
                 Ext.getCmp('SELECTED-TABLE-DETAIL').expand();
+                
+                if( _records[0].get("EDITABLE_YN") == "Y") {
+                    // 테이블 관련 버튼 
+                    Ext.getCmp("btn_tableDelete").setDisabled(false);
+                    Ext.getCmp("btn_tableSaveStatus").setDisabled(false);
+                    Ext.getCmp("btn_tableManagement").setDisabled(false);
+                    // 컬럼 관련 버튼 
+                    Ext.getCmp("btn_tableColumnAdd").setDisabled(false);
+                    Ext.getCmp("btn_tableColumnDelete").setDisabled(false);
+                    Ext.getCmp("btn_tableColumnChangeColor").setDisabled(false);
+                    Ext.getCmp("btn_tableColumnApplyWord").setDisabled(false);
+                    Ext.getCmp("btn_tableColumnSave").setDisabled(false);
+                    // 인덱스 관련 버튼
+                    Ext.getCmp("btn_addTableIndexWindow").setDisabled(false);
+                } else {
+                    // 테이블 관련 버튼 
+                    Ext.getCmp("btn_tableDelete").setDisabled(true);
+                    Ext.getCmp("btn_tableSaveStatus").setDisabled(true);
+                    Ext.getCmp("btn_tableManagement").setDisabled(true);
+                    // 컬럼 관련 버튼 
+                    Ext.getCmp("btn_tableColumnAdd").setDisabled(true);
+                    Ext.getCmp("btn_tableColumnDelete").setDisabled(true);
+                    Ext.getCmp("btn_tableColumnChangeColor").setDisabled(true);
+                    Ext.getCmp("btn_tableColumnApplyWord").setDisabled(true);
+                    Ext.getCmp("btn_tableColumnSave").setDisabled(true);
+                    // 인덱스 관련 버튼
+                    Ext.getCmp("btn_addTableIndexWindow").setDisabled(true);
+                }
             });
         }
     }

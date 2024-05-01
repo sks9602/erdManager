@@ -52,6 +52,8 @@ dependencies {
     implementation 'org.apache.tiles:tiles-core:3.0.7'
     implementation 'org.apache.tiles:tiles-servlet:3.0.7'
     
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    
     implementation group: 'p6spy', name: 'p6spy', version: '3.9.0'
     implementation group: 'org.json', name: 'json', version: '20200518'
     implementation group: 'org.apache.poi', name: 'poi', version: '3.9'

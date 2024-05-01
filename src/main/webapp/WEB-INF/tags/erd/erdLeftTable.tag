@@ -1,5 +1,6 @@
 <%@ tag language="java" pageEncoding="UTF-8"%>
 <%@ taglib prefix="tagErd"  tagdir="/WEB-INF/tags/erd"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 
                     {
                         xtype: 'panel',
@@ -42,7 +43,8 @@
                                     </tagErd:itemText>
                                     <tagErd:itemCheckbox type="checkbox_ux" name="EXACT_YN" boxLabel="정확히 일치하는 테이블만 조회" value="Y" checked="false"></tagErd:itemCheckbox>
                                     <tagErd:itemCheckbox type="checkbox_ux" name="FAVOR_YN" boxLabel="자주찾는 테이블 조회" value="Y" checked="false"></tagErd:itemCheckbox>
-                                    <tagErd:itemCode type="ext-js-combobox" label="관리상태" name="TABL_SCD" id="TABLE_TABL_SCD" cdGrp="TABL_SCD" firstText="전체" value=""></tagErd:itemCode>
+                                    <!--  tagErd:itemCode type="ext-js-combobox" label="관리상태" name="TABL_SCD" id="TABLE_TABL_SCD" cdGrp="TABL_SCD" firstText="전체" value="" --><!--/tagErd:itemCode  -->
+                                    <tagErd:itemCode type="ext-js-combobox" label="테이블 관리상태" name="TABL_SCD" id="TABLE_TABL_SCD" cdGrp="TABL_SCD" firstText="전체" value="" usedef1="Y"  usedef4="Y"></tagErd:itemCode>
                                 ]
                            }, 
                            {   xtype : 'gridpanel',
@@ -54,7 +56,7 @@
                                </tagErd:store>
                                columns: [
                                    { xtype: 'rownumberer'},
-                                   { header: '<div style="text-align:center;width:100%;">테이블 논리 명</div>', dataIndex: 'TABL_NM', flex: 1, 
+                                   { header: '<div style="text-align:center;width:100%;">테이블 논리 명</div>', dataIndex: 'TABL_NM', flex: 1, minWidth : 120,
                                        renderer : function(value, metaData, record , rowIndex, colIndex, store, view ) {
                                            var link = new Array();
                                            if( record.get("USE_YN") == "N") {
@@ -125,7 +127,37 @@
                                                          tableRect.animate(1000, 1000, 'now').attr({'stroke-width': 0.7});
                                                      }
                                                  }));
-                                                
+
+                                                 if( record.get("USE_YN") == "N" ) {
+                                                     // 삭제취소
+                                                     items.push(Ext.create('Ext.Action', {
+                                                         text: '['+record.data.TABL_NM+'] 테이블(뷰)을 삭제 취소',
+                                                         disabled : false,
+                                                         handler : function() {
+                                                            Ext.Ajax.request({
+                                                                 url: '/entity/data/restore.do',
+                                                                 params: {
+                                                                     ENTITY_ID : record.get("ENTITY_ID"),
+                                                                     USE_YN : "Y"
+                                                                 },
+                                                                 success: function(response, opts) {
+                                                                    record.set("USE_YN", "Y");
+                                                                    
+                                                                    // ENTITY_수 증가
+                                                                    drawDataLoad.projectBuyInfo.ENTITY_CNT +=1;
+                                                                 },
+                                                            
+                                                                 failure: function(response, opts) {
+                                                                     Ext.Msg.alert(
+                                                                         '오류',
+                                                                         '처리에 실패했습니다.'
+                                                                     );
+                                                                 }
+                                                             });
+                                                         }
+                                                     }));
+                                                 }
+                                                                                                 
                                                 items.push({
                                                     xtype: 'menuseparator'
                                                 });
@@ -134,7 +166,7 @@
                                                     for( var i=0;i < subjects.length; i++) {
                                                           items.push(Ext.create('Ext.Action', {
                                                               // iconCls : 'btn-icon-tree-add-first-level',
-                                                              text: '업무역영 ['+subjects[i].SUBJECT_NM+'] ERD 열기',
+                                                              text: '업무역영 ['+subjects[i].SUBJECT_NM+'] 열기',
                                                               subjectId : subjects[i].SUBJECT_ID,
                                                               subjectIdx : i,
                                                               disabled : Ext.getCmp("ERD-SUBJECTS").getActiveTab().getId() == subjects[i].SUBJECT_ID,
@@ -155,7 +187,7 @@
 	                                             } else {
                                                       items.push(Ext.create('Ext.Action', {
                                                           // iconCls : 'btn-icon-tree-add-first-level',
-                                                          text: '['+record.data.TABL_NM+'] 테이블이 등록된 업무영역이 없습니다.',
+                                                          text: '['+record.data.TABL_NM+'] 테이블(뷰)이 등록된 업무영역이 없습니다.',
                                                           disabled : true
                                                       }));
 	                                             }
@@ -168,18 +200,18 @@
                                                  if( !existsEntityOnSubject ) {
 	                                                 items.push(Ext.create('Ext.Action', {
 	                                                     // iconCls : 'btn-icon-tree-add-first-level',
-	                                                     text: '['+record.data.TABL_NM+'] 테이블을 업무영역 ['+ Ext.getCmp("ERD-SUBJECTS").getActiveTab().title + ']에  추가',
-	                                                     disabled : false,
+	                                                     text: '['+record.data.TABL_NM+'] 테이블(뷰)을 업무영역 ['+ Ext.getCmp("ERD-SUBJECTS").getActiveTab().title + ']에  추가',
+	                                                     disabled : !erdAuth.isEditable(),
 	                                                     handler : function() {
 	                                                         // Entity를 추가하기위해 entity_id설정.
-	                                                         drawDataLoad.setEntityForAddSubject(record.data.ENTITY_ID, record.data.TABL_NM)
+	                                                         drawDataLoad.setEntityForAddSubject(record.data.ENTITY_ID, record.data.TABL_NM, record.data.ENTITY_TCD )
 	                                                     }
 	                                                 }));
                                                  }
                                                  
                                                  // 즐겨찾기
                                                  items.push(Ext.create('Ext.Action', {
-                                                     text: '['+record.data.TABL_NM+'] 테이블을 자주찾는 ' + ((record.get("FAVOR_YN") == "Y") ? '테이블에서 삭제' : '테이블에 추가'),
+                                                     text: '['+record.data.TABL_NM+'] 테이블(뷰)을 자주찾는 ' + ((record.get("FAVOR_YN") == "Y") ? '테이블(뷰)에서 삭제' : '테이블(뷰)에 추가'),
                                                      disabled : false,
                                                      handler : function() {
                                                         Ext.Ajax.request({
@@ -201,7 +233,7 @@
                                                          });
                                                      }
                                                  }));
-                                                         
+
                                                  var contextMenu = Ext.create('Ext.menu.Menu', {
                                                      items: items
                                                  });
@@ -211,7 +243,20 @@
                                        }
                                    },
                                    { header: '<div style="text-align:center;width:100%;">테이블 물리 명</div>', dataIndex: 'ENTITY_NM', flex: 1, minWidth : 120, },
-                                   { header: '관리상태', dataIndex: 'TABL_SCD_NM', align:'center', width : 60, },
+                                   { header: '<div style="text-align:center;width:100%;">객체유형</div>', align:'center',  dataIndex: 'ENTITY_TCD', width:55, },
+                                   { header: '<div style="text-align:center;width:100%;">컬럼수</div>', align:'center',  dataIndex: 'COLUMN_CNT', width:55, },
+                                   // { header: '<div style="text-align:center;width:100%;">반영상태</div>', dataIndex: 'TABL_SCD_NM', align:'left', width : 100, },
+                                    
+                                    { header: '<div style="text-align:center;width:100%;">반영상태 / 반영컬럼수</div>', columns: [
+		                                    <c:forEach var="item" items="${data}">
+		                                    { text: '${item.CD_NM}', dataIndex: '${item.CD}', align: "center", width : 65, menuDisabled : true, resizable : false,
+		                                       renderer : function(value, metaData, record , rowIndex, colIndex, store, view) {
+		                                          return (value ? "Y" : "<span style='color:red'>N</span>") + " / <span " + ( record.get("${item.CD}_COL_CNT") != record.get("COLUMN_CNT") ? "style='color:red'>" : ">" ) +( record.get("${item.CD}_COL_CNT") ? record.get("${item.CD}_COL_CNT") : "") + "</span>";
+		                                       },
+		                                    },
+		                                    </c:forEach>
+	                                    ]
+                                    }
                                ]
                            }
                          ]

@@ -44,7 +44,7 @@
              , CONCAT(DMN.DTYPE
                       , CASE WHEN DTYPE.SCALE_YN = 'Y' AND DMN.LEN1 IS NOT NULL THEN CONCAT('(', DMN.LEN1) ELSE '' END
                       , CASE WHEN DTYPE.SCALE_YN = 'Y' AND DTYPE.COMMA_YN = 'Y' AND DMN.LEN2 IS NOT NULL THEN CONCAT(',', DMN.LEN2) ELSE '' END
-                      , CASE WHEN DTYPE.SCALE_YN = 'Y' OR DTYPE.COMMA_YN = 'Y' OR DMN.LEN1 IS NOT NULL OR DMN.LEN2 IS NOT NULL THEN ')'  ELSE '' END)
+                      , CASE WHEN DTYPE.SCALE_YN = 'Y' AND (DMN.LEN1 IS NOT NULL OR DMN.LEN2 IS NOT NULL) THEN ')'  ELSE '' END)
                  AS  DATA_TYPE           
              , DMN.DTYPE           
              , DMN.LEN1            
@@ -67,10 +67,13 @@
              , DTYPE.COMMA_YN AS COMMA_YN
              , DTYPE.SYNTAX   AS SYNTAX
              , DTYPE.DTYPE_DESC AS DTYPE_DESC
-             , WRD.COLMN_NM
+             , '' AS COLMN_NM  /* NVL(WRD.COLMN_NM, DMN.DOMAIN_NM) */
           FROM DOMAIN DMN
            LEFT OUTER JOIN DTYPE DTYPE 
                 ON DMN.DTYPE      = DTYPE.DTYPE
+                AND DTYPE.DBASE = (SELECT DBASE 
+                                     FROM PROJECT
+                                    WHERE PROJECT_ID  = #{SESSION_PROJECT_ID})
            LEFT OUTER JOIN (SELECT DMN.PROJECT_ID, DMN.DOMAIN_ID, DMN.DOMAIN_NM
                                  , REPLACE(GROUP_CONCAT(DMN.WORD ORDER BY ORD), ',', '_') AS WORD, REPLACE(GROUP_CONCAT(NVL(WORD.ABBR, DMN.WORD) ORDER BY ORD), ',', '_') AS COLMN_NM
                               FROM (SELECT DMN.PROJECT_ID, DMN.DOMAIN_ID,  DMN.DOMAIN_NM, LENGTH(DMN.DOMAIN_NM) - LENGTH(REPLACE(DMN.DOMAIN_NM,' ', '')) - RN + 2 AS ORD
@@ -110,8 +113,9 @@
              , nvl(UP_DOMAIN_ID, 'TOP')  AS UP_DOMAIN_ID    
              , (SELECT DOMAIN_NM 
                   FROM DOMAIN
-                 WHERE PROJECT_ID = DMN.PROJECT_ID
-                   AND DOMAIN_ID = DMN.UP_DOMAIN_ID) AS  UP_DOMAIN_NM
+                 WHERE PROJECT_ID IN ('*', DMN.PROJECT_ID )
+                   AND DOMAIN_ID = DMN.UP_DOMAIN_ID
+                   LIMIT 1) AS  UP_DOMAIN_NM
              , DTYPE           
              , PROJECT_ID      
              , CONCAT(LEN1, CASE WHEN LEN2 IS NULL OR LEN2 = 0 THEN '' ELSE CONCAT(',', LEN2) END) AS LEN                    
@@ -127,7 +131,33 @@
          WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
            AND DOMAIN_ID  = #{DOMAIN_ID}
     </select>
-    
+ 
+     <!--  도메인 상세 조회. -->
+    <select id="selectDomainDetailForAdd"  parameterType="paramMap" resultType="resultMap">
+
+        SELECT /* mapper.erd.domain.selectDomainDetailForAdd */    
+               '' AS DOMAIN_ID       
+             , '' AS ID      
+             , '' AS DOMAIN_NM       
+             , TOP_DOMAIN_NM       
+             , DOMAIN_ID  AS UP_DOMAIN_ID    
+             , (SELECT DOMAIN_NM 
+                  FROM DOMAIN
+                 WHERE PROJECT_ID IN ('*', DMN.PROJECT_ID )
+                   AND DOMAIN_ID = DMN.DOMAIN_ID
+                   LIMIT 1) AS  UP_DOMAIN_NM
+             , CASE WHEN LENGTH(DOMAIN_ID) = 7 THEN '' ELSE DTYPE END AS DTYPE           
+             , PROJECT_ID      
+             , CONCAT(LEN1, CASE WHEN LEN2 IS NULL OR LEN2 = 0 THEN '' ELSE CONCAT(',', LEN2) END) AS LEN                    
+             , ICON_CLS
+             , DEFAULT_VAL
+             , DOMAIN_DESC
+             , 0 AS COLUMN_CNT
+          FROM DOMAIN DMN
+         WHERE PROJECT_ID IN ( '*', #{SESSION_PROJECT_ID})
+           AND DOMAIN_ID  = #{DOMAIN_ID}
+    </select>
+       
     <!--  도메인 등록 -->
     <insert  id="saveDomain"  parameterType="paramMap">
         INSERT /* mapper.erd.domain.saveDomain */

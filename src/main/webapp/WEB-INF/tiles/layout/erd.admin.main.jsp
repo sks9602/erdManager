@@ -178,7 +178,7 @@
                 for( var idxTbl=0; idxTbl<tables.length; idxTbl++) {
                     
                     var tableInfo = tables[idxTbl];
-                    
+                    console.log(">>> tableInfo", tableInfo["ENTITY_ID"], tableInfo["ENTITY_TCD"] );
                     drawDataLoad.setDrawedTable(subjectAreaInfo["SUBJECT_ID"], tableInfo["ENTITY_ID"], new DrawTable( draw, subjectAreaInfo, tableInfo, drawDataLoad ));
                     
                     drawDataLoad.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], tableInfo["ENTITY_ID"]).drawTable();

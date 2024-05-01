@@ -85,7 +85,7 @@ public class AdvisorOfController {
 		String loginNeedYn = "N"; // sysMenuFncDao.selectLoginNeedYnByUrl(sqlParamMap);
 
 		// 로그인이 필요하지만 로그인 되지 않은 경우.
-		/*
+		
 		if( session.getAttribute(LoginVo.MY_FRAMEWORK_LOGIN_SESSION_KEY) == null ) {
 			if( modelMap !=null) {
 				modelMap.addAttribute("success", false);
@@ -105,7 +105,6 @@ public class AdvisorOfController {
 				return  "common/view/error/error.alert";			
 			}
 		}
-		*/
 		// String typeName=  joinPoint.getSignature().getDeclaringType().getName();
 		
 		String resultType = "jsp";

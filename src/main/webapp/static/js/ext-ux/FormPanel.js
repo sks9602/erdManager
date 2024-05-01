@@ -203,7 +203,6 @@ Ext.override(Ext.form.BasicForm, {
     loadRecord : function(record, ignoreObjectNames) {
     	var me = this;
     	
-    	
     	if( record == null || (record.get("totalCount") && record.get("totalCount") < 0 && record.get("message")) ) {
     		hoAlert('연결이 종료 되었습니다.', fs_goLoginPage );
     	}
@@ -219,7 +218,12 @@ Ext.override(Ext.form.BasicForm, {
     	*/
     },
 
-    getValues: function(asString, dirtyOnly, includeEmptyText, useDataValues) {
+    addExtraParams : function(extraParams) {
+        var me = this;
+        me.extraParams = extraParams||{};
+    },
+    
+    getValues: function(asString, dirtyOnly, includeEmptyText, useDataValues, extraParams) {
         // false, false, true, true
         // console.log( asString, dirtyOnly, includeEmptyText, useDataValues );
         console.trace()
@@ -235,23 +239,44 @@ Ext.override(Ext.form.BasicForm, {
             // console.log( field, useDataValues&&!field.dateField ? 'getModelData' : 'getSubmitData' )
             if (!dirtyOnly || field.isDirty()) {  // DateField에서.. getSubmitValue()안되어서. 수정.. "&&!field.dateField" 추가됨..
                 data = field[useDataValues&&!field.dateField ? 'getModelData' : 'getSubmitData'](includeEmptyText);
-                
+                console.log(field, data, Ext.isObject(data) );
                 if (Ext.isObject(data)) {
                     for (name in data) {
                         console.log(name, field.xtype)
                                                
                         if (data.hasOwnProperty(name)) {
                             val = data[name];
-
+                            console.log(name, val)
                             if (includeEmptyText && val === '') {
                                 val = field.emptyText || '';
                             }
-
+                            
                             if( field.xtype == 'checkbox') {
+                                /*
+                                values[name] = val;
                                 
-                                console.log( values[name][name] );
-                                
-                                continue;
+                                if( !values[name] ) {
+                                    console.log(name, val);
+                                    values[name] = val;
+                                } else {
+                                    bucket = values[name];
+                                    
+                                    if (!isArray(bucket)) {
+                                        bucket = values[name] = [bucket];
+                                    }
+                                    
+                                    bucket.push(val);
+                                    if (isArray(val)) {
+                                        values[name] = bucket.concat(val);
+                                    } else {
+                                        bucket.push(val);
+                                    }
+                                    
+                                    values[name] = bucket;
+                                    console.log(name, bucket);
+                                }
+                                */
+                                 continue;
                             } 
                             
 
@@ -274,6 +299,23 @@ Ext.override(Ext.form.BasicForm, {
                             } else {
                                 values[name] = val;
                             }
+                           values[name] = val;
+                           console.log( val)
+                           /*
+                           if( values[name] == null || values[name] == undefined) {
+                               values[name] = val;
+                           } else {
+                               
+                               if (!isArray(values[name])) {
+                                   bucket = [values[name]];
+                               } else {
+                                   bucket = values[name];
+                               }
+                               console.log( bucket );
+                               bucket.push(val);
+                               values[name] = bucket;
+                           }
+                           */
                         }
                     }
                 } else {
@@ -293,8 +335,11 @@ Ext.override(Ext.form.BasicForm, {
             values = Ext.Object.toQueryString(values);
         }
         
-        console.log(values)
-        return values;
+       console.log(values)
+       console.log(extraParams||{});
+       console.log(Ext.apply(values, extraParams||{}));
+        
+        return Ext.apply(values, extraParams||{});
     },
     /*
     doAction: function(action, options) {
@@ -617,7 +662,6 @@ Ext.define('Ext.ux.FormPanel', {
     		errorsNote = options&&options['errorsNote'] 
     		extraParams = options&&options['extraParams'];
     	
-    	   extraParams = extraParams||{};
     	// options.waitMsg = '저장 중입니다. ';
     	
     	// Form을 강제로 저장하는 경우
@@ -925,3 +969,50 @@ Ext.define('Ext.ux.FormPanel', {
     	}
     }
 });
+
+function submitFormGrid(formId, gridId, url, gridRecordType, successFn, failureFn) {
+    var gridData = Ext.getCmp(gridId).getParamData(gridRecordType);
+    
+    var formData = Ext.getCmp(formId).getValues(false, false, true, undefined);
+    
+    var params = Ext.applyIf(formData, gridData);
+
+    if( Ext.getCmp(formId).isValid() ) {
+        hoConfirm( '저장하시겠습니까?' , function(btn, text, opt) { 
+            if( btn == 'yes' ) {
+                // 서버로 데이터 전송
+                Ext.Ajax.request({
+                    url: url,
+                    method: 'POST',
+                    params: params ,
+                    success: function (response) {
+                        successFn();
+                    },
+                    failure: function (response) {
+                        failureFn();
+                    }
+                });
+            }
+        });
+    } else {
+        /*
+        if(errorsNote) {
+            for( var x in errorsNote ) {
+                fs_Frame(errorsNote[x].id , errorsNote[x].color);
+                
+                if( errorsNote[x].msg ) {
+                    if( errorsNote[x].time ) {
+                        hoAlert( errorsNote[x].msg, errorsNote[x].fn, errorsNote[x].time );
+                    } else {
+                        hoAlert( errorsNote[x].msg, errorsNote[x].fn);
+                    }
+                    
+                }
+            }
+        }
+        */
+        Ext.getCmp(formId).getForm().findInvalid();
+    }
+    
+}
+

@@ -12,10 +12,20 @@
           FROM USR
          WHERE LOGIN_ID = #{LOGIN_ID}
     </select>
-     
+
+    <!--  프로젝트 등록 -->
+    <insert  id="initUserPassword"  parameterType="paramMap">
+    UPDATE /* mapper.erd.user.saveUser */
+           USR 
+       SET PWD      = #{NEW_PWD}
+     WHERE LOGIN_ID = #{LOGIN_ID}
+
+    </insert>
+        
     <!--  프로젝트 등록 -->
     <insert  id="saveUser"  parameterType="paramMap">
-        INSERT INTO USR (
+        INSERT  /* mapper.erd.user.saveUser */
+              INTO USR (
              USR_UID      
            , COMPANY_ID
            , USR_NM

@@ -7,9 +7,16 @@
     <select id="selectSubjectTree"  parameterType="paramMap" resultType="resultMap">
 
         SELECT /* mapper.erd.subject.selectSubjectTree */
-               SUBJ.SUBJECT_ID AS ID      
+               SUBJ.SUBJECT_ID AS ID  
              , SUBJ.SUBJECT_ID       
-             , SUBJ.SUBJECT_NM       
+             , NULL AS ENTITY_TCD
+             , CONCAT(SUBJ.SUBJECT_NM  
+                      , CASE WHEN SUBJ.EDIT_USR_UID IS NULL OR SUBJ.EDIT_USR_UID = ''
+                                  THEN '' 
+                             ELSE CONCAT('(편집중:'    
+                                         , CASE WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} THEN '나'
+                                                ELSE (SELECT USR_NM FROM USR WHERE USR_UID = SUBJ.EDIT_USR_UID ) END
+                                         ,')') END) AS SUBJECT_NM
              , CONCAT('(', (SELECT COUNT(*) 
                   FROM SUBJECT_ENTITY SUBJ_ETT
                      , ENTITY         ETT
@@ -53,11 +60,16 @@
                         AND ETT.TABL_SCD = #{TABL_SCD}
                     </if>
                     ), '개의 테이블)')  AS ENTITY_NM
-             , 'TOP'   AS UP_SUBJECT_ID 
+             , 'TOP'  AS UP_SUBJECT_ID 
              , 1 AS ORD
              , 'N' AS SELECTED_YN
              , 'N' AS EXPAND_YN
-             , 'N' AS FAVOR_YN
+             , (SELECT 'Y'
+                  FROM SUBJECT_FAVOR
+                 WHERE USR_UID     = #{SESSION_USR_UID} 
+                   AND PROJECT_ID  = SUBJ.PROJECT_ID 
+                   AND SUBJECT_ID  = SUBJ.SUBJECT_ID 
+                   AND VERSN       = SUBJ.VERSN ) AS FAVOR_YN
           FROM SUBJECT SUBJ
          WHERE SUBJ.PROJECT_ID = #{SESSION_PROJECT_ID}
            AND SUBJ.VERSN       = #{SESSION_VERSN}
@@ -78,14 +90,14 @@
                    OR EXISTS ( SELECT 'Y' 
                                  FROM SUBJECT_ENTITY SUBJ_ETT
                                     , ENTITY         ETT
-		                 WHERE SUBJ_ETT.PROJECT_ID = SUBJ.PROJECT_ID
+                         WHERE SUBJ_ETT.PROJECT_ID = SUBJ.PROJECT_ID
                            AND SUBJ_ETT.SUBJECT_ID = SUBJ.SUBJECT_ID
                            AND SUBJ_ETT.VERSN      = SUBJ.VERSN
-		                   AND SUBJ_ETT.PROJECT_ID = ETT.PROJECT_ID
-		                   AND SUBJ_ETT.ENTITY_ID  = ETT.ENTITY_ID
+                           AND SUBJ_ETT.PROJECT_ID = ETT.PROJECT_ID
+                           AND SUBJ_ETT.ENTITY_ID  = ETT.ENTITY_ID
                            AND SUBJ_ETT.VERSN      = ETT.VERSN
-		                   
-		                   AND NVL(ETT.USE_YN, 'Y') = 'Y'
+                           
+                           AND NVL(ETT.USE_YN, 'Y') = 'Y'
                        AND
                        (<choose>
                             <when test='"Y".equals(EXACT_YN)'>
@@ -115,6 +127,14 @@
                        )
                   )
             </if>
+            <if test='SUBJECT_FAVOR_YN != null and "Y".equals(SUBJECT_FAVOR_YN) '>
+                AND EXISTS (SELECT 'Y'
+                              FROM SUBJECT_FAVOR
+                             WHERE USR_UID     = #{SESSION_USR_UID} 
+                               AND PROJECT_ID  = SUBJ.PROJECT_ID 
+                               AND SUBJECT_ID  = SUBJ.SUBJECT_ID 
+                               AND VERSN       = SUBJ.VERSN )
+            </if>
             <if test='FAVOR_YN != null and "Y".equals(FAVOR_YN) '>
                 AND EXISTS (SELECT 'Y' 
                                  FROM SUBJECT_ENTITY SUBJ_ETT
@@ -137,6 +157,7 @@
         SELECT 
                ETT.ENTITY_ID AS ID      
              , ETT.ENTITY_ID AS  SUBJECT_ID    
+             , ETT.ENTITY_TCD
              , ETT.TABL_NM   AS  SUBJECT_NM   
              , ETT.ENTITY_NM   AS  ENTITY_NM   
              , SUBJ_ETT.SUBJECT_ID  AS UP_SUBJECT_ID
@@ -237,8 +258,9 @@
             SUBJ_ENTT.SUBJECT_ID
           , SUBJ.SUBJECT_NM
           , SUBJ_ENTT.ENTITY_ID   AS ENTITY_ID
+          , ENTT.ENTITY_TCD
           , ENTT.ENTITY_NM        AS ENTITY_NM
-          , CASE WHEN NVL(ENTT.TRT_DT, CURRENT_TIMESTAMP) >= date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 
+          , CASE WHEN NVL(ENTT.DML_DT, CURRENT_TIMESTAMP) >= date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 
                       CASE WHEN ENTT.DML_TCD = 'DML_TCD_C' THEN '+'
                            WHEN ENTT.DML_TCD = 'DML_TCD_U' THEN '*'
                            WHEN ENTT.DML_TCD = 'DML_TCD_D' THEN '-'
@@ -253,14 +275,15 @@
                 AND RELATION_TYPE = 'rel1toN'
                 AND NON_IDEN_YN   = 'N'
                 LIMIT 1 ), 'N')   AS IS_SUB_TABLE
-          , SUBJ_ENTT.LINE_COLOR  AS LINE_COLOR
-          , SUBJ_ENTT.COLOR       AS COLOR
-          , SUBJ_ENTT.BG_COLOR    AS BACKGROUND_COLOR
-          , SUBJ_ENTT.NM_BG_COLOR AS TABLE_BACKGROUND_COLOR
-          , SUBJ_ENTT.X           AS X
-          , SUBJ_ENTT.Y           AS Y
-          , SUBJ_ENTT.WIDTH       AS WIDTH
-          , SUBJ_ENTT.HEIGHT      AS HEIGHT
+          , NVL(SUBJ_ENTT_USR.LINE_COLOR , SUBJ_ENTT.LINE_COLOR ) AS LINE_COLOR
+          , NVL(SUBJ_ENTT_USR.COLOR      , SUBJ_ENTT.COLOR      ) AS COLOR
+          , NVL(SUBJ_ENTT_USR.BG_COLOR   , SUBJ_ENTT.BG_COLOR   ) AS BACKGROUND_COLOR
+          , NVL(SUBJ_ENTT_USR.NM_BG_COLOR, SUBJ_ENTT.NM_BG_COLOR) AS TABLE_BACKGROUND_COLOR
+          , NVL(SUBJ_ENTT_USR.X          , SUBJ_ENTT.X          ) AS X
+          , NVL(SUBJ_ENTT_USR.Y          , SUBJ_ENTT.Y          ) AS Y
+          , NVL(SUBJ_ENTT_USR.WIDTH      , SUBJ_ENTT.WIDTH      ) AS WIDTH
+          , NVL(SUBJ_ENTT_USR.HEIGHT     , SUBJ_ENTT.HEIGHT     ) AS HEIGHT
+          , NVL(SUBJ_ENTT_USR.ENTITY_DSPL_CD, 'LOGICAL_PHYSICAL') AS ENTITY_DSPL_CD
           , ENTT.TABL_SCD          
           , (SELECT CD_NM
                FROM CD
@@ -272,10 +295,18 @@
                 AND VERSN      = SUBJ_ENTT.VERSN
                 AND ENTITY_ID  = SUBJ_ENTT.ENTITY_ID
                 AND PK_YN = 'Y'
+                AND USE_YN = 'Y'
                 LIMIT 1)    AS HAS_PK
           , CASE WHEN ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END AS  USE_YN
           , CASE WHEN SUBJ_ENTT.USE_YN = 'N' THEN 'Y' ELSE 'N' END AS DEL_YN
-       FROM SUBJECT_ENTITY SUBJ_ENTT
+       FROM SUBJECT_ENTITY SUBJ_ENTT 
+            LEFT OUTER JOIN SUBJECT_ENTITY_USR SUBJ_ENTT_USR
+                 ON SUBJ_ENTT.PROJECT_ID       = SUBJ_ENTT_USR.PROJECT_ID 
+                AND SUBJ_ENTT.SUBJECT_ID       = SUBJ_ENTT_USR.SUBJECT_ID 
+                AND SUBJ_ENTT.VERSN            = SUBJ_ENTT_USR.VERSN      
+                AND SUBJ_ENTT.ENTITY_ID        = SUBJ_ENTT_USR.ENTITY_ID  
+                AND #{SESSION_USR_UID}         = SUBJ_ENTT_USR.USR_UID    
+                 
           , SUBJECT        SUBJ
           , ENTITY         ENTT
       WHERE SUBJ_ENTT.ENTITY_ID  = ENTT.ENTITY_ID
@@ -285,8 +316,8 @@
         AND SUBJ_ENTT.VERSN      = SUBJ.VERSN
         AND SUBJ_ENTT.SUBJECT_ID = SUBJ.SUBJECT_ID
         /* AND NVL(SUBJ_ENTT.USE_YN, 'Y')  = 'Y' */
-        AND CASE WHEN ENTT.TABL_SCD  = 'TABL_SCD_020' AND CASE WHEN ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END = 'N' THEN 'N'
-                 WHEN CASE WHEN ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END AND NVL(ENTT.TRT_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]>  date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 'N' 
+        AND CASE WHEN CASE WHEN SUBJ_ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END = 'N' THEN 'N'
+                 WHEN NVL(ENTT.USE_YN, 'Y') = 'N' AND NVL(ENTT.DML_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]>  date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 'N' 
                  ELSE 'Y' END = 'Y'
         <if test="ENTITY_LIST != null">
             <foreach collection="ENTITY_LIST" item="item" open=" AND ENTT.ENTITY_ID IN (" close=")" separator=",">
@@ -298,7 +329,8 @@
      
     <!--  업무영역 등록 -->
     <insert  id="saveSubject"  parameterType="paramMap">
-        INSERT INTO SUBJECT (
+        INSERT /* mapper.erd.subject.saveSubject */
+          INTO SUBJECT (
              PROJECT_ID      
            , VERSN      
            , SUBJECT_ID
@@ -326,8 +358,41 @@
            , WIDTH =  #{WIDTH}
            , HEIGHT = #{HEIGHT}
            , LAST_UPD_DT  =   CURRENT_TIMESTAMP 
-           , LAST_UPD_USR_UID =#{SESSION_USR_UID}
+           , LAST_UPD_USR_UID = #{SESSION_USR_UID}
     </insert>
+
+    <delete  id="deleteSubject"  parameterType="paramMap">
+        DELETE /* mapper.erd.subject.deleteSubject */
+          FROM SUBJECT 
+         WHERE PROJECT_ID   = #{SESSION_PROJECT_ID}    
+           AND VERSN        = #{SESSION_VERSN}
+           AND SUBJECT_ID   = #{SUBJECT_ID}
+    </delete>
+
+    <delete  id="deleteSubjectRelation"  parameterType="paramMap">
+        DELETE /* mapper.erd.subject.deleteSubjectRelation */
+          FROM SUBJECT_RELATION
+         WHERE PROJECT_ID   = #{SESSION_PROJECT_ID}   
+           AND VERSN        = #{SESSION_VERSN}
+           AND SUBJECT_ID   = #{SUBJECT_ID}
+    </delete>
+
+    <delete  id="deleteSubjectRelationUsr"  parameterType="paramMap">
+        DELETE /* mapper.erd.subject.deleteSubjectRelationUsr */
+          FROM SUBJECT_RELATION_USR
+         WHERE PROJECT_ID   = #{SESSION_PROJECT_ID}   
+           AND VERSN        = #{SESSION_VERSN}
+           AND SUBJECT_ID   = #{SUBJECT_ID}
+           AND USR_ID      = #{SESSION_USR_UID} 
+    </delete>
+    
+    <delete  id="deleteSubjectFavor"  parameterType="paramMap">
+        DELETE /* mapper.erd.subject.deleteSubjectFavor */
+          FROM SUBJECT_FAVOR
+         WHERE PROJECT_ID   = #{SESSION_PROJECT_ID}    
+           AND VERSN        = #{SESSION_VERSN}
+           AND SUBJECT_ID   = #{SUBJECT_ID}
+    </delete>
     
     <!--  업무영역 상세 조회. -->
     <select id="selectSubjectDetail"  parameterType="paramMap" resultType="resultMap">
@@ -340,6 +405,102 @@
              , SUBJ.WIDTH 
              , SUBJ.HEIGHT
           FROM SUBJECT SUBJ
-         WHERE SUBJ.SUBJECT_ID = #{SUBJECT_ID}
+         WHERE PROJECT_ID      = #{SESSION_PROJECT_ID}
+           AND VERSN           = #{SESSION_VERSN}
+           AND SUBJ.SUBJECT_ID = #{SUBJECT_ID}
     </select>
+
+    <!--  업무영역 상세 조회. -->
+    <select id="selectSubjectEditInfo"  parameterType="paramMap" resultType="resultMap">
+        SELECT /* mapper.erd.subject.selectSubjectEditInfo */
+               CASE WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                         THEN NULL 
+                    ELSE SUBJ.EDIT_USR_UID  END AS  EDIT_USR_UID
+             , (SELECT USR_NM FROM USR WHERE USR_UID = SUBJ.EDIT_USR_UID ) AS EDIT_USR_NM
+             , CASE WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                         THEN NULL
+                    ELSE SUBJ.EDIT_START_DT END  AS EDIT_START_DT
+             , CASE WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID}
+                         THEN NULL
+                    ELSE DATE_FORMAT(SUBJ.EDIT_START_DT, '%Y-%m-%d %H:%i:%S') END AS EDIT_START_DT_FMT
+             , CASE WHEN SUBJ.EDIT_USR_UID IS NULL               THEN 'Y'
+                    WHEN SUBJ.EDIT_USR_UID = ''                  THEN 'Y'
+                    WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID}  THEN 'Y'
+                    ELSE 'N' END AS EDITABLE_YN
+             , CASE WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} OR #{EDIT_START_YN} = 'Y' THEN 'Y'
+                    ELSE 'N' END AS I_AM_EDITING_YN
+          FROM SUBJECT SUBJ
+         WHERE PROJECT_ID      = #{SESSION_PROJECT_ID}
+           AND VERSN           = #{SESSION_VERSN}
+           AND SUBJ.SUBJECT_ID = #{SUBJECT_ID}
+           FOR UPDATE
+    </select>
+
+    <!--  업무영역 편집 시작 -->
+    <update  id="updateStartEditInfo"  parameterType="paramMap">
+        UPDATE /* mapper.erd.subject.updateStartEditInfo */
+               SUBJECT 
+           SET
+               EDIT_USR_UID       = #{SESSION_USR_UID}      
+             , EDIT_START_DT      =  CURRENT_TIMESTAMP
+         WHERE PROJECT_ID      = #{SESSION_PROJECT_ID}
+           AND VERSN           = #{SESSION_VERSN}
+           /* AND SUBJECT_ID = __SUBJECT_ID_ */
+           AND EDIT_USR_UID    IS NULL
+    </update>
+
+    <!--  업무영역 편집 종료 -->
+    <update  id="updateEndEditInfo"  parameterType="paramMap">
+        UPDATE /* mapper.erd.subject.updateEndEditInfo */
+               SUBJECT 
+           SET
+               EDIT_USR_UID       = NULL    
+             , EDIT_START_DT      = NULL
+         WHERE PROJECT_ID      = #{SESSION_PROJECT_ID}
+           AND VERSN           = #{SESSION_VERSN}
+           /* AND SUBJECT_ID      = __SUBJECT_ID_ */
+           AND EDIT_USR_UID    = #{SESSION_USR_UID}  
+    </update>
+
+
+    <!--  즐겨찾기 추가 -->
+    <insert id="addSubjectFavorite"  parameterType="paramMap">
+        INSERT /* mapper.erd.subject.addSubjectFavorite */
+          INTO SUBJECT_FAVOR
+        (
+          USR_UID            
+        , PROJECT_ID         
+        , SUBJECT_ID          
+        , VERSN              
+        , FRST_INS_DT        
+        , FRST_INS_USR_UID   
+        , LAST_UPD_DT        
+        , LAST_UPD_USR_UID   
+        )
+        VALUES (
+          #{SESSION_USR_UID}
+        , #{SESSION_PROJECT_ID}
+        , #{SUBJECT_ID}
+        , #{SESSION_VERSN}
+        , CURRENT_TIMESTAMP
+        , #{SESSION_USR_UID}
+        , CURRENT_TIMESTAMP
+        , #{SESSION_USR_UID}
+        )
+        ON DUPLICATE KEY UPDATE
+             LAST_UPD_DT     = CURRENT_TIMESTAMP 
+           , LAST_UPD_USR_UID =#{SESSION_USR_UID}
+        
+    </insert>
+
+    <!--  즐겨찾기 추가 -->
+    <delete id="deleteSubjectFavorite"  parameterType="paramMap">
+        DELETE /* mapper.erd.subject.deleteSubjectFavorite */
+          FROM SUBJECT_FAVOR
+         WHERE USR_UID       = #{SESSION_USR_UID}
+           AND PROJECT_ID    = #{SESSION_PROJECT_ID}
+           AND SUBJECT_ID    = #{SUBJECT_ID}
+           AND VERSN         = #{SESSION_VERSN}
+    </delete>
+
 </mapper>

@@ -61,6 +61,11 @@ Ext.define('Ext.form.field.ux.ComboTreeGridDomain', {
        
        this.colmnNm = colmnNm;
     },
+    setDefaultVal : function(defaultVal) {
+       var me = this;
+       
+       this.defaultVal = defaultVal;
+    },
     getDomainId : function() {
        return this.domainId;
     },
@@ -69,6 +74,9 @@ Ext.define('Ext.form.field.ux.ComboTreeGridDomain', {
     },
     getColmnNm : function() {
        return this.colmnNm;
+    },
+    getDefaultVal : function() {
+       return this.defaultVal;
     },
     createPicker: function() {
         var me = this;
@@ -95,11 +103,14 @@ Ext.define('Ext.form.field.ux.ComboTreeGridDomain', {
                     if( record.get("DOMAIN_ID") == "DMN-001" || record.get("DOMAIN_ID") == "DMN-002" || record.get("DOMAIN_ID") == "DMN-003" ) {
                         return ;
                     }
+                    
+                    me.setDefaultVal( record.get("DEFAULT_VAL"));
                     me.setDomainId( record.get("DOMAIN_ID"))
                     me.setDataType( record.get("DATA_TYPE"))
-                    me.setColmnNm( record.get("COLMN_NM"))
+                    me.setColmnNm(ErdAppFunction.getWord(record.get("DOMAIN_NM"), 'DOMAIN'));                  
                     me.setValue( record.get( me.valueField ));
                     me.setRawValue( record.get( me.displayField ));
+
                     //console.log( " : domainTreeStore : ",  Ext.getStore("domainTreeStore").getCount() );
                     //console.log( " this " , _this.store.getCount() );
                 },
@@ -107,12 +118,16 @@ Ext.define('Ext.form.field.ux.ComboTreeGridDomain', {
                     if( record.get("DOMAIN_ID") == "DMN-001" || record.get("DOMAIN_ID") == "DMN-002" || record.get("DOMAIN_ID") == "DMN-003" ) {
                         return ;
                     }
+                    
+                    me.setDefaultVal( record.get("DEFAULT_VAL"));
                     me.setDomainId( record.get("DOMAIN_ID"))
                     me.setDataType( record.get("DATA_TYPE"))
-                    me.setColmnNm( record.get("COLMN_NM"))
+                    // me.setColmnNm( record.get("COLMN_NM"))
+                    me.setColmnNm(ErdAppFunction.getWord(record.get("DOMAIN_NM"), 'DOMAIN'));
                     me.setValue( record.get( me.valueField ));
                     me.setRawValue( record.get( me.displayField ));
                     me.picker.hide();
+                    
                 }, 
                 render : function( _this,  eOpts ) {
                     try {
@@ -140,9 +155,10 @@ Ext.define('Ext.form.field.ux.ComboTreeGridDomain', {
                 flex : 1,
                 text: '<div style="text-align:center;width:100%;">데이터 타입</div> ',
                 width: 90,
-                dataIndex: 'DTYPE_LEN',
+                dataIndex: 'DATA_TYPE',
                 align : 'left',
                 renderer : function(value, metaData, record , rowIndex, colIndex, store, view ) {
+                    /*
                     if( record.data.LEVEL == 1) {
                         return record.data.DTYPE;
                     } else if( record.data.DTYPE == 'DATE' || record.data.DTYPE == 'DATETIME'|| record.data.DTYPE == 'CLOB' ) {
@@ -159,6 +175,8 @@ Ext.define('Ext.form.field.ux.ComboTreeGridDomain', {
                     } else {
                         return record.data.DTYPE+'('+record.data.LEN1+')';
                     }
+                    */
+                   return value;
                 }
             }, {
                 header: '기본값',

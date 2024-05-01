@@ -10,7 +10,11 @@
 
     <script>
     var drawDataLoad = new DrawDataLoad();
+    var erdAuth      = new ErdAuth();
     drawDataLoad.loadData();
+    erdAuth.loadData();
+
+    <tagErd:itemCode type="ext-js-store" name="DATA_TYPE" cdGrp="DATA_TYPE" firstText="" value=""></tagErd:itemCode>
     
     Ext.onReady(function() {
     	<%-- 로그인 하지 않은 경우 로그인 창 --%>
@@ -67,7 +71,12 @@
                                          ErdAppFunction.managerUserListWindow(_animateTarget);
                                      },
                                   },
-                                  
+                                  '|',
+                                  {text: '쿼리 Maker', id: 'topSqlQueryMaker', 
+                                     handler : function() {
+                                    	 window.open('/extjs/erd/query.do', '_blank');
+                                     },
+                                  },
                                   '->',
                                   <c:if test="${sessionScope._sessionVO.usrUid == null || sessionScope._sessionVO.usrUid == 'GUEST' }">
                                   {text: '회원가입', id: 'topRegistUser', 
@@ -80,11 +89,7 @@
                                           ErdAppFunction.loginWindow(false);
                                       },
                                   },'|',                                
-                                  {text: '${sessionScope._sessionVO.usrNm}님', id: 'loginUsrNm', 
-                                      handler : function() {
-                                          ErdAppFunction.loginWindow();
-                                      },
-                                  },
+                                  '${sessionScope._sessionVO.usrNm}님, 반갑습니다.',
                                   </c:if>
                                   <%-- 로그인 한 경우 로그인 창 --%>
                                   <c:if test="${sessionScope._sessionVO.usrUid != null && sessionScope._sessionVO.usrUid != 'GUEST' }">
@@ -96,7 +101,28 @@
                                   '|',
                                   {text: 'Logout', id: 'topLogout', 
                                      handler : function() {
-                                         
+
+                                         Ext.Msg.confirm('확인', '로그아웃하시겠습니까?', function(btn) {
+                                             if( btn == 'yes') {
+                                             	 var response = Ext.Ajax.request({
+                                                      async: false,
+                                                      url: '/common/login/logout.do',
+                                                      params: {
+                                                              
+                                                      }
+                                                  });
+                                             	 
+                                             	  console.log( Ext.decode(response.responseText) )
+                                             	  if( Ext.decode(response.responseText).success == true ) {
+                                             		  Ext.Msg.alert('성공', '로그아웃되었습니다.', function() {
+                                             		      self.location.href = '/extjs/erd/erd.do';
+                                                      });
+                                             		  
+                                             		  
+                                                  }
+                                                  
+                                             }
+                                         });
                                      },
                                   },
                                   </c:if>
@@ -194,6 +220,12 @@
                                      // scrollable  : true,
                                      id : 'ERD-SUBJECTS',
                                      border : false,
+                                     listeners : {
+                                    	 tabchange : function ( tabPanel, newCard, oldCard, eOpts ) {
+                                    		 console.log( newCard, oldCard);
+                                    		 erdAuth.startOrCheckSubjectEditInfo(newCard.getId(), false);
+                                    	 }
+                                     },
                                      items : [
          
                                      ]
@@ -281,8 +313,9 @@
 
     });
     
-    
+    /*
     window.onbeforeunload = function() {
         return "사이트를 나가시겠습니까?"; 
     };
+    */
     </script>

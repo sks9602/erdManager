@@ -21,7 +21,7 @@
 
     .header tspan{
         /* fill: white; */
-        font: 10px sans-serif;
+        font: 11px sans-serif;
         text-anchor: start;
         dominant-baseline: hanging;
     }
@@ -52,7 +52,7 @@
 
     .columns text{
         fill: white;
-        font: 10px sans-serif;
+        font: 11px sans-serif;
         text-anchor: start;
         dominant-baseline: hanging;
     }
@@ -63,14 +63,14 @@
 
     .column text{
         fill: #000;
-        font: 10px sans-serif;
+        font: 11px sans-serif;
         text-anchor: start;
         dominant-baseline: hanging;
     }
 
     .column tspan{
         /* fill: #000; */
-        font: 10px sans-serif;
+        font: 11px sans-serif;
         text-anchor: start;
         dominant-baseline: hanging;
     }

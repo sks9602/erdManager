@@ -134,6 +134,13 @@
         var dy = currentClick.y - lastClick.y;
         if (!dx && !dy) return box;
 		
+		/*
+        // 현재 선택된 업무영역이 편집 가능 한 경우.
+		if( !erdAuth.isEditable()) {
+            return box;
+        }
+		*/
+		
 		var tableGrp = null;
 		var tableRect = null;
 		var tableGrpBox = null;

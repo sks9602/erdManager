@@ -27,6 +27,14 @@
                                     },
                             },
                             tbar: ['->',
+                               <tagErd:button type="button" label="리로드" iconCls="reload" cls="btn_segmentedbutton">
+                                   listeners : {
+                                      click : function(_button, e, eOpts) {
+                                          Ext.getStore('domainTreeStore').getProxy().extraParams.PROJECT_ID = '';
+                                          Ext.getStore('domainTreeStore').reload();
+                                      }
+                                   }
+                               </tagErd:button>
                                 <tagErd:button type="button" label="모두 펼치기" iconCls="expandAll" cls="btn_segmentedbutton">
                                      listeners : {
                                         click : function(_button, e, eOpts) {
@@ -42,14 +50,6 @@
                                            tree.collapseAll();
                                        }
                                     }
-                               </tagErd:button>
-                               <tagErd:button type="button" label="다시 조회" iconCls="reload" cls="btn_segmentedbutton">
-                                   listeners : {
-                                      click : function(_button, e, eOpts) {
-                                          Ext.getStore('domainTreeStore').getProxy().extraParams.PROJECT_ID = '';
-                                          Ext.getStore('domainTreeStore').reload();
-                                      }
-                                   }
                                </tagErd:button>
                             ],
                             <tagErd:store type="treestore" id="domainTreeStore" idProperty="DOMAIN_ID" url="/domain/data/tree.do" rootProperty="CHILDREN" expanded="true" params="">
@@ -96,7 +96,7 @@
                                             items.push(Ext.create('Ext.Action', {
                                                 // iconCls : 'btn-icon-tree-add-first-level',
                                                 text: '['+record.data.DOMAIN_NM+']의 하위도메인 등록',
-                                                disabled : ${sessionScope._sessionVO.notModelerRole} ,
+                                                disabled : ErdAppFunction.getButtonDisabled(), // ${sessionScope._sessionVO.notModelerRole} ,
                                                 handler : function() {
                                                     ErdAppFunction.addDomainWindow(record.data.DOMAIN_ID, record.data.DOMAIN_NM, record.data.TOP_DOMAIN_NM, record );
                                                 }
@@ -106,7 +106,7 @@
                                             items.push(Ext.create('Ext.Action', {
                                                 // iconCls : 'btn-icon-tree-add-first-level',
                                                 text: '['+record.data.DOMAIN_NM+']도메인 수정',
-                                                disabled : ${sessionScope._sessionVO.notModelerRole} ,
+                                                disabled : ErdAppFunction.getButtonDisabled(), // ${sessionScope._sessionVO.notModelerRole} ,
                                                 handler : function() {
                                                     ErdAppFunction.editDomainWindow(record.data.DOMAIN_ID, record.data.DOMAIN_NM, record.data.TOP_DOMAIN_NM );
                                                 }
@@ -129,10 +129,10 @@
                             {
                                 text: '<div style="text-align:center;width:100%;">데이터 타입</div>',
                                 width: 90,
-                                dataIndex: 'LEN1',
+                                dataIndex: 'DATA_TYPE',
                                 align : 'left',
                                 renderer : function(value, metaData, record , rowIndex, colIndex, store, view ) {
-                                    
+                                    /*
                                     if( record.data.LEVEL == 1) {
                                         return record.data.DTYPE;
                                     } else if( record.data.DTYPE == 'DATE' || record.data.DTYPE == 'DATETIME'|| record.data.DTYPE == 'CLOB' ) {
@@ -149,11 +149,13 @@
                                     } else {
                                         return record.data.DTYPE+'('+record.data.LEN1+')';
                                     }
+                                    */
+                                    return value;
                                 }
                             }
                             ,{
                                 header: '기본값',
-                                width: 50,
+                                width: 80,
                                 dataIndex: 'DEFAULT_VAL',
                                 align: 'center'
                                 //add in the custom tpl for the rows
