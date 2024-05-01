@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mapper.erd.sequence">
+
+    <!--  도메인 삭제 -->
+    <delete  id="deleteSequence"  parameterType="paramMap">
+        UPDATE SEQNC 
+           SET USE_YN           = 'N'
+             , LAST_UPD_DT      = SYSDATE
+             , LAST_UPD_USR_UID = #{SESSION_USR_NM}
+         WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+           AND SEQNC_NM   = #{ORI_SEQNC_NM}
+    </delete>
+    
+    <!--  시퀀스 목록 조회. -->
+    <select id="selectSequenceList"  parameterType="paramMap" resultType="resultMap">
+        SELECT /* mapper.erd.sequence.selectSequenceList */   
+               PROJECT_ID 
+             , SEQNC_ID
+             , SEQNC_NM 
+             , SEQNC_DESC 
+             , BGN_VAL 
+             , END_VAL 
+             , INC_VAL 
+             , USE_YN 
+             , TABL_SCD        
+             , (SELECT CD_NM
+                 FROM CD
+                WHERE CD_GRP = 'TABL_SCD'
+                  AND CD     = SNC.TABL_SCD)  AS TABL_SCD_NM 
+             , TRT_USR_UID     
+             , TRT_DT          
+             , DATE_FORMAT(TRT_DT, '%Y-%m-%d %H:%i:%S') AS TRT_DT_FMT
+             , ENTITY_NM 
+             , COLMN_NM 
+          FROM SEQNC  SNC
+         WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+          /*
+           AND CASE WHEN SNC.TABL_SCD  = 'TABL_SCD_020' AND CASE WHEN SNC.USE_YN = 'N' THEN 'N' ELSE 'Y' END = 'N' THEN 'N'
+                    WHEN CASE WHEN SNC.USE_YN = 'N' THEN 'N' ELSE 'Y' END AND NVL(SNC.TRT_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]>  date_add(CURRENT_TIMESTAMP , interval SESSION_COLUMN_DISPLAY_DAYCNT day) THEN 'N' 
+                    ELSE 'Y' END = 'Y'
+           */
+        <if test="SEQNC_NM != null">
+        AND 
+             (<choose>
+                    <when test='"Y".equals(EXACT_YN)'>
+                        <foreach collection="SEQNC_NM" item="ITEM" open=" AND UPPER(SEQNC_NM) IN (" close=")" separator=",">
+                          UPPER(REPLACE(#{ITEM},' ',''))
+                        </foreach>
+                    </when>
+                    <otherwise> 
+                         <foreach collection="SEQNC_NM" item="ITEM" open="( " close=")" separator=" OR ">
+                               UPPER(SEQNC_NM) LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+                         </foreach>
+                    </otherwise>
+              </choose>)
+        </if>
+        <if test='USE_YN_ALL == null or "".equals(USE_YN_ALL )'>
+            AND USE_YN = 'Y'
+        </if>
+        <if test='TABL_SCD != null and !"".equals(TABL_SCD )'>
+            AND SNC.TABL_SCD = #{TABL_SCD}
+        </if>
+         ORDER BY SEQNC_NM
+     </select>
+     
+    <!--  시퀀스 등록 -->
+    <insert  id="saveSequence"  parameterType="paramMap">
+        INSERT /* mapper.erd.sequence.saveSequence */   
+              INTO SEQNC (
+             PROJECT_ID  
+           , SEQNC_ID
+           , SEQNC_NM 
+           , SEQNC_DESC 
+           , BGN_VAL 
+           , END_VAL 
+           , INC_VAL 
+           , USE_YN 
+           , TABL_SCD 
+           , TRT_USR_UID 
+           , TRT_DT 
+           , ENTITY_NM 
+           , COLMN_NM 
+           , FRST_INS_DT     
+           , FRST_INS_USR_UID
+           , LAST_UPD_DT     
+           , LAST_UPD_USR_UID
+           , LOG_ID
+           , CHG_CTNT
+        ) VALUES (
+             #{SESSION_PROJECT_ID}      
+           , #{SEQNC_ID}
+           , #{SEQNC_NM}
+           , #{SEQNC_DESC}
+           , #{BGN_VAL}
+           , #{END_VAL}
+           , #{INC_VAL}
+           , #{USE_YN}
+           , #{TABL_SCD} 
+           , #{SESSION_USR_UID} 
+           , CURRENT_TIMESTAMP 
+           , #{ENTITY_NM}
+           , #{COLMN_NM}
+           , CURRENT_TIMESTAMP     
+           , #{SESSION_USR_UID}
+           , CURRENT_TIMESTAMP   
+           , #{SESSION_USR_UID}
+           , #{LOG_ID}
+           , CONCAT('시퀀스 "', #{SEQNC_NM}, '"이 ', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"'), '되었습니다.')
+        )
+        ON DUPLICATE KEY UPDATE
+             LOG_ID       = #{LOG_ID}
+           , CHG_CTNT     = CASE WHEN SEQNC_NM != #{SEQNC_NM} AND USE_YN != NVL(#{USE_YN}, USE_YN) AND #{USE_YN} = 'N' 
+                                      THEN CONCAT('시퀀스 "', SEQNC_NM, '"이 ->"', #{SEQNC_NM}, '"로 변경 및 삭제되어', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"'), '되었습니다.')
+                                 WHEN SEQNC_NM != #{SEQNC_NM} AND USE_YN != NVL(#{USE_YN}, USE_YN) AND #{USE_YN} = 'Y'
+                                      THEN CONCAT('시퀀스 "', SEQNC_NM, '"이 ->"', #{SEQNC_NM}, '"로 변경 및 삭제취소되어', NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"'), '되었습니다.')
+                                 WHEN SEQNC_NM != #{SEQNC_NM} AND USE_YN = NVL(#{USE_YN}, USE_YN) 
+                                      THEN CONCAT('시퀀스 "', SEQNC_NM, '"이 ->"', #{SEQNC_NM}, '"로 변경되어' , NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"'), '되었습니다.')
+                                 WHEN SEQNC_NM = #{SEQNC_NM} AND USE_YN != NVL(#{USE_YN}, USE_YN) AND #{USE_YN} = 'N'
+                                      THEN CONCAT('시퀀스 "', SEQNC_NM, '"가 삭제되어' , NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"'), '되었습니다.')
+                                 WHEN SEQNC_NM = #{SEQNC_NM} AND USE_YN != NVL(#{USE_YN}, USE_YN) AND #{USE_YN} = 'Y'
+                                      THEN CONCAT('시퀀스 "', SEQNC_NM, '"가 삭제취소되어' , NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"'), '되었습니다.')
+                                 WHEN SEQNC_NM = #{SEQNC_NM} AND USE_YN = NVL(#{USE_YN} AND TABL_SCD != #{TABL_SCD}
+                                      THEN CONCAT('시퀀스 "', SEQNC_NM, '"가 ', CASE WHEN USE_YN != 'Y' THEN '삭제상태에서' ELSE '' END , NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"'), '되었습니다.')
+                                 ELSE NULL END
+           , SEQNC_NM   = NVL(#{SEQNC_NM}, SEQNC_NM)
+           , SEQNC_DESC = #{SEQNC_DESC}
+           , BGN_VAL    = NVL(#{BGN_VAL}, BGN_VAL)
+           , END_VAL    = NVL(#{END_VAL}, END_VAL)
+           , INC_VAL    = NVL(#{INC_VAL}, INC_VAL)
+           , USE_YN     = NVL(#{USE_YN}, USE_YN)
+           , TABL_SCD    = NVL(#{TABL_SCD}, TABL_SCD)
+           , TRT_USR_UID = #{SESSION_USR_UID} 
+           , TRT_DT      = CURRENT_TIMESTAMP
+           , ENTITY_NM   = NVL(#{ENTITY_NM}, ENTITY_NM)
+           , COLMN_NM    = NVL(#{COLMN_NM}, COLMN_NM)
+           , LAST_UPD_DT  =   CURRENT_TIMESTAMP 
+           , LAST_UPD_USR_UID =#{SESSION_USR_UID}
+    </insert>
+    
+    <!--  시퀀스 상세 조회. -->
+    <select id="selectSequenceDetail"  parameterType="paramMap" resultType="resultMap">
+
+        SELECT /* mapper.erd.sequence.selectSubjectDetail */
+               PROJECT_ID 
+             , SEQNC_ID 
+             , SEQNC_NM 
+             , SEQNC_DESC 
+             , BGN_VAL 
+             , END_VAL 
+             , INC_VAL 
+             , USE_YN 
+             , TABL_SCD        
+             , (SELECT CD_NM
+                 FROM CD
+                WHERE CD_GRP = 'TABL_SCD'
+                  AND CD     = SNC.TABL_SCD)  AS TABL_SCD_NM 
+             , TRT_USR_UID     
+             , TRT_DT          
+             , DATE_FORMAT(TRT_DT, '%Y-%m-%d %H:%i:%S') AS TRT_DT_FMT
+             , ENTITY_NM 
+             , COLMN_NM 
+          FROM SEQNC SNC
+         WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+           AND SEQNC_ID   = #{SEQNC_ID}
+    </select>
+
+
+    <!--  시퀀스 사용여부 수정 -->
+    <insert  id="updateSequenceUseYn"  parameterType="paramMap">
+        UPDATE /* mapper.erd.sequence.updateSequenceUseYn */   
+               SEQNC 
+           SET
+             LOG_ID       = #{LOG_ID}
+           , CHG_CTNT     = CASE WHEN USE_YN != NVL(#{USE_YN}, USE_YN) AND #{USE_YN} = 'N'
+                                      THEN CONCAT('시퀀스 "', SEQNC_NM, '"가 삭제되었습니다.')
+                                 WHEN USE_YN != NVL(#{USE_YN}, USE_YN) AND #{USE_YN} = 'Y'
+                                      THEN CONCAT('시퀀스 "', SEQNC_NM, '"가 삭제취소되었습니다.')
+                                 ELSE NULL END
+             , USE_YN           = NVL(#{USE_YN}, USE_YN)
+             , LAST_UPD_DT      = CURRENT_TIMESTAMP 
+             , LAST_UPD_USR_UID = #{SESSION_USR_UID}
+         WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+           AND SEQNC_ID   = #{SEQNC_ID}
+    </insert>
+</mapper>
