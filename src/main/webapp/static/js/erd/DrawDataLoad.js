@@ -1519,6 +1519,8 @@ var DrawDataLoad = function() {
 	 */
 	this.updateRelationPath = function(infoType, params ) {
 		
+		params["MANAGER_YN"] = erdAuth.isEditable() ? "Y" : "N";
+		
 		var response = Ext.Ajax.request({
 			async: false,
 			url: '/relation/data/updatePath.do',
@@ -1665,8 +1667,13 @@ var DrawDataLoad = function() {
 	this.restoreEntityAndColumn = function (pkInsertEntityList, pkDeleteEntityList, entityList, entityColumnList) {
 
 		console.log( this.tableOnSubjectAreaDatas );
-		pkInsertEntityList = pkInsertEntityList||[]
-		this.tableOnSubjectAreaDatas.filter(x => pkInsertEntityList.includes(x.ENTITY_ID)||pkDeleteEntityList.includes(x.ENTITY_ID)).forEach(x => this.tableOnSubjectAreaDatas.splice(this.tableOnSubjectAreaDatas.indexOf(x), 1));
+        pkInsertEntityList = pkInsertEntityList||[]
+        pkDeleteEntityList = pkDeleteEntityList||[]
+        try {
+		    this.tableOnSubjectAreaDatas.filter(x => pkInsertEntityList.includes(x.ENTITY_ID)||pkDeleteEntityList.includes(x.ENTITY_ID)).forEach(x => this.tableOnSubjectAreaDatas.splice(this.tableOnSubjectAreaDatas.indexOf(x), 1));
+		} catch(e) {
+            console.log(e)
+        }
 		this.tableOnSubjectAreaDatas = this.tableOnSubjectAreaDatas.concat(entityList);
 		console.log( this.tableOnSubjectAreaDatas )
 
@@ -1732,8 +1739,12 @@ var DrawDataLoad = function() {
 				}
 			}
 		}
+		try {
+		    this.tableColumnDatas.filter(x => pkInsertEntityList.includes(x.ENTITY_ID)||pkDeleteEntityList.includes(x.ENTITY_ID)).forEach(x => this.tableColumnDatas.splice(this.tableColumnDatas.indexOf(x), 1));
+        } catch(e) {
+            console.log(e)
+        }
 		
-		this.tableColumnDatas.filter(x => pkInsertEntityList.includes(x.ENTITY_ID)||pkDeleteEntityList.includes(x.ENTITY_ID)).forEach(x => this.tableColumnDatas.splice(this.tableColumnDatas.indexOf(x), 1));
 		this.tableColumnDatas = this.tableColumnDatas.concat(entityColumnList);
 		console.log( this.tableColumnDatas )
 

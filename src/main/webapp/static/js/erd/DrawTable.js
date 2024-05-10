@@ -104,11 +104,11 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		var tableFullNm = ""; // tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"]+" [" + tableInfo["TABL_SCD_NM"] +"]";
 
 		if( Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue() == 'LOGICAL' ) {
-			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]; // + " [" + tableInfo["TABL_SCD_NM"] +"]";
+			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"] + " [" + tableInfo["TABL_SCD_NM"] +"]";
 		} else if( Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue() == 'PHYSICAL' )  {
-			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["ENTITY_NM"]; // + " [" + tableInfo["TABL_SCD_NM"] +"]";
+			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["ENTITY_NM"] + " [" + tableInfo["TABL_SCD_NM"] +"]";
 		} else {
-			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"]; // + " [" + tableInfo["TABL_SCD_NM"] +"]";
+			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"] + " [" + tableInfo["TABL_SCD_NM"] +"]";
 		}
 		
 		this.tableNameText = _this.draw.text(function(t) {
