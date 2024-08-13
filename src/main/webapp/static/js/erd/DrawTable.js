@@ -11,7 +11,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 	
 	this.TABLE_INFO = {"width": 150, "height": 200, "resizerRadius" : 8};
 
-	this.CONSTANT = { STROKE_WIDTH : 0.7, POINT_RADIUS : 6,  HEADER_HIGHT : 15, HEADER_HIGHT_GAP : 9, PAD_TEXT_LEFT:3, PK_LINE : 0, COLUMN_HIGHT : 12 };  //  HEADER_HIGHT_GAP = HEADER_HIGHT - POINT_RADIUS/2
+	this.CONSTANT = { STROKE_WIDTH : 0.7, POINT_RADIUS : 6,  HEADER_HIGHT : 15, HEADER_HIGHT_GAP : 9, PAD_TEXT_LEFT:3, PK_LINE : 0, COLUMN_HIGHT : 13 };  //  HEADER_HIGHT_GAP = HEADER_HIGHT - POINT_RADIUS/2
 	
 	this.pathRelation = {};
 	this.tableGrpTransform = { translateX : 0, translateY : 0 };
@@ -37,7 +37,69 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 	this.setTableInfo = function(tableInfo) {
 		this.tableInfo = tableInfo;
 	}
+
 	
+	this.getTableColumns = function() {
+		var _this = this;
+		var columns = _this.drawDataLoad.getTableColumns(_this.tableInfo['ENTITY_ID']);
+		
+		return columns;
+	}
+	
+	this.hasPk = function() {
+		var _this = this;
+		var hasPk = false;
+		var columns = _this.drawDataLoad.getTableColumns(_this.tableInfo['ENTITY_ID']);
+		
+		for( var idxCol=0 ;idxCol<columns.length;idxCol++) {
+			if( columns[idxCol]["PK_YN"] == "Y" ) {
+				hasPk = true;
+				break;
+			}
+		}
+		
+		return hasPk;
+	}
+	
+	this.isSubTable = function() { // IS_SUB_TABLE
+		/*
+		var _this = this;
+		var isSubTable = false;
+		var columns = _this.drawDataLoad.getTableColumns(_this.tableInfo['ENTITY_ID']);
+		
+		for( var idxCol=0 ;idxCol<columns.length;idxCol++) {
+			if( columns[idxCol]["PK_YN"] == "Y" && columns[idxCol]["FK_YN"] == "Y" ) {
+				isSubTable = true;
+				console.log("isSubTable : ",  isSubTable , _this.tableInfo['ENTITY_ID'], columns[idxCol])
+				break;
+			}
+		}
+		return isSubTable;
+		*/
+		return (this.relationEnd.length > 0)
+	}
+
+	this.isLastPk = function(columnIdx) { // IS_LAST_PK_YN
+		var _this = this;
+		var isLastPk = false;
+		var columns = _this.drawDataLoad.getTableColumns(_this.tableInfo['ENTITY_ID']);
+		
+		if( columns[columnIdx]["PK_YN"] == "Y" ) {
+			if( columnIdx == columns.length-1 ) {
+				isLastPk = true;
+			} else if( columnIdx < columns.length-1 ){
+				if( columns[columnIdx+1]["PK_YN"] != "Y" ) {
+					isLastPk = true;
+				}
+			}
+		}
+		
+		return isLastPk;
+	}
+
+	this.setTableAttr = function(attr, value) {
+		this.tableInfo[attr] = value;
+	}
 	/*
 	 * 테이블 명 변경
 	 */
@@ -49,14 +111,20 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 
 		//테이블 명
 		var tableFullNm = ""; // tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"]+" [" + tableInfo["TABL_SCD_NM"] +"]";
+
+		if(tableInfo["USE_YN"] == 'N') {
+			tableFullNm += "-";
+		}
 		
-		console.log( Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue() )
-		if( Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue() == 'LOGICAL' ) {
-			tableFullNm = (tableInfo["DML_TCD"]=="" ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]+ " [" + tableInfo["TABL_SCD_NM"] +"]";
-		} else if( Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue() == 'PHYSICAL' )  {
-			tableFullNm = (tableInfo["DML_TCD"]=="" ? "" : tableInfo["DML_TCD"]) + tableInfo["ENTITY_NM"]+ " [" + tableInfo["TABL_SCD_NM"] +"]";
+		var displayCode =  Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue();
+		// var displayCode =  tableInfo["ENTITY_DSPL_CD"];
+		console.log("displayCode ," ,displayCode )
+		if( displayCode == 'LOGICAL' ) {
+			tableFullNm += (tableInfo["DML_TCD"]=="" ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]+ " [" + tableInfo["TABL_SCD_NM"] +"]";
+		} else if( displayCode == 'PHYSICAL' )  {
+			tableFullNm += (tableInfo["DML_TCD"]=="" ? "" : tableInfo["DML_TCD"]) + tableInfo["ENTITY_NM"]+ " [" + tableInfo["TABL_SCD_NM"] +"]";
 		} else {
-			tableFullNm = (tableInfo["DML_TCD"]=="" ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"]+ " [" + tableInfo["TABL_SCD_NM"] +"]";
+			tableFullNm += (tableInfo["DML_TCD"]=="" ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]+" / "+tableInfo["ENTITY_NM"]+ " [" + tableInfo["TABL_SCD_NM"] +"]";
 		}
 		
 		// console.log( Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue(), tableFullNm);
@@ -64,7 +132,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		this.tableNameText = _this.draw.text(function(t) {
 			for( var i=0; i<tableFullNm.length; i++) {
 				if( i==0 ) {
-					t.tspan(tableFullNm[i]).fill(_this.getTableNameColor(_this.tableInfo)).dx(2).dy(2);
+					t.tspan(tableFullNm[i]).fill(_this.getTableNameColor(_this.tableInfo)).dx(3).dy(2);
 				} else {
 					t.tspan(tableFullNm[i]).fill(_this.getTableNameColor(_this.tableInfo));
 				}
@@ -74,12 +142,13 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		// this.tableNameText = this.draw.text(function(t) {t.tspan(tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"]+" [" + tableInfo["TABL_SCD_NM"] +"]").fill(_this.getTableNameColor(_this.tableInfo)).dx(2).dy(2)} ); // _this.getTableNameColor(_this.tableInfo)
 	
 		// 삭제건은 취소선 처리.
+		/*
 		if(tableInfo["USE_YN"] == 'N') {
 			this.tableNameText.attr({"text-decoration":"line-through"});
 		}
-			
+		*/
 		this.tableHeader.add(this.tableNameText);
-		this.columsAroundRect.attr({rx: tableInfo["IS_SUB_TABLE"] == "Y" ? 5 : 0});
+		this.columsAroundRect.attr({rx: this.isSubTable() == true ? 5 : 0}); // tableInfo["IS_SUB_TABLE"]
 	}
 	
 	
@@ -95,38 +164,66 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		_this.tableGrpTransform = { translateX : this.tableGrp.transform('translateX') , translateY : this.tableGrp.transform('translateY') };
 		
 		// 테이블 명 영역
-		this.tableHeader = this.draw.group().addClass("header").addClass("header_" + tableInfo["ENTITY_ID"]).transform({translate: [0, 0]}); // [3, 2]
+		this.tableHeader = this.draw.group().addClass("header").addClass("header_" + tableInfo["ENTITY_ID"]).transform({translate: [0, 10]}); // [3, 2]
 		this.tableGrp.add(this.tableHeader);
 		
 		this.rectHeader = this.draw.rect( this.getTableWidth(tableInfo) , this.CONSTANT.HEADER_HIGHT).attr({"fill": tableInfo["TABLE_BACKGROUND_COLOR"]||"#FFFFFF"}); // 0099FF
 		
+		this.rectHeader.transform({
+				translate: [0, -10], // [4, 12+4]
+			})
+			
 		//테이블 명
 		var tableFullNm = ""; // tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"]+" [" + tableInfo["TABL_SCD_NM"] +"]";
 
-		if( Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue() == 'LOGICAL' ) {
-			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"] + " [" + tableInfo["TABL_SCD_NM"] +"]";
-		} else if( Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue() == 'PHYSICAL' )  {
-			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["ENTITY_NM"] + " [" + tableInfo["TABL_SCD_NM"] +"]";
+		if(tableInfo["USE_YN"] == 'N') {
+			tableFullNm = "-";
+		}
+		var displayCode =  tableInfo["ENTITY_DSPL_CD"];
+		if( displayCode == 'LOGICAL' ) {
+			tableFullNm += (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"] + " [" + tableInfo["TABL_SCD_NM"] +"]";
+		} else if( displayCode == 'PHYSICAL' )  {
+			tableFullNm += (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["ENTITY_NM"] + " [" + tableInfo["TABL_SCD_NM"] +"]";
 		} else {
-			tableFullNm = (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"] + " [" + tableInfo["TABL_SCD_NM"] +"]";
+			tableFullNm += (!tableInfo["DML_TCD"] ? "" : tableInfo["DML_TCD"]) + tableInfo["TABLE_NM"]+" / "+tableInfo["ENTITY_NM"] + " [" + tableInfo["TABL_SCD_NM"] +"]";
 		}
 		
 		this.tableNameText = _this.draw.text(function(t) {
 			for( var i=0; i<tableFullNm.length; i++) {
 				if( i==0 ) {
 					t.tspan(tableFullNm[i]).fill(_this.getTableNameColor(_this.tableInfo)).dx(2).dy(2);
+					
 				} else {
 					t.tspan(tableFullNm[i]).fill(_this.getTableNameColor(_this.tableInfo));
 				}
+				/*
+				if( i==0 ) {
+					if(tableInfo["USE_YN"] == 'N') {
+						t.tspan(tableFullNm[i]).attr({"text-decoration":"line-through", "text-decoration-color":"red"}).fill(_this.getTableNameColor(_this.tableInfo)).dx(2).dy(2);
+					} else {
+						t.tspan(tableFullNm[i]).fill(_this.getTableNameColor(_this.tableInfo)).dx(2).dy(2);
+					}
+					
+				} else {
+					if(tableInfo["USE_YN"] == 'N') {
+						t.tspan(tableFullNm[i]).attr({"text-decoration":"line-through", "text-decoration-color":"red"}).fill(_this.getTableNameColor(_this.tableInfo));
+					} else {
+						t.tspan(tableFullNm[i]).fill(_this.getTableNameColor(_this.tableInfo));
+					}
+					
+				}
+				*/
 				
 			}
-		});
+		}).attr({ "font-size": "11px", "fill" : "white", "text-anchor": "start", }); // "text-anchor": "start",
 		// this.tableNameText = this.draw.text(function(t) {t.tspan(tableInfo["TABLE_NM"]+"/"+tableInfo["ENTITY_NM"]+" [" + tableInfo["TABL_SCD_NM"] +"]").fill(_this.getTableNameColor(_this.tableInfo)).dx(2).dy(2)} ); // _this.getTableNameColor(_this.tableInfo)
 
 		// 테이블 삭제건은 취소선 처리.
+		/*
 		if(tableInfo["USE_YN"] == 'N') {
 			this.tableNameText.attr({"text-decoration":"line-through", "text-decoration-color":"red"});
 		}
+		*/
 		this.tableHeader.add(this.rectHeader);
 		this.tableHeader.add(this.tableNameText);
 		
@@ -147,13 +244,13 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 			.attr({
 				  stroke: _this.getTableLineColor(_this.tableInfo)
 				, 'stroke-width': this.CONSTANT.STROKE_WIDTH
-				, rx : tableInfo["IS_SUB_TABLE"] =="Y" ? 5 : 0
+				, rx : _this.isSubTable() == true ? 5 : 0   // tableInfo["IS_SUB_TABLE"]
 				, fill : this.getTableBackgroundColor(_this.tableInfo)
 				, 'stroke-dasharray' : (tableInfo["ENTITY_TCD"] == "MVIEW" || tableInfo["ENTITY_TCD"] == "VIEW") ?  '5,5' : ""  
 				//, fill: '#f06'
 				//, 'fill-opacity': 0.5
 			}).transform({
-				translate: [0, 14], // [4, 12+4]
+				translate: [0, 15], // [4, 12+4]
 			}); // todo  .selectize()
 		this.tableColumns.add(this.columsAroundRect);
 		
@@ -196,7 +293,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 				_this.relationByButtonBegin = true;
 				_this.drawDataLoad.setRelationByButton( Ext.getCmp('DRAW_BUTTON').getValue(), _this.draw, _this.tableGrp, _this.subjectAreaInfo,  _this.tableInfo, ev  );
 			} 
-		    // 1:0or1관계선
+			// 1:0or1관계선
 			else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'relNonIden' ) {
 				_this.relationByButtonBegin = true;
 				_this.drawDataLoad.setRelationByButton( Ext.getCmp('DRAW_BUTTON').getValue(), _this.draw, _this.tableGrp, _this.subjectAreaInfo,  _this.tableInfo, ev  );
@@ -299,10 +396,10 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		this.tableGrp.on("mouseover", function(ev) {
 			// 테이블 draggable
 			if( erdAuth.isEditable()  ) {
-                _this.tableGrp.attr("cursor", _this.isSelected ? "move" : "default");
-            } else {
-                _this.tableGrp.attr("cursor", "default");
-            }
+				_this.tableGrp.attr("cursor", _this.isSelected ? "move" : "default");
+			} else {
+				_this.tableGrp.attr("cursor", "default");
+			}
 			
 		});
 		this.tableGrp.on("dragstart", function(ev) { 
@@ -372,9 +469,9 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 			var region = { height : Ext.getCmp(subjectAreaInfo["SUBJECT_ID"]).getEl().getRegion().height, width : Ext.getCmp(subjectAreaInfo["SUBJECT_ID"]).getEl().getRegion().width};
 			var tableGrpBox = { 
 					left : Math.ceil(_this.tableGrp.transform().translateX)
-				, top : Math.ceil(_this.tableGrp.transform().translateY)
-				, right : Math.ceil(_this.tableGrp.transform().translateX + _this.columsAroundRect.width())
-				, bottom : Math.ceil(_this.tableGrp.transform().translateY + _this.columsAroundRect.height()) + 15
+					, top : Math.ceil(_this.tableGrp.transform().translateY)
+					, right : Math.ceil(_this.tableGrp.transform().translateX + _this.columsAroundRect.width())
+					, bottom : Math.ceil(_this.tableGrp.transform().translateY + _this.columsAroundRect.height()) + 5
 				};
 				
 			//console.log( tableGrpBox )
@@ -502,7 +599,6 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 	this.addRelationStart = function(DrawRelation) {
 		
 		this.relationStart.push(DrawRelation);
-		
 		// console.log( this.tableInfo["ENTITY_ID"], this.relationStart );
 	}
 	
@@ -510,6 +606,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		
 		this.relationEnd.push(DrawRelation);
 		
+		this.columsAroundRect.attr({rx: this.isSubTable() == true ? 5 : 0});
 		// console.log( this.tableInfo["ENTITY_ID"], this.relationEnd );
 	}
 	
@@ -534,23 +631,26 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		}
 		console.log( _this.pkLine );
 		if( _this.pkLine ) {
-    		// pk라인 삭제
-    		_this.pkLine.remove();
+			// pk라인 삭제
+			_this.pkLine.remove();
 		}
 		// 컬럼 그리기
-		_this.drawColumns()
+		_this.drawColumns(true);
 	}
+	
 	/*
 	 * 컬럼 그리기.
 	 */
-	this.drawColumns = function() {
+	this.drawColumns = function(isRedraw) {
+		isRedraw = isRedraw ? isRedraw :  false;
+		
 		var _this = this;
 		// pk가 없을 경우
 		var colIdx = 0;
 		var pkLineGap = 0;
 		var pkGap = 3;
 		console.log( _this.tableInfo );
-		if( !_this.tableInfo["HAS_PK"] ) {
+		if( !_this.hasPk() ) { // _this.tableInfo["HAS_PK"] 
 			_this.drawPkLine(colIdx);
 			colIdx +=2;
 			pkLineGap = 8;
@@ -563,15 +663,25 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		var columnName = null, columnType = null, maxColumnLength = 0;
 		_this.tableColumnDataList = new Array();
 
+		var displayCode =  tableInfo["ENTITY_DSPL_CD"];
+		
+		if( isRedraw ) {
+			displayCode = Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue();
+		}
+		var isLgcDsply = displayCode==null||displayCode.indexOf("LOGICAL")>=0 ;
+		var isPscDsply = displayCode==null||displayCode.indexOf("PHYSICAL")>=0 ;
+
+		/*
 		var isLgcDsply = Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue()==null||Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue().indexOf("LOGICAL")>=0 ;
 		var isPscDsply = Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue()==null||Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue().indexOf("PHYSICAL")>=0 ;
-		
+		*/
+
+		var entityTcdGap = (tableInfo["ENTITY_TCD"] == "MVIEW" || tableInfo["ENTITY_TCD"] == "VIEW") ? -17 : 0;
 		// 컬럼 명 추가..
 		for( var idxCol=0 ;idxCol<columns.length;idxCol++) {
 			var columnInfo = columns[idxCol];
-
 			_this.tableColumnDataList[idxCol] = _this.draw.group().addClass("column").transform({
-										translate: [_this.CONSTANT.PAD_TEXT_LEFT, pkGap + pkLineGap+(colIdx+(!_this.tableInfo["HAS_PK"] ? 0 : 1))* this.CONSTANT.COLUMN_HIGHT],
+										translate: [_this.CONSTANT.PAD_TEXT_LEFT, pkGap+entityTcdGap + pkLineGap+10+(colIdx+(!_this.hasPk() ? 0 : 1))* this.CONSTANT.COLUMN_HIGHT],   // _this.tableInfo["HAS_PK"]
 									});
 
 			if( _this.tableColumnDataList[idxCol].transform().translateY + _this.CONSTANT.COLUMN_HIGHT > this.columsAroundRect.height() - _this.CONSTANT.HEADER_HIGHT_HIGHT) {
@@ -593,7 +703,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 					for( var i=0; i<attrNm.length; i++) {
 						t.tspan(attrNm[i]).fill('#' + columnInfo["COLOR"]);
 					}
-				});
+				}).attr({ "font": "11px sans-serif", "font-size": "11px", });;
 				
 				// columnName = _this.draw.text(function(t) {t.tspan(columnInfo["ATTRIBUTE_NM"] + (columnInfo["FK_YN"]=="Y" ? "(FK)" : "" )).fill('#' + columnInfo["COLOR"]).dy(0)} );
 			} else {
@@ -602,7 +712,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 			
 			// 삭제건은 취소선 처리.
 			if(columnInfo["USE_YN"] == 'N' && columnInfo["PK_YN"] == "Y") {
-			     columnName.attr({"text-decoration":"line-through", "text-decoration-color":"red"});
+				 columnName.attr({"text-decoration":"line-through", "text-decoration-color":"red"});
 			}
 			
 			if( columnInfo["DATA_TYPE"] != "COMMENT") {
@@ -613,13 +723,13 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 			colIdx++;
 			
 			// 마지막 pk일 경우
-			if( columnInfo["IS_LAST_PK_YN"] == "Y" ) {
+			if( _this.isLastPk(idxCol) == true  ) { // columnInfo["IS_LAST_PK_YN"]== "Y"
 				_this.drawPkLine(colIdx);
 				if( this.tableInfo["ENTITY_TCD"] != "VIEW") {
-                    pkLineGap = 2;
-                } else {
-                    pkLineGap = 0;
-                }
+					pkLineGap = 2;
+				} else {
+					pkLineGap = 0;
+				}
 				
 			}
 		}
@@ -666,7 +776,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 							txt = columnNm[i];
 						}
 						if( i==0 ) {
-							tspan = t.tspan(txt).fill('#' + columnInfo["COLOR"]).dx( maxColumnLength + (isLgcDsply?5:0)).dy(0);
+							tspan = t.tspan(txt).fill('#' + columnInfo["COLOR"]).dx( maxColumnLength + (isLgcDsply?15:0)).dy(0);
 						} else {
 							tspan = t.tspan(txt).fill('#' + columnInfo["COLOR"]);
 						}
@@ -676,7 +786,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 							paddingArr[idxCol] = Math.max(paddingArr[idxCol], tspan.bbox().x+ tspan.bbox().width );
 						}
 					}
-				});
+				}).attr({ "font": "11px sans-serif", "font-size": "11px", });
 				// 삭제건은 취소선 처리.
 				if(columnInfo["USE_YN"] == 'N') {
 					// columnType.attr({"text-decoration":"line-through", "text-decoration-color":"red"});
@@ -705,12 +815,12 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 				
 				for( var i=0; dataType && i<dataType.length; i++ ) {
 					if( i==0 ) {
-						tspan = t.tspan(dataType[i]).dx( padding_x ).dy(0);
+						tspan = t.tspan(dataType[i]).dx( padding_x+10 ).dy(0);
 					} else {
 						tspan = t.tspan(dataType[i]);
 					}
 				}
-			} );
+			} ).attr({ "font": "11px sans-serif", "font-size": "11px", });
 			_this.tableColumnDataList[idxCol].add(columnType);
 		}
 		
@@ -750,7 +860,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		for( var idxCol=0 ;idxCol<columns.length;idxCol++) {
 			_this.columnRectList[idxCol].width(_this.columsAroundRect.width()-4);
 
-			if( _this.tableColumnDataList[idxCol].transform().translateY > _this.columsAroundRect.height() ) {
+			if( _this.tableColumnDataList[idxCol].transform().translateY > _this.columsAroundRect.height()+10 ) {
 				_this.tableColumnDataList[idxCol].hide();
 				_this.tableGroupHasHidden.show();
 			} else {
@@ -779,18 +889,18 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 	this.drawPkLine = function( colIdx ) {
 		var _this = this;
 		if( this.tableInfo["ENTITY_TCD"] != "VIEW") {
-    		if( colIdx == 0 ) {
-    			this.pkLine = this.draw.path('M 0 '+ 28+' H'+(this.getTableWidth(_this.tableInfo))).attr({ 'stroke-width':this.CONSTANT.STROKE_WIDTH , stroke: this.getTableLineColor(_this.tableInfo)});
-    		} else {
-    			this.pkLine = this.draw.path('M 0 '+ (28+((colIdx-1)*12))+' H'+(this.getTableWidth(_this.tableInfo))).attr({'stroke-width':this.CONSTANT.STROKE_WIDTH , stroke: this.getTableLineColor(_this.tableInfo)});
-    		}
-        }
-        
+			if( colIdx == 0 ) {
+				this.pkLine = this.draw.path('M 0 '+ 30+' H'+(this.getTableWidth(_this.tableInfo))).attr({ 'stroke-width':this.CONSTANT.STROKE_WIDTH , stroke: this.getTableLineColor(_this.tableInfo)});
+			} else {
+				this.pkLine = this.draw.path('M 0 '+ (30+((colIdx-1)*13))+' H'+(this.getTableWidth(_this.tableInfo))).attr({'stroke-width':this.CONSTANT.STROKE_WIDTH , stroke: this.getTableLineColor(_this.tableInfo)});
+			}
+		}
+		
 		if( this.tableInfo["ENTITY_TCD"] == "MVIEW") {
-            this.pkLine.attr({
-                'stroke-dasharray' : '5,5',
-            })
-        } 
+			this.pkLine.attr({
+				'stroke-dasharray' : '5,5',
+			})
+		} 
 		// console.log("this.pkLine", this.tableInfo , this.pkLine);
 		this.tableColumns.add(this.pkLine);
 	}
@@ -799,11 +909,11 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 	 * PK를 구분하는 선을 
 	 */
 	this.redrawPkLine = function(width) {
-        if( this.tableInfo["ENTITY_TCD"] != "VIEW") {
-    		var pathArr = this.pkLine.array();
-    		var path = pathArr[0][0]+ pathArr[0][1] + " " + pathArr[0][2] + " H "+ width;
-    		this.pkLine.plot(path);
-    	}
+		if( this.tableInfo["ENTITY_TCD"] != "VIEW") {
+			var pathArr = this.pkLine.array();
+			var path = pathArr[0][0]+ pathArr[0][1] + " " + pathArr[0][2] + " H "+ width;
+			this.pkLine.plot(path);
+		}
 	}
 	
 	/*
@@ -1150,8 +1260,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 	
 	this.getTableRect = function(tableInfo) {
 		return SVG('rect.'+"rect_"+_this.subjectAreaInfo["SUBJECT_ID"]+"_" + tableInfo["entity_if"]);
-	}
-	
+	}	
 
 	this.remove = function() {
 		this.tableGrp.remove();
@@ -1187,6 +1296,7 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		for( var i=0; i<_this.relationStart.length ; i++ ) {
 			var relation = _this.relationStart[i];
 			if( relation.relationInfo["START_ENTITY_ID"] == start_entity_id && relation.relationInfo["END_ENTITY_ID"] == end_entity_id ) {
+				_this.drawDataLoad.deleteRelationOnSubjectAreaDatas( _this.subjectAreaInfo["SUBJECT_ID"], relation.relationInfo["RELATION_ID"]);
 				relation.relationInfo["PATHS"] = "";
 				idx1.push(i);
 			}
@@ -1199,17 +1309,21 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 		for( var i=0; i<_this.relationEnd.length ; i++ ) {
 			var relation = _this.relationEnd[i];
 			if( relation.relationInfo["START_ENTITY_ID"] == start_entity_id && relation.relationInfo["END_ENTITY_ID"] == end_entity_id ) {
+				_this.drawDataLoad.deleteRelationOnSubjectAreaDatas( _this.subjectAreaInfo["SUBJECT_ID"], relation.relationInfo["RELATION_ID"]);
 				relation.relationInfo["PATHS"] = "";
 				idx2.push(i);
 			}
 		}
 		for( var i=idx2.length-1; i>=0; i-- ) {
-			_this.relationStart.splice(idx2[i], 1);
+			_this.relationEnd.splice(idx2[i], 1);
 		}
 		
 	}
-	
-	this.deleteTable = function() {
+		
+	this.deleteTable = function(_delProject) {
+		// 프로젝트에서 삭제일 경우..
+		
+		var delProject = _delProject||false;
 		var _this = this;
 		_this.tableGrp.remove();
 		for( var point in _this.pointsList ) {
@@ -1221,22 +1335,28 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 				var table = _this.drawDataLoad.getDrawedTable(_this.tableInfo["SUBJECT_ID"], entity_id);
 
 				//var idx1 = new Array();
-				for( var i=table.relationStart.length-1; i>=0 ; i-- ) {
-					//_this.relationStart[i].redrawRelationOfStart(trans);
-					
-					var relation = table.relationStart[i];
-					relation.deleteRelation();
-
-					_this.drawDataLoad.getDrawedTable(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["START_ENTITY_ID"]).deleteTableRelation(relation.relationInfo["START_ENTITY_ID"], relation.relationInfo["END_ENTITY_ID"]);
-					_this.drawDataLoad.getDrawedTable(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["END_ENTITY_ID"]).deleteTableRelation(relation.relationInfo["START_ENTITY_ID"], relation.relationInfo["END_ENTITY_ID"]);
-					
-					/*
-					if( relation.relationInfo["SUBJECT_ID"] ==  _this.drawDataLoad.selectTables["SUBJECT_ID"] 
-						&& relation.relationInfo["START_ENTITY_ID"] == entity_id ) {
-						idx1.push(i);
+				if( table ) {
+					for( var i=table.relationStart.length-1; i>=0 ; i-- ) {
+						//_this.relationStart[i].redrawRelationOfStart(trans);
+						
+						var relation = table.relationStart[i];
+						relation.deleteRelation();
+						
+						// 프로젝트에서 삭제인 경우 
+						if( delProject ) {
+							_this.drawDataLoad.deleteRelationOnProject(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["RELATION_ID"]);
+						}
+						_this.drawDataLoad.getDrawedTable(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["START_ENTITY_ID"]).deleteTableRelation(relation.relationInfo["START_ENTITY_ID"], relation.relationInfo["END_ENTITY_ID"]);
 						_this.drawDataLoad.getDrawedTable(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["END_ENTITY_ID"]).deleteTableRelation(relation.relationInfo["START_ENTITY_ID"], relation.relationInfo["END_ENTITY_ID"]);
+						
+						/*
+						if( relation.relationInfo["SUBJECT_ID"] ==  _this.drawDataLoad.selectTables["SUBJECT_ID"] 
+							&& relation.relationInfo["START_ENTITY_ID"] == entity_id ) {
+							idx1.push(i);
+							_this.drawDataLoad.getDrawedTable(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["END_ENTITY_ID"]).deleteTableRelation(relation.relationInfo["START_ENTITY_ID"], relation.relationInfo["END_ENTITY_ID"]);
+						}
+						*/
 					}
-					*/
 				}
 				/*
 				for( var i=idx1.length-1; i>=0; i-- ) {
@@ -1245,21 +1365,28 @@ var DrawTable = function(draw, subjectAreaInfo, tableInfo, drawDataLoad) {
 				*/
 
 				//var idx2 = new Array();
-				for( var i=table.relationEnd.length-1; i>=0 ; i-- ) {
-					//_this.relationEnd[i].redrawRelationOfEnd(trans);
-					var relation = table.relationEnd[i];
-					relation.deleteRelation();
+				if( table ) {
+					for( var i=table.relationEnd.length-1; i>=0 ; i-- ) {
+						//_this.relationEnd[i].redrawRelationOfEnd(trans);
+						var relation = table.relationEnd[i];
+						relation.deleteRelation();
 
-					_this.drawDataLoad.getDrawedTable(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["START_ENTITY_ID"]).deleteTableRelation(relation.relationInfo["START_ENTITY_ID"], relation.relationInfo["END_ENTITY_ID"]);
-					_this.drawDataLoad.getDrawedTable(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["END_ENTITY_ID"]).deleteTableRelation(relation.relationInfo["START_ENTITY_ID"], relation.relationInfo["END_ENTITY_ID"]);
-
-					/*
-					if( relation.relationInfo["SUBJECT_ID"] ==  _this.drawDataLoad.selectTables["SUBJECT_ID"] 
-						&& relation.relationInfo["END_ENTITY_ID"] == entity_id) {
-						idx2.push(i);
+						// 프로젝트에서 삭제인 경우 
+						if( delProject ) {
+							_this.drawDataLoad.deleteRelationOnProject(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["RELATION_ID"]);
+						}
+						
 						_this.drawDataLoad.getDrawedTable(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["START_ENTITY_ID"]).deleteTableRelation(relation.relationInfo["START_ENTITY_ID"], relation.relationInfo["END_ENTITY_ID"]);
+						_this.drawDataLoad.getDrawedTable(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["END_ENTITY_ID"]).deleteTableRelation(relation.relationInfo["START_ENTITY_ID"], relation.relationInfo["END_ENTITY_ID"]);
+	
+						/*
+						if( relation.relationInfo["SUBJECT_ID"] ==  _this.drawDataLoad.selectTables["SUBJECT_ID"] 
+							&& relation.relationInfo["END_ENTITY_ID"] == entity_id) {
+							idx2.push(i);
+							_this.drawDataLoad.getDrawedTable(relation.relationInfo["SUBJECT_ID"], relation.relationInfo["START_ENTITY_ID"]).deleteTableRelation(relation.relationInfo["START_ENTITY_ID"], relation.relationInfo["END_ENTITY_ID"]);
+						}
+						*/
 					}
-					*/
 				}
 				/*
 				for( var i=idx2.length-1; i>=0; i-- ) {

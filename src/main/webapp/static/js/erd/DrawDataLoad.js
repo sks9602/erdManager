@@ -14,7 +14,7 @@ var DrawDataLoad = function() {
 	
 	this.relationMarker = { };
 
-    this.projectBuyInfo = { LOADED : false, ENTITY_CNT : 0, USER_CNT : 0, BUY_ENTITY_CNT : 0, BUY_USR_CNT : 0, BUY_START_DT : '20200101', BUY_END_DT : '99991231', VIEW_END_DT : '99991231', EDITABLE_YN : 'N', VIEWABLE_YN : 'N'};
+	this.projectBuyInfo = { LOADED : false, ENTITY_CNT : 0, USER_CNT : 0, BUY_ENTITY_CNT : 0, BUY_USR_CNT : 0, BUY_START_DT : '20200101', BUY_END_DT : '99991231', VIEW_END_DT : '99991231', EDITABLE_YN : 'N', VIEWABLE_YN : 'N'};
 	/* 
 	 * Project정보 조회.
 	 */
@@ -125,7 +125,11 @@ var DrawDataLoad = function() {
 					}
 					*/
 				];
-	this.relationDatas  = [];
+	this.relationDatas  = [
+		/*
+		{COLOR: null, DEL_YN: "N", END_ENTITY_ID: "e54651e2-04ab-11ef-b649-6c2408968271", END_ENTITY_NM: "CEHR_HR_교육_이력", END_POSITION: null, END_X: null, END_Y: null, NON_IDEN_YN: "N", PATHS: null, RECURSIVE_YN: null, RELATION: "c957199f-03ce-11ef-b758-6c2408968271_e54651e2-04ab-11ef-b649-6c2408968271", RELATION_ID: "80db2be8-04ac-11ef-b649-6c2408968271", RELATION_NAME: null, RELATION_TYPE:"rel1toN", START_ENTITY_ID: "c957199f-03ce-11ef-b758-6c2408968271", START_ENTITY_NM: "CEHR_HR_교육", START_POSITION: null, START_X: null, START_Y: null}
+		*/
+	];
 				
 	this.loadData = function() {
 		var response = Ext.Ajax.request({
@@ -195,94 +199,94 @@ var DrawDataLoad = function() {
 		});
 		this.relationDatas = Ext.decode(response.responseText).data;
 
-        var response = Ext.Ajax.request({
-            async: false,
-            url: '/project/data/loginUser.do',
-            params: {
+		var response = Ext.Ajax.request({
+			async: false,
+			url: '/project/data/loginUser.do',
+			params: {
 
-            }
-        });
-        this.projectUserDatas = Ext.decode(response.responseText).data;
+			}
+		});
+		this.projectUserDatas = Ext.decode(response.responseText).data;
 
-        this.loadProjectBuyInfo();
+		this.loadProjectBuyInfo();
 
-        console.log( this.projectBuyInfo )
+		console.log( this.projectBuyInfo )
 		
 	}
 
-    this.reloadData = function(gbn) {
+	this.reloadData = function(gbn) {
 
-        var response = Ext.Ajax.request({
-            async: false,
-            url: '/subject/data/list.do',
-            params: {
-                    
-            }
-        });
-        this.subjectAreaDatas = Ext.decode(response.responseText).data;
-    }
+		var response = Ext.Ajax.request({
+			async: false,
+			url: '/subject/data/list.do',
+			params: {
+					
+			}
+		});
+		this.subjectAreaDatas = Ext.decode(response.responseText).data;
+	}
 
-    this.loadProjectBuyInfo = function() {
-        if( this.projectBuyInfo.LOADED == false ) {
-            var response = Ext.Ajax.request({
-                async: false,
-                url: '/project/data/buyDetail.do',
-                params: {
-    
-                }
-            });
-            this.projectBuyInfo = Ext.decode(response.responseText).data;
-            
-            if( this.projectBuyInfo == null || this.projectBuyInfo == undefined ) {
-                this.projectBuyInfo = { LOADED : true, ENTITY_CNT : 0, USER_CNT : 0, BUY_ENTITY_CNT : 0, BUY_USR_CNT : 0, BUY_START_DT : '20200101', BUY_END_DT : '99991231', VIEW_END_DT : '99991231', EDITABLE_YN : 'N', VIEWABLE_YN : 'N'};
-            } else {
-                this.projectBuyInfo.LOADED = true;
-            }
-            
-        }
-        
-        console.log( this.projectBuyInfo );
-    }
-    /**
-     * 모델링 권한 있는지..
-     */
-    this.hasUserAuthOfModeler = function() {
-        return this.projectUserDatas.AUTH== 'MODELER' || this.projectUserDatas.AUTH== 'MANAGER';
-    }
+	this.loadProjectBuyInfo = function() {
+		if( this.projectBuyInfo.LOADED == false ) {
+			var response = Ext.Ajax.request({
+				async: false,
+				url: '/project/data/buyDetail.do',
+				params: {
+	
+				}
+			});
+			this.projectBuyInfo = Ext.decode(response.responseText).data;
+			
+			if( this.projectBuyInfo == null || this.projectBuyInfo == undefined ) {
+				this.projectBuyInfo = { LOADED : true, ENTITY_CNT : 0, USER_CNT : 0, BUY_ENTITY_CNT : 0, BUY_USR_CNT : 0, BUY_START_DT : '20200101', BUY_END_DT : '99991231', VIEW_END_DT : '99991231', EDITABLE_YN : 'N', VIEWABLE_YN : 'N'};
+			} else {
+				this.projectBuyInfo.LOADED = true;
+			}
+			
+		}
+		
+		console.log( this.projectBuyInfo );
+	}
+	/**
+	 * 모델링 권한 있는지..
+	 */
+	this.hasUserAuthOfModeler = function() {
+		return this.projectUserDatas.AUTH== 'MODELER' || this.projectUserDatas.AUTH== 'MANAGER';
+	}
 
-    /**
-     * 모델링 권한 있는지..
-     */
-    this.isLogined = function() {
-        return this.projectUserDatas.LOGINED_YN == 'Y';
-    }
-    
-    /**
-     * 관리자 권한 있는지..
-     */
-    this.hasUserAuthOfManager = function() {
-        return this.projectUserDatas.AUTH== 'MANAGER';
-    }
-    
-    this.getUserInfo = function( ) {
-        return this.projectUserDatas;
-    }
-    
-    this.getProjectBuyInfo = function() {
-        return this.projectBuyInfo;
-    }
+	/**
+	 * 모델링 권한 있는지..
+	 */
+	this.isLogined = function() {
+		return this.projectUserDatas.LOGINED_YN == 'Y';
+	}
+	
+	/**
+	 * 관리자 권한 있는지..
+	 */
+	this.hasUserAuthOfManager = function() {
+		return this.projectUserDatas.AUTH== 'MANAGER';
+	}
+	
+	this.getUserInfo = function( ) {
+		return this.projectUserDatas;
+	}
+	
+	this.getProjectBuyInfo = function() {
+		return this.projectBuyInfo;
+	}
 
-    this.addProjectBuyInfo = function( gbn, _cnt) {
-        var cnt = _cnt||1;
-        if( gbn == 'ENTITY') {
-            this.projectBuyInfo.ENTITY_CNT += cnt;
-        } else if( gbn == 'USR') {
-            this.projectBuyInfo.USR += cnt;
-        } 
-        
-        console.log( this.projectBuyInfo);
-    }
-    
+	this.addProjectBuyInfo = function( gbn, _cnt) {
+		var cnt = _cnt||1;
+		if( gbn == 'ENTITY') {
+			this.projectBuyInfo.ENTITY_CNT += cnt;
+		} else if( gbn == 'USR') {
+			this.projectBuyInfo.USR += cnt;
+		} 
+		
+		console.log( this.projectBuyInfo);
+	}
+	
 	/**
 	 * SubjectArea별 테이블 목록 조회.
 	 */
@@ -292,10 +296,62 @@ var DrawDataLoad = function() {
 	}
 
 	/**
+	 * Entity삭제..
+	 */
+	this.deleteTableOnSubjectAreaDatas = function(subject_id, entity_id) {
+		 var tables = this.getTableOnSubjectAreaDatas().filter(function(item) {
+								if (item.SUBJECT_ID == subject_id && item.ENTITY_ID == entity_id) {
+									return false;
+								} else {
+									return true;
+								}
+							});
+		  this.tableOnSubjectAreaDatas = tables;
+	}
+	
+	this.deleteRelationOnProject  = function( subject_id,  relation_id ) {
+		var relations = this.getRelationDatas.filter(function(item) {
+								if (item.RELATION_ID == relation_id ) {
+									return false;
+								} else {
+									return true;
+								}
+							});
+		this.relationDatas = relations;
+		
+		// this.deleteRelationOnSubjectAreaDatas(subject_id, relation_id)
+	}
+	
+	/**
 	 * Entity목록..
 	 */
 	this.getEntityDatas = function() {
 		return this.entityDatas;
+	}
+	
+	this.updateEntityDatas = function(entity_id, attr, value, _isOnProject) {
+		var isOnProject = _isOnProject||false;
+		
+		var _this = this;
+		
+		// new Function("this.entityDatas = _this.entityDatas.map((entity) => entity.ENTITY_ID == entity_id ? { ...entity, "+attr+" : '"+value+"' } : entity)")();
+		this.entityDatas = _this.entityDatas.map((entity) => entity.ENTITY_ID == entity_id ? { ...entity, [attr] : value } : entity)
+		/*
+		for( var i=0 ; i<_this.entityDatas.length; i++ ) {
+			if( _this.entityDatas[i].ENTITY_ID == entity_id ) {
+				console.log( _this.entityDatas[i] );
+				if( isOnProject == true) {
+					_this.entityDatas[i][attr] = value;
+				}
+				
+				var table = drawDataLoad.getDrawedTable(drawDataLoad.getSelectedTables()["SUBJECT_ID"], entity_id);
+				if( table ) {
+					table.setTableAttr(attr, value);
+				}
+			}
+		}
+		*/
+		console.log( _this.entityDatas );
 	}
 	
 	this.getEntityById = function( entity_id) {
@@ -384,11 +440,44 @@ var DrawDataLoad = function() {
 		return this.relationOnSubjectAreaDatas;
 	}
 	
+	this.deleteRelationOnSubjectAreaDatas = function(subject_id, relation_id) {
+		var relations = this.getRelationOnSubjectAreaDatas().filter(function(item) {
+								console.log( item.SUBJECT_ID, item.RELATION_ID, item.SUBJECT_ID == subject_id && item.RELATION_ID == relation_id)
+								if (item.SUBJECT_ID == subject_id && item.RELATION_ID == relation_id) {
+									return false;
+								} else {
+									return true;
+								}
+							});
+		this.relationOnSubjectAreaDatas = relations;
+	}
+	
 	this.getRelationDatas = function() {
 		return this.relationDatas;
 	}
 	
+
+	this.deleteRelationDatas = function(relation_id) {
+		var relations = this.getRelationDatas().filter(function(item) {
+								console.log(  item.RELATION_ID, item.RELATION_ID == relation_id)
+								if (item.RELATION_ID == relation_id) {
+									return false;
+								} else {
+									return true;
+								}
+							});
+		this.relationDatas = relations;
+	}
 	
+	this.updateRelationDatas = function(relation_id, attr, val) {
+		console.log( this.getRelationDatas() );
+		this.getRelationDatas().forEach(function(relation) {
+			if( relation["RELATION_ID"] == relation_id) {
+				relation[attr] = val;
+			}
+		});
+		console.log( this.getRelationDatas() );
+	}
 	/**
 	 * 테이블의 위치 정보 조정 
 	 * translate = { x : 값, y :값 };
@@ -464,9 +553,9 @@ var DrawDataLoad = function() {
 	this.setRelationPathValue  = function( subject_id, relation_id, linePath ) {
 		var _this = this;
 		var value = {};
-        if( !erdAuth.isEditable()) {
-            return ;
-        }
+		if( !erdAuth.isEditable()) {
+			return ;
+		}
 		value["SUBJECT_ID"] = subject_id;
 		value["RELATION_ID"] = relation_id;
 		value["LINE_PATH"] = linePath.join(' ');
@@ -626,31 +715,70 @@ var DrawDataLoad = function() {
 								}
 							});
 
+		console.log( relationOnSubjectAreaDatas );
 		
 		var relationSet = new Set();
 		for( var i=0; i<relationOnSubjectAreaDatas.length; i++) {
 			relationSet.add(relationOnSubjectAreaDatas[i]["RELATION_ID"]);
 		}
 		
-		//console.log( relationSet );
-		
 		var tableRelation = this.getRelationDatas().filter(function(item) {
 								if ( !relationSet.has(item["RELATION_ID"]) && 
-									((item["START_ENTITY_ID"] == entity_id && _this.getDrawedTable(subject_id, item["END_ENTITY_ID"]))
-									 || (item["END_ENTITY_ID"] == entity_id && _this.getDrawedTable(subject_id, item["START_ENTITY_ID"])))) {
+									((item["START_ENTITY_ID"] == entity_id && _this.getDrawedTable(subject_id, item["END_ENTITY_ID"])!=null)
+									 || (item["END_ENTITY_ID"] == entity_id && _this.getDrawedTable(subject_id, item["START_ENTITY_ID"])!=null))) {
 									return true;
 								} else {
 									return false;
 								}
 							});
 							
-		//console.log('>>>>>>>>', entity_id, tableRelation);
+		console.log('>>>>>>>>', entity_id, tableRelation);
 		
 		return tableRelation;
 	}
 	
 	this.changeRelationType = function(subject_id, relation_id, relation_type) {
 		var _this = this;
+
+		for( var i=0; i<this.getRelationOnSubjectAreaDatas().length ; i++ ) {
+			if( this.getRelationOnSubjectAreaDatas()[i]["RELATION_ID"] == relation_id ) {
+				var params = { "SUBJECT_ID" : subject_id , "RELATION_ID" : relation_id};
+				
+				params["START_ENTITY_ID"] = this.getRelationOnSubjectAreaDatas()[i]["START_ENTITY_ID"]; 
+				params["END_ENTITY_ID"] = this.getRelationOnSubjectAreaDatas()[i]["END_ENTITY_ID"]; 
+				// 1:0or1관계선
+				if( relation_type == "relNonIden" ) {
+					this.getRelationOnSubjectAreaDatas()[i]["RELATION_TYPE"] = "rel1toN";
+					this.getRelationOnSubjectAreaDatas()[i]["NON_IDEN_YN"] = "Y";
+					params["RELATION_TYPE"] = "rel1toN";
+					params["NON_IDEN_YN"] = "Y";
+				} 
+				// 1:N
+				// 1:1관계선
+				// 1:0or1관계선
+				else {
+					this.getRelationOnSubjectAreaDatas()[i]["RELATION_TYPE"] = relation_type;
+					this.getRelationOnSubjectAreaDatas()[i]["NON_IDEN_YN"] = "N";
+					params["RELATION_TYPE"] = relation_type;
+					params["NON_IDEN_YN"] = "N";
+				}
+				if(this.getRelationOnSubjectAreaDatas()[i]["SUBJECT_ID"] == subject_id ) {
+					_this.updateRelationInfo("relType", params );
+				}
+			}
+		}
+		
+		console.log( this.relationDatas );
+		
+		if( relation_type == "relNonIden" ) {
+			this.relationDatas = this.relationDatas.map((relation) => relation.RELATION_ID == relation_id ? { ...relation, RELATION_TYPE: "rel1toN", NON_IDEN_YN : "Y"} : relation);
+		} else {
+			this.relationDatas = this.relationDatas.map((relation) => relation.RELATION_ID == relation_id ? { ...relation, RELATION_TYPE: relation_type, NON_IDEN_YN : "N"} : relation);
+		}
+	
+		console.log( this.relationDatas );
+		
+		/*
 		for( var i=0; i<this.getRelationOnSubjectAreaDatas().length ; i++ ) {
 			if(this.getRelationOnSubjectAreaDatas()[i]["SUBJECT_ID"] == subject_id && this.getRelationOnSubjectAreaDatas()[i]["RELATION_ID"] == relation_id ) {
 				var params = { "SUBJECT_ID" : subject_id , "RELATION_ID" : relation_id};
@@ -677,6 +805,7 @@ var DrawDataLoad = function() {
 				_this.updateRelationInfo("relType", params );
 			}
 		}
+		*/
 		/*
 		this.getRelationOnSubjectAreaDatas().filter(function(item) {
 								if (item.SUBJECT_ID == subject_id && item.RELATION_ID == relation_id ) {
@@ -693,12 +822,65 @@ var DrawDataLoad = function() {
 	 */
 	this.cancelRelationByButton = function() {
 		if(this.relationByButtonInfo && this.relationByButtonInfo["START_ENTITY_ID"] ) {
-			var table_start  = SVG(".table_"+ this.relationByButtonInfo["START_ENTITY_ID"]);
+			var table_start  = SVG(".table_"+this.relationByButtonInfo["SUBJECT_ID"]+"_"+ this.relationByButtonInfo["START_ENTITY_ID"]);
 			var rect_start = table_start.findOne(".rect_"+this.relationByButtonInfo["SUBJECT_ID"]+"_"+this.relationByButtonInfo["START_ENTITY_ID"]).attr({'stroke-width':0.7});
+			rect_start.attr({'stroke-width':0.7});
 			this.getDrawedTable(this.relationByButtonInfo["SUBJECT_ID"], this.relationByButtonInfo["START_ENTITY_ID"]).relationByButtonBegin = false;
 		}
 		this.relationByButtonBegin = false;
 		this.initEntityForAddSubject();
+	}
+	
+	//  관계가 순환 호출인지 확인.
+	this.isRecursiveRelation = function(start_entity_id, end_entity_id) {
+		var _this = this;
+
+		var _relations = _this.getRelationDatas();
+		function getRelation(start_entity_id, end_entity_id) {
+			console.log( start_entity_id, end_entity_id, _relations.length);
+						 
+			var relations = _relations.filter(function(item) {
+								if (item["END_ENTITY_ID"] == item["START_ENTITY_ID"]) {
+									return false;
+								} else if (item["START_ENTITY_ID"] == end_entity_id) {
+									return true;
+								} else {
+									return false;
+								}
+							});
+			
+			console.log( relations )
+							
+			var isRecursive = false;
+			for( var i=0;i<relations.length; i++ ) {
+				 
+								
+				/*if( relations[i]["START_ENTITY_ID"] == relations[i]["END_ENTITY_ID"] ) {
+					 isRecursive = false; 
+					 
+					return isRecursive;
+				}else */
+				
+				if( relations[i]["END_ENTITY_ID"] == start_entity_id ) {
+					isRecursive = true; 
+					
+					return isRecursive;
+				} else {
+					_relations = _this.getRelationDatas().filter(function(item) {
+								if (item["RELATION"] == relations[i]["RELATION"] ) {
+									return false;
+								} else {
+									return true;
+								}
+					 });
+						 
+					return getRelation(start_entity_id, relations[i]["END_ENTITY_ID"] );
+				}
+			}
+			 
+			return isRecursive;
+		}
+		return getRelation(start_entity_id, end_entity_id);
 	}
 	
 	/*
@@ -728,11 +910,36 @@ var DrawDataLoad = function() {
 		}
 		// 종료 테이블 선택 된 경우.
 		else {
-			 
-			 table["start"]  = SVG(".table_"+subjectAreaInfo["SUBJECT_ID"]+"_"+ this.relationByButtonInfo["START_ENTITY_ID"]);
-			 rect["start"] = table["start"].findOne(".rect_"+subjectAreaInfo["SUBJECT_ID"]+"_"+this.relationByButtonInfo["START_ENTITY_ID"]);
-			 table["end"]  = SVG(".table_"+subjectAreaInfo["SUBJECT_ID"]+"_"+ tableInfo["ENTITY_ID"]);
-			 rect["end"] = table["end"].findOne(".rect_"+subjectAreaInfo["SUBJECT_ID"]+"_"+tableInfo["ENTITY_ID"]);
+			console.log( subjectAreaInfo, this.relationByButtonInfo );
+			
+			table["start"]  = SVG(".table_"+subjectAreaInfo["SUBJECT_ID"]+"_"+ this.relationByButtonInfo["START_ENTITY_ID"]);
+			rect["start"] = table["start"].findOne(".rect_"+subjectAreaInfo["SUBJECT_ID"]+"_"+this.relationByButtonInfo["START_ENTITY_ID"]);
+			table["end"]  = SVG(".table_"+subjectAreaInfo["SUBJECT_ID"]+"_"+ tableInfo["ENTITY_ID"]);
+			rect["end"] = table["end"].findOne(".rect_"+subjectAreaInfo["SUBJECT_ID"]+"_"+tableInfo["ENTITY_ID"]);
+
+			// 동일한 테이블간 관계가 이미 있을 경우.
+			for( var i=0; i<this.getRelationDatas().length; i++ ) {
+				if( this.getRelationDatas()[i]["START_ENTITY_ID"] == this.relationByButtonInfo["START_ENTITY_ID"] 
+					&& this.getRelationDatas()[i]["END_ENTITY_ID"] == tableInfo["ENTITY_ID"] ) {
+						Ext.Msg.alert('오류', '관계를 설정하려고 하는 테이블간에는 이미 관계가 설정되어 있습니다.');
+						rect["end"].attr({'stroke-width':0.7});
+						this.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], tableInfo["ENTITY_ID"]).relationByButtonBegin = false;
+						
+						return;
+					}
+				
+			}
+
+			var isRecursiveRel = this.isRecursiveRelation(this.relationByButtonInfo["START_ENTITY_ID"], tableInfo["ENTITY_ID"] ) ;
+			console.log( isRecursiveRel );
+			if( isRecursiveRel == true ) {
+				Ext.Msg.alert('오류', '관계를 설정하려고 하는 테이블간에 이미 상하위 관계가 설정되어 있습니다.');
+				rect["end"].attr({'stroke-width':0.7});
+				this.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], tableInfo["ENTITY_ID"]).relationByButtonBegin = false;
+				
+				return;
+			}
+			
 			var end = {x:50, y:50};
 			end.x = ev.offsetX - table["end"].transform('translateX');
 			end.y = ev.offsetY - table["end"].transform('translateY');
@@ -798,10 +1005,6 @@ var DrawDataLoad = function() {
 			}
 			
 
-			rect["start"].attr({'stroke-width':0.7});
-			rect["end"].attr({'stroke-width':0.7});
-			rect["end"].attr({rx:4});
-
 			// this.relationByButtonInfo["RELATION_ID"] = "id_"+this.relationByButtonInfo["START_ENTITY_ID"]+"_"+tableInfo["ENTITY_ID"];
 			this.relationByButtonInfo["RELATION"] = this.relationByButtonInfo["START_ENTITY_ID"]+"_"+tableInfo["ENTITY_ID"];
 			this.relationByButtonInfo["RELATION_NAME"] = tableInfo["ENTITY_ID"];
@@ -820,29 +1023,49 @@ var DrawDataLoad = function() {
 			
 			// relation정보 db저장
 			var relation_id = this.saveRelationInfo('relSave', this.relationByButtonInfo);
-			this.relationByButtonInfo["RELATION_ID"] = relation_id;
 			
-			console.log(this.relationOnSubjectAreaDatas);
-			console.log(this.relationByButtonInfo);
-			
-			this.relationOnSubjectAreaDatas.push(this.relationByButtonInfo);
+			// ID저장 성공 경우
+			if( relation_id != null) {
+
+				rect["start"].attr({'stroke-width':0.7});
+				rect["end"].attr({'stroke-width':0.7});
+				rect["end"].attr({rx:4});
+
+				this.relationByButtonInfo["RELATION_ID"] = relation_id;
+				
+				console.log(this.relationOnSubjectAreaDatas);
+				console.log(this.relationByButtonInfo);
+				
+				this.relationOnSubjectAreaDatas.push(this.relationByButtonInfo);
+		
+				console.log(this.relationOnSubjectAreaDatas);
+				
 	
-			console.log(this.relationOnSubjectAreaDatas);
+				this.setDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"], new DrawRelation( draw, subjectAreaInfo, tableInfo, this, tableGrp, this.relationByButtonInfo ));
+	
+				console.log(this.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"]));
+				this.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"]).initPath();
+				this.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"]).drawRelation('init');
+				// 시작, 종료 relation 등록
+				this.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["START_ENTITY_ID"]).addRelationStart( this.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"]));
+				this.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["END_ENTITY_ID"]).addRelationEnd( this.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"]));
+				
+				this.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["START_ENTITY_ID"]).relationByButtonBegin = false;
+				this.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["END_ENTITY_ID"]).relationByButtonBegin = false;
+				Ext.getCmp('DRAW_BUTTON').setValue('pointer');
+				draw.attr({"cursor": "default"});
+				tableGrp.attr({"cursor": "default"});
+				
+				this.relationByButtonBegin == false;
+				this.relationByButtonInfo = {};
+			} else {
+				rect["end"].attr({'stroke-width':0.7});
+				rect["end"].attr({rx:4});
+				
+				this.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["END_ENTITY_ID"]).relationByButtonBegin = false;
 			
+			}
 
-			this.setDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"], new DrawRelation( draw, subjectAreaInfo, tableInfo, this, tableGrp, this.relationByButtonInfo ));
-
-			console.log(this.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"]));
-			this.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"]).initPath();
-			this.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"]).drawRelation('init');
-			// 시작, 종료 relation 등록
-			this.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["START_ENTITY_ID"]).addRelationStart( this.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"]));
-			this.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["END_ENTITY_ID"]).addRelationEnd( this.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], this.relationByButtonInfo["RELATION_ID"]));
-			
-			this.relationByButtonBegin = false;
-			Ext.getCmp('DRAW_BUTTON').setValue('pointer');
-			draw.attr({"cursor": "default"});
-			tableGrp.attr({"cursor": "default"});
 		}
 
 	}
@@ -868,6 +1091,7 @@ var DrawDataLoad = function() {
 		if( this.drawedTable[subject_id]  == null || this.drawedTable[subject_id] == undefined ) {
 			this.drawedTable[subject_id] = {};
 		}
+		console.log(subject_id, entity_id, DrawTable)
 		this.drawedTable[subject_id][entity_id] = DrawTable;
 	}
 	
@@ -875,13 +1099,35 @@ var DrawDataLoad = function() {
 	 * 그려진 테이블 조회
 	 */
 	this.getDrawedTable = function( subject_id, entity_id ) {
-		if( subject_id  == null || subject_id == undefined ) {
+		
+		if( subject_id  == null || entity_id == undefined ) {
 			return this.drawedTable;
 		} else {
 			if( entity_id ) {
-				return this.drawedTable[subject_id][entity_id];
+				console.log(subject_id);
+				console.log(entity_id);
+				console.log(subject_id, entity_id, this.drawedTable[subject_id] );
+				if( this.drawedTable[subject_id] ) {
+					console.log(subject_id, entity_id, this.drawedTable[subject_id][entity_id] );
+					
+					return this.drawedTable[subject_id][entity_id];
+				}else {
+					return undefined;
+				}
 			} else {
 				return this.drawedTable[subject_id];
+			}
+		}
+	}
+	
+	this.removeDrawedTable = function( subject_id, entity_id ) {
+		var _this = this;
+		if( subject_id  != null || entity_id != undefined ) {
+			if( _this.isDrawedTable( subject_id, entity_id ) ) {
+				console.log( this.drawedTable[subject_id][entity_id] );
+				delete this.drawedTable[subject_id][entity_id];
+				console.log( this.drawedTable[subject_id] );
+				console.log( this.drawedTable[subject_id][entity_id] );
 			}
 		}
 	}
@@ -924,7 +1170,12 @@ var DrawDataLoad = function() {
 			return this.drawedRelation;
 		} else {
 			if( relation_id ) {
-				return this.drawedRelation[subject_id][relation_id];
+				if( this.drawedRelation[subject_id] ) {
+					return this.drawedRelation[subject_id][relation_id];
+				} else {
+					return undefined;
+				}
+				
 			} else {
 				return this.drawedRelation[subject_id];
 			}
@@ -959,8 +1210,10 @@ var DrawDataLoad = function() {
 			console.log( "DrawDataLoad.setSelectedTables" );
 			this.selectTables["ENTITY_IDS"].forEach(function(selected_entity_id, selected_entity_id2, set) {
 				if( selected_entity_id != entity_id ) {
-					_this.getDrawedTable(_this.selectTables["SUBJECT_ID"], selected_entity_id).hideResizer();
-					_this.getDrawedTable(_this.selectTables["SUBJECT_ID"], selected_entity_id).getTableGrp().draggable(false);
+					if( _this.isDrawedTable(_this.selectTables["SUBJECT_ID"], selected_entity_id) ) {
+						_this.getDrawedTable(_this.selectTables["SUBJECT_ID"], selected_entity_id).hideResizer();
+						_this.getDrawedTable(_this.selectTables["SUBJECT_ID"], selected_entity_id).getTableGrp().draggable(false);
+				   }
 				}
 			});
 			
@@ -979,8 +1232,11 @@ var DrawDataLoad = function() {
 		console.log( entity_id, this.selectTables["ENTITY_IDS"] )
 				
 		this.selectTables["ENTITY_IDS"].forEach(function(selected_entity_id, selected_entity_id2, set) {
-			console.log( subject_id, selected_entity_id );
-			_this.getDrawedTable(subject_id, selected_entity_id).showResizer();
+			console.log( subject_id, selected_entity_id, _this.getDrawedTable(subject_id, selected_entity_id) );
+			if( _this.getDrawedTable(subject_id, selected_entity_id) ) {
+				_this.getDrawedTable(subject_id, selected_entity_id).showResizer();
+			}
+			
 		});
 		// 업무영역에 테이블 추가 초기화.
 		this.initEntityForAddSubject();
@@ -989,6 +1245,7 @@ var DrawDataLoad = function() {
 	this.getSelectedTables = function() {
 		return this.selectTables;
 	}
+	
 	
 	this.getSelectedTablesIfNotSelectedThenAll = function() {
 		var _this = this;
@@ -1005,7 +1262,41 @@ var DrawDataLoad = function() {
 				
 			}
 		}
+
+		var params = {};
+		params["ENTITY_DSPL_CD"] = Ext.getCmp('LOGICAL_PHYSICAL_VIEW_BUTTON').getValue();
+		params["SUBJECT_ID"]	 = entities["SUBJECT_ID"];
+		var entity_ids_iter = entities["ENTITY_IDS"].entries();
+
+		params["ENTITY_IDS[]"] = []
+		for (var entity of entity_ids_iter ) {
+			params["ENTITY_IDS[]"].push(entity[0])
+		}
 		
+		var response = Ext.Ajax.request({
+			async: false,
+			url: '/subject/data/updateErdSubjectEntityDisplayCode.do',
+			params: params,
+
+			success: function(response, opts) {
+				entities["ENTITY_IDS"].forEach(function(entity_id, entity_id2, set) {
+					var table = drawDataLoad.getDrawedTable(entities["SUBJECT_ID"], entity_id);
+					table.setTableNameText();
+					table.redrawColumns();
+				 });
+				 
+				// 업무영역에 테이블 추가 초기화.
+				drawDataLoad.initEntityForAddSubject();
+				
+				Ext.getCmp("DRAW_BUTTON").items.items[0].setPressed(true);
+				Ext.getCmp("COLOR_BUTTON").items.items[0].setPressed(false);
+			},
+		
+			failure: function(response, opts) {
+				Ext.Msg.alert('오류', '테이블 표시 방법변경에 실패했습니다.');
+			}
+		});
+								
 		return entities;
 	}
 	
@@ -1102,14 +1393,17 @@ var DrawDataLoad = function() {
 		var _this = this;
 		for( var i=0; _this.selectedRelation["RELATION_ID"] != "" && i<_this.getRelationOnSubjectAreaDatas().length; i++) {
 			
-			if( _this.getRelationOnSubjectAreaDatas()[i]["RELATION_ID"] == _this.getSelectedRelation()["RELATION_ID"] ) {
+			if(_this.getRelationOnSubjectAreaDatas()[i]["SUBJECT_ID"] == _this.getSelectedRelation()["SUBJECT_ID"] 
+				&& _this.getRelationOnSubjectAreaDatas()[i]["RELATION_ID"] == _this.getSelectedRelation()["RELATION_ID"] ) {
 				var relation = _this.getDrawedRelation(_this.getRelationOnSubjectAreaDatas()[i]["SUBJECT_ID"], _this.getRelationOnSubjectAreaDatas()[i]["RELATION_ID"])
 
 				// 백그라운드속성변경
 				_this.updateRelationInfo("relationColor", {"SUBJECT_ID": _this.getRelationOnSubjectAreaDatas()[i]["SUBJECT_ID"], "RELATION_ID" : _this.getSelectedRelation()["RELATION_ID"], "ATTR":"LINE_COLOR", "VAL" : '#'+ color , "LINE_COLOR" : '#'+ color } );
-
-				relation.relationPath.attr({stroke:'#'+color});
-				relation.relationPathEnd.attr({stroke:'#'+color});
+				
+				if( relation ) {
+					relation.relationPath.attr({stroke:'#'+color});
+					relation.relationPathEnd.attr({stroke:'#'+color});
+				}
 				
 				_this.getRelationOnSubjectAreaDatas()[i]["COLOR"] = '#'+color;
 			}
@@ -1177,7 +1471,7 @@ var DrawDataLoad = function() {
 
 			table.tableNameText.find('tspan').fill('#'+color); // .findOne('tspan')
 
-            console.log( table.tableNameText )
+			console.log( table.tableNameText )
 			// 백그라운드속성변경
 			_this.updateTableInfo("tnColor", {"SUBJECT_ID": _this.getSelectedTables()["SUBJECT_ID"], "ENTITY_ID" : entity_id, "COLOR" : '#'+ color } );
 
@@ -1386,14 +1680,14 @@ var DrawDataLoad = function() {
 		params["ACTION"] = infoType;
 		// console.log(infoType, params);
 		
-        /*
-        if(!erdAuth.isEditable() ) {
-            return ;
-        }
-        */
-        
-        params["MANAGER_YN"] = erdAuth.isEditable() ? "Y" : "N";
-        
+		/*
+		if(!erdAuth.isEditable() ) {
+			return ;
+		}
+		*/
+		
+		params["MANAGER_YN"] = erdAuth.isEditable() ? "Y" : "N";
+		
 		var response = Ext.Ajax.request({
 			async: false,
 			url: '/entity/data/updateAttr.do',
@@ -1403,7 +1697,7 @@ var DrawDataLoad = function() {
 		
 		this.tableOnSubjectAreaDatas.forEach(function(table) {
 			if( table["SUBJECT_ID"] == params["SUBJECT_ID"] 
-			     && table["ENTITY_ID"] == params["ENTITY_ID"] ) {
+				 && table["ENTITY_ID"] == params["ENTITY_ID"] ) {
 				for( var x in params ) {
 					if( table[x] && params[x] != null) {
 						table[x] = params[x];
@@ -1431,6 +1725,18 @@ var DrawDataLoad = function() {
 			params: params
 		});
 		var result =  Ext.decode(response.responseText);
+		
+		console.log(this.relationOnSubjectAreaDatas);
+		/*
+		var subjects = new Array();
+		var entitySubject = drawDataLoad.getTableOnSubjectAreaDatas();
+		for( var i=0;i < entitySubject.length; i++) {
+			if(entitySubject[i].ENTITY_ID == params["ENTITY_ID"]) {
+				// 테이블 삭제..
+				this.removeDrawedTable(entitySubject[i]["SUBJECT_ID"] , params["ENTITY_ID"]);
+			}
+		}
+		*/
 		
 		return result;
 	}
@@ -1468,6 +1774,7 @@ var DrawDataLoad = function() {
 	 * 관계 등록
 	 */
 	this.saveRelationInfo= function(infoType, params ) {
+		var _this = this;
 		params["ACTION"] = infoType;
 		// console.log(infoType, params);
 
@@ -1482,6 +1789,29 @@ var DrawDataLoad = function() {
 		
 		var res = Ext.decode(response.responseText);
 		var result =  res.success;
+
+		// 저장 실패한경우.
+		if( result == false ) {
+			Ext.Msg.alert('오류', res.errorMessage)
+			
+			 var relations = _this.getRelationOnSubjectAreaDatas().filter(function(item) {
+								if ( item["SUBJECT_ID"] == params["SUBJECT_ID"] && item["RELATION_ID"] == params["RELATION_ID"]) {
+									return true;
+								} else {
+									return false;
+								}
+							});
+			for( var i=0;i<relations.length; i++) {
+				var table_end = SVG(".table_"+params["SUBJECT_ID"]+"_"+ relations["END_ENTITY_ID"]);
+				if( table_end ) {
+					var rect_end = table_end.findOne(".rect_"+params["SUBJECT_ID"]+"_"+relations[i]["END_ENTITY_ID"]);
+					rect_end.attr({'stroke-width':0.7});
+				}
+			}
+
+			return null;
+		}
+
 		var relationId = res.RELATION_ID;
 		
 		var pkInsertEntityList = res.PK_INSERT_ENTITY_LIST;
@@ -1532,6 +1862,7 @@ var DrawDataLoad = function() {
 		
 	}
 
+
 	/**
 	 * 관계정보 수정
 	 */
@@ -1539,14 +1870,14 @@ var DrawDataLoad = function() {
 		params["ACTION"] = infoType;
 		// console.log(infoType, params);
 
-        /*
-        // 현재 선택된 업무영역이 편집 가능 한 경우.
-        if( !erdAuth.isEditable()) {
-            return ;
-        }
-        */
-       
-        params["MANAGER_YN"] = erdAuth.isEditable() ? "Y" : "N";
+		/*
+		// 현재 선택된 업무영역이 편집 가능 한 경우.
+		if( !erdAuth.isEditable()) {
+			return ;
+		}
+		*/
+	   
+		params["MANAGER_YN"] = erdAuth.isEditable() ? "Y" : "N";
 
 		var response = Ext.Ajax.request({
 			async: false,
@@ -1557,17 +1888,22 @@ var DrawDataLoad = function() {
 
 		var result =  res.success;
 		
-		var pkInsertEntityList = res.PK_INSERT_ENTITY_LIST;
-		var pkDeleteEntityList = res.PK_DELETE_ENTITY_LIST;
-		
-		//console.log( typeof(pkInsertEntityList), pkInsertEntityList );
-		//console.log( typeof(pkDeleteEntityList), pkDeleteEntityList );
-		
-		var entityList = res.ENTITY_LIST;
-		var entityColumnList = res.ENTITY_COLUMN_LIST;
-		
-		this.restoreEntityAndColumn(pkInsertEntityList, pkDeleteEntityList, entityList, entityColumnList);
-		
+		if( infoType == 'relType') {
+			var pkInsertEntityList = res.PK_INSERT_ENTITY_LIST;
+			var pkDeleteEntityList = res.PK_DELETE_ENTITY_LIST;
+			
+			//console.log( typeof(pkInsertEntityList), pkInsertEntityList );
+			//console.log( typeof(pkDeleteEntityList), pkDeleteEntityList );
+			
+			var entityList = res.ENTITY_LIST;
+			var entityColumnList = res.ENTITY_COLUMN_LIST;
+			
+			this.restoreEntityAndColumn(pkInsertEntityList, pkDeleteEntityList, entityList, entityColumnList);
+
+			
+		} else if(infoType == "addToSubject") {
+			this.relationOnSubjectAreaDatas.push(params);
+		}
 		/*
 		//console.log(pkInsertEntityList.includes('4e839f0d-530b-11ee-b4e6-6c2408968271'));
 		//console.log(pkInsertEntityList.includes('4e839f0d-530b-11ee-b4e6-6c2408968271111'));
@@ -1601,6 +1937,7 @@ var DrawDataLoad = function() {
 	 * 관계 삭제
 	*/
 	this.deleteRelationInfo= function(infoType, params ) {
+		var _this = this;
 		params["ACTION"] = infoType;
 		// console.log(infoType, params);
 
@@ -1612,6 +1949,54 @@ var DrawDataLoad = function() {
 		var res = Ext.decode(response.responseText);
 
 		var result =  res.success;
+		// 저장 실패한경우.
+		if( result == false) {
+			Ext.Msg.alert('오류', res.errorMessage);
+			
+			
+			 var relations = _this.getRelationOnSubjectAreaDatas().filter(function(item) {
+								if ( item["SUBJECT_ID"] == params["SUBJECT_ID"] && item["RELATION_ID"] == params["RELATION_ID"]) {
+									return true;
+								} else {
+									return false;
+								}
+							});
+			for( var i=0;i<relations.length; i++) {
+				var table_end   = SVG(".table_"+params["SUBJECT_ID"]+"_"+ relations["END_ENTITY_ID"]);
+				if( table_end ) {
+					var rect_end = table_end.findOne(".rect_"+params["SUBJECT_ID"]+"_"+relations[i]["END_ENTITY_ID"]);
+					rect_end.attr({'stroke-width':0.7});
+				}
+			}
+			
+			return ;
+		} else {
+            /*
+            var relation = _this.getRelationDatas().filter(function(item) {
+                        if ( item["RELATION_ID"] == params["RELATION_ID"]) {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                
+                });
+            */
+			var _relations = _this.getRelationDatas().filter(function(item) {
+						if ( item["RELATION_ID"] == params["RELATION_ID"]) {
+							return false;
+						} else {
+							return true;
+						}
+				
+				});
+			/*
+			this.getDrawedTable(params["SUBJECT_ID"], relation["START_ENTITY_ID"]).relationByButtonBegin = false;
+			this.getDrawedTable(params["SUBJECT_ID"], relation["END_ENTITY_ID"]).relationByButtonBegin = false;
+			*/
+
+			_this.relationByButtonBegin = false;
+			_this.relationDatas = _relations;
+		}
 		
 		var pkInsertEntityList = res.PK_INSERT_ENTITY_LIST;
 		var pkDeleteEntityList = res.PK_DELETE_ENTITY_LIST;
@@ -1667,83 +2052,42 @@ var DrawDataLoad = function() {
 	this.restoreEntityAndColumn = function (pkInsertEntityList, pkDeleteEntityList, entityList, entityColumnList) {
 
 		console.log( this.tableOnSubjectAreaDatas );
-        pkInsertEntityList = pkInsertEntityList||[]
-        pkDeleteEntityList = pkDeleteEntityList||[]
-        try {
-		    this.tableOnSubjectAreaDatas.filter(x => pkInsertEntityList.includes(x.ENTITY_ID)||pkDeleteEntityList.includes(x.ENTITY_ID)).forEach(x => this.tableOnSubjectAreaDatas.splice(this.tableOnSubjectAreaDatas.indexOf(x), 1));
+		pkInsertEntityList = pkInsertEntityList||[]
+		pkDeleteEntityList = pkDeleteEntityList||[]
+		try {
+			this.tableOnSubjectAreaDatas.filter(x => pkInsertEntityList.includes(x.ENTITY_ID)||pkDeleteEntityList.includes(x.ENTITY_ID)).forEach(x => this.tableOnSubjectAreaDatas.splice(this.tableOnSubjectAreaDatas.indexOf(x), 1));
 		} catch(e) {
-            console.log(e)
-        }
+			console.log(e)
+		}
 		this.tableOnSubjectAreaDatas = this.tableOnSubjectAreaDatas.concat(entityList);
 		console.log( this.tableOnSubjectAreaDatas )
 
-        for( var i=0;pkInsertEntityList && i<pkInsertEntityList.length; i++) {
-            console.log(Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue(), pkInsertEntityList[i] );
-            // 상세테이블에 선택된 경우 컬럼 조회.
-            if( pkInsertEntityList[i] ==  Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue()) {
-                Ext.getStore("columnListStore").reload();
-                
-                break;
-            }
-        }
-        
-        for( var i=0;pkDeleteEntityList && i<pkDeleteEntityList.length; i++) {
-            console.log(Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue(), pkDeleteEntityList[i] );
-            // 상세테이블에 선택된 경우 컬럼 조회.
-            if( pkDeleteEntityList[i] ==  Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue()) {
-                Ext.getStore("columnListStore").reload();
-                
-                break;
-            }
-        }
-        
-        
-		for( var x in this.drawedSubectArea ) {
-			for( var i=0;pkInsertEntityList && i<pkInsertEntityList.length; i++) {
-				// console.log(x, pkInsertEntityList[i], this.getDrawedTable(x, pkInsertEntityList[i]) );
+		for( var i=0;pkInsertEntityList && i<pkInsertEntityList.length; i++) {
+			console.log(Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue(), pkInsertEntityList[i] );
+			// 상세테이블에 선택된 경우 컬럼 조회.
+			if( pkInsertEntityList[i] ==  Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue()) {
+				Ext.getStore("columnListStore").reload();
 				
-				// var table = this.tableOnSubjectAreaDatas.find((_table) => ( _table.SUBJECT_ID ==x && _table.ENTITY_ID == pkInsertEntityList[i]));
-				
-
-				
-				var table = this.tableOnSubjectAreaDatas.find(function(_table) {
-					console.log(_table.SUBJECT_ID ==x && _table.ENTITY_ID == pkInsertEntityList[i],  _table.SUBJECT_ID, x, _table.ENTITY_ID,  pkInsertEntityList[i] );
-					return (_table.SUBJECT_ID ==x && _table.ENTITY_ID == pkInsertEntityList[i]);
-				});
-				
-				console.log( table );
-				if( table ) {
-					 this.getDrawedTable(x, pkInsertEntityList[i]).setTableInfo(table);
-					 this.getDrawedTable(x, pkInsertEntityList[i]).setTableNameText();
-					// this.getDrawedTable(x, pkInsertEntityList[i]).setTableInfo(table);
-				}
-
-				
-			}
-			for( var i=0;pkDeleteEntityList && i<pkDeleteEntityList.length; i++) {
-				//console.log(x, pkDeleteEntityList[i], this.getDrawedTable(x, pkDeleteEntityList[i]) );
-
-				// var table = this.tableOnSubjectAreaDatas.find((_table) => (_table.SUBJECT_ID ==x  && _table.ENTITY_ID == pkDeleteEntityList[i]));
-                
-                
-				var table = this.tableOnSubjectAreaDatas.find(function(_table) {
-					console.log( _table.SUBJECT_ID ==x && _table.ENTITY_ID == pkDeleteEntityList[i], _table.SUBJECT_ID, x,_table.ENTITY_ID, x, pkDeleteEntityList[i] );
-					return (_table.SUBJECT_ID ==x && _table.ENTITY_ID == pkDeleteEntityList[i]);
-				});
-
-				console.log( table );
-				if( table ) {
-					// 컬럼 및 pk라인을 다시 그린다.
-					this.getDrawedTable(x, pkDeleteEntityList[i]).setTableInfo(table);
-					this.getDrawedTable(x, pkDeleteEntityList[i]).setTableNameText();
-				}
+				break;
 			}
 		}
+		
+		for( var i=0;pkDeleteEntityList && i<pkDeleteEntityList.length; i++) {
+			console.log(Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue(), pkDeleteEntityList[i] );
+			// 상세테이블에 선택된 경우 컬럼 조회.
+			if( pkDeleteEntityList[i] ==  Ext.getCmp("CENTER_RIGHT_TABLE_ENTITY_ID").getValue()) {
+				Ext.getStore("columnListStore").reload();
+				
+				break;
+			}
+		}
+		
+		
 		try {
-		    this.tableColumnDatas.filter(x => pkInsertEntityList.includes(x.ENTITY_ID)||pkDeleteEntityList.includes(x.ENTITY_ID)).forEach(x => this.tableColumnDatas.splice(this.tableColumnDatas.indexOf(x), 1));
-        } catch(e) {
-            console.log(e)
-        }
+			this.tableColumnDatas.filter(x => pkInsertEntityList.includes(x.ENTITY_ID)||pkDeleteEntityList.includes(x.ENTITY_ID)).forEach(x => this.tableColumnDatas.splice(this.tableColumnDatas.indexOf(x), 1));
+		} catch(e) {
+			console.log(e)
+		}
 		
 		this.tableColumnDatas = this.tableColumnDatas.concat(entityColumnList);
 		console.log( this.tableColumnDatas )
@@ -1766,6 +2110,47 @@ var DrawDataLoad = function() {
 			}
 		}
 		
+		for( var x in this.drawedSubectArea ) {
+			for( var i=0;pkInsertEntityList && i<pkInsertEntityList.length; i++) {
+				// console.log(x, pkInsertEntityList[i], this.getDrawedTable(x, pkInsertEntityList[i]) );
+				
+				// var table = this.tableOnSubjectAreaDatas.find((_table) => ( _table.SUBJECT_ID ==x && _table.ENTITY_ID == pkInsertEntityList[i]));
+				
+
+				
+				var table = this.tableOnSubjectAreaDatas.find(function(_table) {
+					// console.log(_table.SUBJECT_ID ==x && _table.ENTITY_ID == pkInsertEntityList[i],  _table.SUBJECT_ID, x, _table.ENTITY_ID,  pkInsertEntityList[i] );
+					return (_table.SUBJECT_ID ==x && _table.ENTITY_ID == pkInsertEntityList[i]);
+				});
+				
+				console.log( table );
+				if( table ) {
+					 this.getDrawedTable(x, pkInsertEntityList[i]).setTableInfo(table);
+					 this.getDrawedTable(x, pkInsertEntityList[i]).setTableNameText();
+					// this.getDrawedTable(x, pkInsertEntityList[i]).setTableInfo(table);
+				}
+
+				
+			}
+			for( var i=0;pkDeleteEntityList && i<pkDeleteEntityList.length; i++) {
+				//console.log(x, pkDeleteEntityList[i], this.getDrawedTable(x, pkDeleteEntityList[i]) );
+
+				// var table = this.tableOnSubjectAreaDatas.find((_table) => (_table.SUBJECT_ID ==x  && _table.ENTITY_ID == pkDeleteEntityList[i]));
+				
+				
+				var table = this.tableOnSubjectAreaDatas.find(function(_table) {
+					// console.log( _table.SUBJECT_ID ==x && _table.ENTITY_ID == pkDeleteEntityList[i], _table.SUBJECT_ID, x,_table.ENTITY_ID, x, pkDeleteEntityList[i] );
+					return (_table.SUBJECT_ID ==x && _table.ENTITY_ID == pkDeleteEntityList[i]);
+				});
+
+				console.log( table );
+				if( table ) {
+					// 컬럼 및 pk라인을 다시 그린다.
+					this.getDrawedTable(x, pkDeleteEntityList[i]).setTableInfo(table);
+					this.getDrawedTable(x, pkDeleteEntityList[i]).setTableNameText();
+				}
+			}
+		}
 
 	}
 	
@@ -1773,10 +2158,10 @@ var DrawDataLoad = function() {
 		this.entityForAddSubject = {ENTITY_ID : entity_id, TABL_NM : table_nm, ENTITY_TCD : entity_tcd };
 		// '테이블 생성'선택
 		if( entity_tcd == "TABLE") {
-            Ext.getCmp('DRAW_BUTTON').setValue('table');
-        } else {
-            Ext.getCmp('DRAW_BUTTON').setValue('view');
-        }
+			Ext.getCmp('DRAW_BUTTON').setValue('table');
+		} else {
+			Ext.getCmp('DRAW_BUTTON').setValue('view');
+		}
 		
 		
 		console.log( this.entityForAddSubject );

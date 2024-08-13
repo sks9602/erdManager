@@ -32,6 +32,8 @@
                                       click : function(_button, e, eOpts) {
                                           Ext.getStore('domainTreeStore').getProxy().extraParams.PROJECT_ID = '';
                                           Ext.getStore('domainTreeStore').reload();
+                                          
+                                          // sendMessage();
                                       }
                                    }
                                </tagErd:button>

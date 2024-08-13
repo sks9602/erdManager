@@ -121,7 +121,7 @@
                 name : '<%= name %>',
                 msgTarget: 'side',
                 anchor: '100%',
-                width:${width},
+                <c:if test="${not empty width}">width:${width}, </c:if> 
                 aqtip : '<%= label %>',
                 queryMode: 'local',
                 displayField: 'CD_NM',

@@ -108,6 +108,12 @@ var ErdAuth = function() {
         var subjectEditInfo = this.subjectEditMap[subject_id];
         
         if( subjectEditInfo["I_AM_EDITING_YN"] == "Y") { 
+            
+            if( socket ) {
+                // erd.jsp
+                socketStartEdit()
+            }
+            
             // 편집관련 버튼
             Ext.getCmp('centerTop_EditStartButton').setText('편집중(나)');
             Ext.getCmp('centerTop_EditStartButton').setPressed(true);
@@ -150,8 +156,15 @@ var ErdAuth = function() {
             Ext.getCmp("erdRightWordSave").setDisabled(false);
                                
         } else {
+            
+            if( socket ) {
+                socketEndEdit();
+            }
+            
+           
             // 편집관련 버튼
             Ext.getCmp('centerTop_EditStartButton').setText('편집시작');
+            Ext.getCmp('centerTop_EditStartButton').setPressed(false);
             Ext.getCmp('centerTop_EditStartButton').setDisabled(false);
             Ext.getCmp('centerTop_EditEndButton').setDisabled(true);
             Ext.getCmp('centerTop_EditStatusCheckButton').setDisabled(false);

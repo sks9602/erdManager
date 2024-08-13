@@ -260,7 +260,7 @@
           , SUBJ_ENTT.ENTITY_ID   AS ENTITY_ID
           , ENTT.ENTITY_TCD
           , ENTT.ENTITY_NM        AS ENTITY_NM
-          , CASE WHEN NVL(ENTT.DML_DT, CURRENT_TIMESTAMP) >= date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 
+          , CASE WHEN NVL(ENTT.DML_DT, CURRENT_TIMESTAMP) >= date_add(CURRENT_TIMESTAMP , interval -#{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 
                       CASE WHEN ENTT.DML_TCD = 'DML_TCD_C' THEN '+'
                            WHEN ENTT.DML_TCD = 'DML_TCD_U' THEN '*'
                            WHEN ENTT.DML_TCD = 'DML_TCD_D' THEN '-'
@@ -275,20 +275,60 @@
                 AND RELATION_TYPE = 'rel1toN'
                 AND NON_IDEN_YN   = 'N'
                 LIMIT 1 ), 'N')   AS IS_SUB_TABLE
-          , NVL(SUBJ_ENTT_USR.LINE_COLOR , SUBJ_ENTT.LINE_COLOR ) AS LINE_COLOR
-          , NVL(SUBJ_ENTT_USR.COLOR      , SUBJ_ENTT.COLOR      ) AS COLOR
-          , NVL(SUBJ_ENTT_USR.BG_COLOR   , SUBJ_ENTT.BG_COLOR   ) AS BACKGROUND_COLOR
-          , NVL(SUBJ_ENTT_USR.NM_BG_COLOR, SUBJ_ENTT.NM_BG_COLOR) AS TABLE_BACKGROUND_COLOR
-          , NVL(SUBJ_ENTT_USR.X          , SUBJ_ENTT.X          ) AS X
-          , NVL(SUBJ_ENTT_USR.Y          , SUBJ_ENTT.Y          ) AS Y
-          , NVL(SUBJ_ENTT_USR.WIDTH      , SUBJ_ENTT.WIDTH      ) AS WIDTH
-          , NVL(SUBJ_ENTT_USR.HEIGHT     , SUBJ_ENTT.HEIGHT     ) AS HEIGHT
-          , NVL(SUBJ_ENTT_USR.ENTITY_DSPL_CD, 'LOGICAL_PHYSICAL') AS ENTITY_DSPL_CD
+          , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_ENTT.LINE_COLOR
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_ENTT.LINE_COLOR
+                 ELSE NVL(SUBJ_ENTT_USR.LINE_COLOR , SUBJ_ENTT.LINE_COLOR ) END AS LINE_COLOR
+          , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_ENTT.COLOR
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'   THEN SUBJ_ENTT.COLOR
+                 ELSE NVL(SUBJ_ENTT_USR.COLOR      , SUBJ_ENTT.COLOR      ) END AS COLOR
+          , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_ENTT.BG_COLOR
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_ENTT.BG_COLOR
+                 ELSE NVL(SUBJ_ENTT_USR.BG_COLOR   , SUBJ_ENTT.BG_COLOR   ) END AS BACKGROUND_COLOR
+          , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_ENTT.NM_BG_COLOR
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID}
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_ENTT.NM_BG_COLOR
+                 ELSE NVL(SUBJ_ENTT_USR.NM_BG_COLOR, SUBJ_ENTT.NM_BG_COLOR) END AS TABLE_BACKGROUND_COLOR
+          , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_ENTT.X
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_ENTT.X
+                 ELSE NVL(SUBJ_ENTT_USR.X          , SUBJ_ENTT.X          ) END AS X
+          , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_ENTT.Y
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_ENTT.Y
+                 ELSE NVL(SUBJ_ENTT_USR.Y          , SUBJ_ENTT.Y          ) END AS Y
+          , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_ENTT.WIDTH
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_ENTT.WIDTH
+                 ELSE NVL(SUBJ_ENTT_USR.WIDTH      , SUBJ_ENTT.WIDTH      ) END AS WIDTH
+          , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_ENTT.HEIGHT
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID}
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_ENTT.HEIGHT
+                 ELSE NVL(SUBJ_ENTT_USR.HEIGHT     , SUBJ_ENTT.HEIGHT     ) END AS HEIGHT
+          , CASE WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID}
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN 'LOGICAL_PHYSICAL'
+                 ELSE NVL(SUBJ_ENTT_USR.ENTITY_DSPL_CD, 'LOGICAL_PHYSICAL') END AS ENTITY_DSPL_CD
           , ENTT.TABL_SCD          
-          , (SELECT CD_NM
-               FROM CD
-              WHERE CD_GRP = 'TABL_SCD'
-                AND CD     = ENTT.TABL_SCD)  AS TABL_SCD_NM    
+          , NVL((SELECT GROUP_CONCAT(CD.CD_VAL_A ORDER BY CD.CD ASC)
+                 FROM ENTITY_SCD ESCD
+                    , CD         CD
+                WHERE ESCD.PROJECT_ID = SUBJ_ENTT.PROJECT_ID
+                  AND ESCD.VERSN      = SUBJ_ENTT.VERSN
+                  AND ESCD.ENTITY_ID  = SUBJ_ENTT.ENTITY_ID
+                  AND CD.CD_GRP = 'TABL_SCD'
+                  AND CD.CD     = ESCD.TABL_SCD
+                GROUP BY ESCD.ENTITY_ID), '')   AS TABL_SCD_NM    
           , (SELECT 'Y'
                FROM COLMN 
               WHERE PROJECT_ID = SUBJ_ENTT.PROJECT_ID
@@ -306,7 +346,9 @@
                 AND SUBJ_ENTT.VERSN            = SUBJ_ENTT_USR.VERSN      
                 AND SUBJ_ENTT.ENTITY_ID        = SUBJ_ENTT_USR.ENTITY_ID  
                 AND #{SESSION_USR_UID}         = SUBJ_ENTT_USR.USR_UID    
-                 
+            LEFT OUTER JOIN USR_PROJECT USR_PJT
+                 ON SUBJ_ENTT.PROJECT_ID       = USR_PJT.PROJECT_ID 
+                AND #{SESSION_USR_UID}         = USR_PJT.USR_UID
           , SUBJECT        SUBJ
           , ENTITY         ENTT
       WHERE SUBJ_ENTT.ENTITY_ID  = ENTT.ENTITY_ID
@@ -317,7 +359,7 @@
         AND SUBJ_ENTT.SUBJECT_ID = SUBJ.SUBJECT_ID
         /* AND NVL(SUBJ_ENTT.USE_YN, 'Y')  = 'Y' */
         AND CASE WHEN CASE WHEN SUBJ_ENTT.USE_YN = 'N' THEN 'N' ELSE 'Y' END = 'N' THEN 'N'
-                 WHEN NVL(ENTT.USE_YN, 'Y') = 'N' AND NVL(ENTT.DML_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]>  date_add(CURRENT_TIMESTAMP , interval #{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 'N' 
+                 WHEN NVL(ENTT.USE_YN, 'Y') = 'N' AND NVL(ENTT.DML_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]>  date_add(CURRENT_TIMESTAMP , interval -#{SESSION_ENTITY_DISPLAY_DAYCNT} day) THEN 'N' 
                  ELSE 'Y' END = 'Y'
         <if test="ENTITY_LIST != null">
             <foreach collection="ENTITY_LIST" item="item" open=" AND ENTT.ENTITY_ID IN (" close=")" separator=",">
@@ -445,7 +487,7 @@
              , EDIT_START_DT      =  CURRENT_TIMESTAMP
          WHERE PROJECT_ID      = #{SESSION_PROJECT_ID}
            AND VERSN           = #{SESSION_VERSN}
-           /* AND SUBJECT_ID = __SUBJECT_ID_ */
+           AND SUBJECT_ID      = #{SUBJECT_ID}
            AND EDIT_USR_UID    IS NULL
     </update>
 
@@ -458,7 +500,7 @@
              , EDIT_START_DT      = NULL
          WHERE PROJECT_ID      = #{SESSION_PROJECT_ID}
            AND VERSN           = #{SESSION_VERSN}
-           /* AND SUBJECT_ID      = __SUBJECT_ID_ */
+           AND SUBJECT_ID      = #{SUBJECT_ID}
            AND EDIT_USR_UID    = #{SESSION_USR_UID}  
     </update>
 
@@ -503,4 +545,22 @@
            AND VERSN         = #{SESSION_VERSN}
     </delete>
 
+    <update id="updateErdSubjectEntityDisplayCode"  parameterType="paramMap">
+        UPDATE /* mapper.erd.subject.deleteSubjectFavorite */
+               SUBJECT_ENTITY_USR
+           SET 
+               ENTITY_DSPL_CD   = #{ENTITY_DSPL_CD}
+             , LAST_UPD_DT      = CURRENT_TIMESTAMP 
+             , LAST_UPD_USR_UID = #{SESSION_USR_UID} 
+           
+         WHERE USR_UID       = #{SESSION_USR_UID}
+           AND PROJECT_ID    = #{SESSION_PROJECT_ID}
+           AND SUBJECT_ID    = #{SUBJECT_ID}
+           AND VERSN         = #{SESSION_VERSN}
+           AND ENTITY_ID IN ( ''
+                        <foreach collection="ENTITY_IDS" item="ITEM" open=", " close="" separator=",">
+                         UPPER(#{ITEM})
+                        </foreach>
+                        )
+    </update>
 </mapper>

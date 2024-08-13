@@ -292,6 +292,7 @@
 	                                                        store.each(function(recordColumn){
 	                                                           //if( recordColumn.get("ENTITY_ID") == record.get("ENTITY_ID")) {
 	                                                               storeOption.add( recordColumn );
+	                                                               
 	                                                           //}
 	                                                        });
                                                             

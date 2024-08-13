@@ -150,18 +150,19 @@
                                             */
                                         }, 
                                         datachanged : function( _this, eOpts) {
-                                            console.log( _this )
+                                            // console.log( _this )
                                         
                                         },
                                         update : function( _this, record, operation, modifiedFieldNames, details, eOpts ) {
-                                            console.log( _this )
-                                            console.log( record )
+                                            // console.log( _this )
+                                            // console.log( record )
                                         } 
                                      },
                                 </tagErd:store>
                                 features: [{
                                     id: 'group',
-                                    ftype: 'groupingsummary',
+                                    // ftype: 'groupingsummary',
+                                    ftype: 'checkboxGrouping',
                                     groupHeaderTpl: ['{name:this.formatName}',
                                                         {
                                                             formatName: function(name) {
@@ -181,6 +182,14 @@
                                     }
                                 },
                                 */
+                                /*
+			                    plugins: [{
+			                        ptype: 'gridfilters'
+			                    }],
+			                    */
+			                    plugins: {
+                                    gridfilters: true
+                                },
                                 viewConfig: {
                                     plugins: {
                                         gridviewdragdrop: {
@@ -189,7 +198,7 @@
                                             allowCopy : true,
                                             autoGenId : true,
                                             dragGroup: 'dd-grid-to-grid-group1',
-                                            dropGroup: 'dd-grid-to-grid-group1',
+                                            // dropGroup: 'dd-grid-to-grid-group1',
                                             //ddGroup: 'destination1',
                                         }
                                     },
@@ -318,7 +327,7 @@
                                     }
                                 },
                                 columns: [
-                                    { text: 'NO', header: '<div style="text-align:center;width:100%;">NO</div>', align: "right", dataIndex: 'RNUM', width : 38, resizeable : false, sortable : false, menuDisabled: true, locked : true, 
+                                    { text: 'NO', header: '<div style="text-align:center;width:100%;">NO</div>', align: "right", dataIndex: 'RNUM', width : 38, resizeable : false, menuDisabled: true, locked : true, 
                                         renderer : function(value, metaData, record , rowIndex, colIndex, store, view ) {
                                             return record.data.RNUM; // (record.data.DML_TCD ? record.data.DML_TCD : "")  + ""+ record.data.RNUM;
                                         },
@@ -365,13 +374,13 @@
                                     },
                                     */
                                     // { text: '컬럼 ID', header: '<div style="text-align:center;width:100%;">컬럼 ID</div>', width : 150, sortable: true, dataIndex: 'COLMN_ID' , minWidth : 100, locked : true, },
-                                    { text: '컬럼 논리 명', header: '<div style="text-align:center;width:100%;">컬럼 논리 명</div>', dataIndex: 'ATTR_NM', width : 120, minWidth : 100, locked : true, 
+                                    { text: '컬럼 논리 명', header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>컬럼 논리 명</div>', dataIndex: 'ATTR_NM', width : 120, minWidth : 100, locked : true,   filter: {type: 'string', dataIndex: 'ATTR_NM'},
                                         editor: {
                                             allowBlank: false,
                                             selectOnFocus: false
                                         },
                                     },
-                                    { text: '컬럼 물리 명', header: '<div style="text-align:center;width:100%;">컬럼 물리 명</div>', width : 150, sortable: true, dataIndex: 'COLMN_NM' , minWidth : 100, locked : true, 
+                                    { text: '컬럼 물리 명', header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>컬럼 물리 명</div>', width : 150, sortable: true, dataIndex: 'COLMN_NM' , minWidth : 100, locked : true,  filter: {type: 'string', dataIndex: 'COLMN_NM'},
                                         
                                         renderer : function(value, metaData, record , rowIndex, colIndex, store, view ) {
                                             var link = new Array();
@@ -394,7 +403,7 @@
                                         }
                                         */
                                     },
-                                    { text: '도메인', header: '<div style="text-align:center;width:100%;">도메인</div>', dataIndex: 'DOMAIN_NM', width : 90,
+                                    { text: '도메인', header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>도메인</div>', dataIndex: 'DOMAIN_NM', width : 90, filter: {type: 'string', dataIndex: 'DOMAIN_NM'},
                                          editor: {
                                                     xtype: 'combotreegrid_domain',
                                                     id : 'rightAll_combotreegrid_domain_picker',
@@ -411,7 +420,7 @@
                                     
                                     },
                                     { text: '데이터 타입', dataIndex: 'DOMAIN_DATA_TYPE', width : 110, hidden : true, },
-                                    { text: '데이터 타입', header: '<div style="text-align:center;width:100%;">데이터 타입</div>', dataIndex: 'DATA_TYPE', width : 110, 
+                                    { text: '데이터 타입', header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>데이터 타입</div>', dataIndex: 'DATA_TYPE', width : 110, filter: {type: 'string', dataIndex: 'DATA_TYPE'},
                                        renderer : function (value, metaData, record , rowIndex, colIndex, store, view ){
                                             /*
                                             var store = Ext.getStore('combotreegrid_dataType_store');
@@ -456,7 +465,7 @@
                                          }
                                     },
                                     {
-                                        text: '기본값', dataIndex: 'DEFAULT_VAL', header: '<div style="text-align:center;width:100%;">기본값</div>', width : 100, menuDisabled : true, 
+                                        text: '기본값', dataIndex: 'DEFAULT_VAL', header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>기본값</div>', width : 100, filter: {type: 'string', dataIndex: 'DEFAULT_VAL'},
                                         editor: {
                                             xtype: 'textfield',
                                         },
@@ -475,7 +484,7 @@
                                       }
                                     },
                                     */
-                                    { text: '코드/채번방식',  header: '<div style="text-align:center;width:100%;">코드/채번방식</div>',dataIndex: 'NUMB_MTH', width : 120, visible : false, align : 'center',
+                                    { text: '코드/채번방식',  header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>코드/채번방식</div>',dataIndex: 'NUMB_MTH', width : 120, visible : false, align : 'center', filter: {type: 'string', dataIndex: 'NUMB_MTH'},
                                        renderer : function(value, metaData, record , rowIndex, colIndex, store, view) {
                                           return record.data.NUMB_MTH;
                                        },
@@ -484,8 +493,16 @@
                                         },
                                     },
                                     { text: 'CUD',  header: '<div style="text-align:center;width:100%;">CUD</div>',dataIndex: 'DML_TCD_NM', width : 40, visible : false,  },
-                                    { text: 'CUD일자',  header: '<div style="text-align:center;width:100%;">CUD일자</div>',dataIndex: 'DML_DT_FMT', width : 80, visible : false,  },
-                                    { text: 'NOTE',  header: '<div style="text-align:center;width:100%;">Note</div>',dataIndex: 'COLMN_DESC', flex: 1, minWidth :100, width : 100, visible : false, 
+                                    { text: 'CUD일자',  header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>CUD일자</div>',dataIndex: 'DML_DT', width : 80, visible : false, align:'center', filter: {type: 'date', dataIndex: 'DML_DT'}, 
+                                       renderer : function(value, metaData, record , rowIndex, colIndex, store, view) {
+                                          if(Ext.util.Format.date(new Date(),"Y-m-d") == Ext.util.Format.date(value,"Y-m-d")) {
+                                               return Ext.util.Format.date(value,"H:i:s");
+                                          } else {
+                                               return Ext.util.Format.date(value,"Y-m-d");
+                                          }
+                                       },
+                                    },
+                                    { text: 'NOTE',  header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>Note</div>',dataIndex: 'COLMN_DESC', flex: 1, minWidth :100, width : 100, visible : false, filter: {type: 'string', dataIndex: 'COLMN_DESC'},
                                        editor :  {
                                             xtype: 'textarea', // 'htmleditor',
                                             grow : true,
@@ -494,9 +511,9 @@
                                        }                              
                                     },
 			                         <c:forEach var="item" items="${data}">
-			                        { text: '${item.CD_NM}', dataIndex: '${item.CD}', align: "center", width : 65, menuDisabled : true, resizable : false,
+			                        { text: '${item.CD_NM}', header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>${item.CD_NM}</div>', dataIndex: '${item.CD}', align: "center", width : 65, resizable : false, filter: {type: 'boolean', }, /* yesText: 'Y', noText: 'N' */
                                        renderer : function(value, metaData, record , rowIndex, colIndex, store, view) {
-                                          return value ? "Y" : "";
+                                          return value ? "Y" : ""; // "<font color='red'>N</font>";
                                        },
 			                        },
 			                         </c:forEach>

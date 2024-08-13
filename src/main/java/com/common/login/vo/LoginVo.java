@@ -83,7 +83,9 @@ public class LoginVo extends MyFrameworkLoginVO {
 	
 	private String errorCd;
 	
-	private String Dbase;
+	private String dbase;
+	
+	private String currentErdYn;
 	
 	/**
 	 * 모델러 권한 있는 지 확인.

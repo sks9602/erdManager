@@ -101,4 +101,12 @@ public class SubjectCtrl {
 		
 		return "jsonView";
 	}
+	
+	@RequestMapping(value="/subject/data/updateErdSubjectEntityDisplayCode.do")
+	public String updateErdSubjectEntityDisplayCode(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+	
+		MyFrameworkResponseCud myFrameworkResponseCud = subjectSvc.updateErdSubjectEntityDisplayCode(model, paramMap);
+		
+		return "jsonView";
+	}
 }

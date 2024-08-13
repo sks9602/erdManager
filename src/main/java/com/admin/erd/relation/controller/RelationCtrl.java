@@ -71,9 +71,8 @@ public class RelationCtrl {
 
 		LoginVo loginVo = (LoginVo) request.getSession().getAttribute(MyFrameworkLoginVO.MY_FRAMEWORK_LOGIN_SESSION_KEY);
 		
-		if(loginVo.isModelerRole()) {
-			MyFrameworkResponseCud myFrameworkResponseCud = relationSvc.relationUpdatePath(model, paramMap);
-		}
+		MyFrameworkResponseCud myFrameworkResponseCud = relationSvc.relationUpdatePath(model, paramMap);
+
 		return "jsonView";
 	}
 	

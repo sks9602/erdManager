@@ -103,12 +103,16 @@ class  QueryMakeFunction{
                 html: "CREATE TABLE "+ entityList[ett]["ENTITY_NM"]
             });
             
+            var prefixSpace = "";
             for( var idx=0; idx < columnRecordList.length; idx++) {
                 syntaxs = [];
                 
                 if( columnRecordList[idx].get("INDENT")) {
                     for( var i=0;i < columnRecordList[idx].get("INDENT") ; i++) {
                         syntaxs.push("&nbsp;&nbsp;&nbsp;")
+                        if( idx==0 && i==0 ) {
+                            prefixSpace += "&nbsp;&nbsp;&nbsp;";
+                        }
                     }
                 }
                 syntaxs.push( QueryMakeFunction.toHtml((idx==0 ? "  " : ", ") +columnRecordList[idx].get("COLMN_NM"), columnRecordList[idx].get("COL_LEN")));
@@ -125,6 +129,8 @@ class  QueryMakeFunction{
                 
                 if( this.projectData["DBASE"] == "mariaDB" ) {
                     syntaxs.push(QueryMakeFunction.toHtml("comment '"+columnRecordList[idx].get("ATTR_NM")+"'"));
+                } else if(this.projectData["DBASE"] == "Oracle" )  {
+                    syntaxs.push( QueryMakeFunction.toHtml("/* " +columnRecordList[idx].get("ATTR_NM") +" */", columnRecordList[idx].get("COL_LEN")));
                 } else {
                     syntaxs.push( QueryMakeFunction.toHtml("/* " +columnRecordList[idx].get("ATTR_NM") +" */", columnRecordList[idx].get("COL_LEN")));
                 }
@@ -138,7 +144,8 @@ class  QueryMakeFunction{
             }
             
             syntaxs = [];
-            var syntax = ", CONSTRAINT "+QueryMakeFunction.getPkName(entityList[ett])+" PRIMARY KEY (";
+            var syntax = prefixSpace + " , CONSTRAINT "+QueryMakeFunction.getPkName(entityList[ett])+" PRIMARY KEY (";
+            
             
             var pkColmn = "";
             
@@ -152,7 +159,21 @@ class  QueryMakeFunction{
                 }
             }
             syntaxs.push( syntax + pkColmn + ")"  );
-            syntaxs.push(") comment '"+ entityList[ett]["TABL_NM"] +"' ;");
+            
+            // 인덱스 스페이스명.
+            if(this.projectData["DBASE"] == "Oracle" && this.projectData["INDEX_SPACE_NM"] )  {
+                syntaxs.push(QueryMakeFunction.toHtml("            USING INDEX TABLESPACE " + this.projectData["INDEX_SPACE_NM"]) );
+            }
+
+            syntaxs.push(") ");
+            console.log( "this.projectData", this.projectData )
+            if( this.projectData["DBASE"] == "mariaDB" ) {
+                syntaxs.push(" comment '"+ entityList[ett]["TABL_NM"] +"' ;");
+            } else if(this.projectData["DBASE"] == "Oracle" && this.projectData["TABLE_SPACE_NM"] )  {
+                syntaxs.push(" TABLESPACE " + this.projectData["TABLE_SPACE_NM"] + " ; ");
+            } else {
+                syntaxs.push(" ; ");
+            }
             
             Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
                 tag: 'div',
@@ -186,6 +207,38 @@ class  QueryMakeFunction{
                     html: ") "
                 });
             }
+            
+            syntaxs = [];
+            
+            syntaxs.push("COMMENT ON TABLE "+ entityList[ett]["ENTITY_NM"] + " IS '" + entityList[ett]["TABL_NM"] +"';");
+            syntaxs.push("<br/>");
+            Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
+                tag: 'div',
+                style : QueryMakeFunction.getStyleSyntax(),
+                html: syntaxs.join('<br/>')
+            });
+            for( var idx=0; idx < columnRecordList.length; idx++) {
+                syntaxs = [];
+                if( columnRecordList[idx].get("INDENT")) {
+                    for( var i=0;i < columnRecordList[idx].get("INDENT") ; i++) {
+                        // syntaxs.push("&nbsp;&nbsp;&nbsp;")
+                    }
+                }
+                if( this.projectData["DBASE"] == "mariaDB" ) {
+                    
+                } else if( this.projectData["DBASE"] == "Oracle" ) {
+                    syntaxs.push("COMMENT ON COLUMN "+ entityList[ett]["ENTITY_NM"] + "." + QueryMakeFunction.toHtml(columnRecordList[idx].get("COLMN_NM"), columnRecordList[idx].get("COL_LEN")) + " IS '" + columnRecordList[idx].get("ATTR_NM") +"';");
+                } else {
+                    syntaxs.push( QueryMakeFunction.toHtml("/* " +columnRecordList[idx].get("ATTR_NM") +" */", columnRecordList[idx].get("COL_LEN")));
+                }
+                
+                Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
+                    tag: 'div',
+                    style : QueryMakeFunction.getStyleSyntax(),
+                    html: syntaxs.join('&nbsp')
+                });
+                
+            }
         }
     }
 
@@ -197,6 +250,8 @@ class  QueryMakeFunction{
         for( var ett=0 ; ett<entityList.length; ett++) {
             var syntaxs = [];
             
+            syntaxs.push("");
+            
             var columnRecordList = entityColumnList[entityList[ett]["ENTITY_NM"]];
             
             var indexTreeRecord = QueryMakeFunction.getIndexTreeRecord(entityList[ett]["ENTITY_ID"])
@@ -206,7 +261,7 @@ class  QueryMakeFunction{
                 
                 if( columnRecordList[idx].get("INDENT")) {
                     for( var i=0;i < columnRecordList[idx].get("INDENT") ; i++) {
-                        syntaxs.push("&nbsp;&nbsp;&nbsp;")
+                        // syntaxs.push("&nbsp;&nbsp;&nbsp;")
                     }
                 }
                 syntaxs.push( QueryMakeFunction.toHtml("ALTER TABLE "+ entityList[ett]["ENTITY_NM"] + " ADD " +columnRecordList[idx].get("COLMN_NM"), columnRecordList[idx].get("COL_LEN") + 13 + entityList[ett]["ENTITY_NM"].length));
@@ -221,7 +276,9 @@ class  QueryMakeFunction{
                 }
                 
                 if( idx > 0 ) {
-                    syntaxs.push(" AFTER "+ columnRecordList[idx-1].get("COLMN_NM"));
+                    if( this.projectData["DBASE"] == "mariaDB" ) {
+                        syntaxs.push(" AFTER "+ columnRecordList[idx-1].get("COLMN_NM"));
+                    }
                 }
                 syntaxs.push(" ;");
                 
@@ -238,12 +295,22 @@ class  QueryMakeFunction{
                 html: "<br/>"
             });
                 
+            syntaxs = [];
+            
+            syntaxs.push("COMMENT ON TABLE "+ entityList[ett]["ENTITY_NM"] + " IS '" + entityList[ett]["TABL_NM"] +"';");
+            syntaxs.push("<br/>");
+            Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
+                tag: 'div',
+                style : QueryMakeFunction.getStyleSyntax(),
+                html: syntaxs.join('<br/>')
+            });
+                
             for( var idx=0; idx < columnRecordList.length; idx++) {
                 syntaxs = [];
                 
                 if( columnRecordList[idx].get("INDENT")) {
                     for( var i=0;i < columnRecordList[idx].get("INDENT") ; i++) {
-                        syntaxs.push("&nbsp;&nbsp;&nbsp;")
+                        // syntaxs.push("&nbsp;&nbsp;&nbsp;")
                     }
                 }
                 if( this.projectData["DBASE"] == "mariaDB" ) {
@@ -262,7 +329,10 @@ class  QueryMakeFunction{
                     
                     
                     syntaxs.push(QueryMakeFunction.toHtml("comment '"+columnRecordList[idx].get("ATTR_NM")+"';"));
+                } else if( this.projectData["DBASE"] == "Oracle" ) {
+                    syntaxs.push("COMMENT ON COLUMN "+ entityList[ett]["ENTITY_NM"] + "." + QueryMakeFunction.toHtml(columnRecordList[idx].get("COLMN_NM"), columnRecordList[idx].get("COL_LEN")) + " IS '" + columnRecordList[idx].get("ATTR_NM") +"';");
                 } else {
+                    
                     syntaxs.push( QueryMakeFunction.toHtml("/* " +columnRecordList[idx].get("ATTR_NM") +" */", columnRecordList[idx].get("COL_LEN")));
                 }
                 
@@ -388,7 +458,7 @@ class  QueryMakeFunction{
                 }
                 
                 syntaxs.push(QueryMakeFunction.toHtml("    " +QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")))); // ,  columnRecordList[idx].get("ATTR_LEN")
-                syntaxs.push(QueryMakeFunction.toHtml("    pubic void get" + QueryMakeFunction.getVarName( columnRecordList[idx].get("COLMN_NM"), "PASCAL_CASE") + "("+ QueryMakeFunction.getVarDataType(columnRecordList[idx]) + " " + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +") {"));
+                syntaxs.push(QueryMakeFunction.toHtml("    pubic void set" + QueryMakeFunction.getVarName( columnRecordList[idx].get("COLMN_NM"), "PASCAL_CASE") + "("+ QueryMakeFunction.getVarDataType(columnRecordList[idx]) + " " + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +") {"));
                 syntaxs.push(QueryMakeFunction.toHtml("        this." + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) + " = " + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +";"));
                 syntaxs.push(QueryMakeFunction.toHtml("    }"));
 
@@ -499,6 +569,25 @@ class  QueryMakeFunction{
         }
     }
     
+    static getEntityAliasMaxLen(columnList) {
+        var entityAliasMaxLen = 0;
+        for( var ett=0 ; ett<1 && ett<columnList.length; ett++) {
+            var aliasLen = QueryMakeFunction.getTextLength( columnList[ett].get("ENTITY_NM_ALIAS") ? columnList[ett].get("ENTITY_NM_ALIAS") : "" )+1;
+            var entityLen = QueryMakeFunction.getTextLength( columnList[ett].get("ENTITY_NM") ? columnList[ett].get("ENTITY_NM") : "" )+1;
+            entityAliasMaxLen = Math.max(entityAliasMaxLen, Math.max(aliasLen, entityLen))
+        }
+        return entityAliasMaxLen+4;
+    }
+    
+    static getEntityAliasMaxLenByEntityList(entityList) {
+        var entityAliasMaxLen = 0;
+        for( var ett=0 ; ett<1 && ett<entityList.length; ett++) {
+            var aliasLen = QueryMakeFunction.getTextLength( entityList[ett]["ENTITY_NM_ALIAS"] ? entityList[ett]["ENTITY_NM_ALIAS"] : "" )+2;
+            var entityLen = QueryMakeFunction.getTextLength( entityList[ett]["ENTITY_NM"] ? entityList[ett]["ENTITY_NM"] : "" )+2;
+            entityAliasMaxLen = Math.max(entityAliasMaxLen, Math.max(aliasLen, entityLen))
+        }
+        return entityAliasMaxLen+4;
+    }
     /**
      * Insert select 
      */
@@ -507,16 +596,20 @@ class  QueryMakeFunction{
         Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
             tag: 'div',
             style : QueryMakeFunction.getStyleSyntax(),
-            html: " SELECT "
+            html: " SELECT /*   */"
         });
 
-        var entityAliasMaxLen = 0;
+        var entityAliasMaxLen = QueryMakeFunction.getEntityAliasMaxLenByEntityList(entityList) ; 
+        /*
         for( var ett=0 ; ett<entityList.length; ett++) {
+            console.log( ett, entityList[ett]);
             entityAliasMaxLen = Math.max(entityAliasMaxLen, entityList[ett]["ENTITY_NM_ALIAS"] ? entityList[ett]["ENTITY_NM_ALIAS"].length : entityList[ett]["ENTITY_NM"].length)
             
         }
+        */
 
 
+                
         for( var ett=0 ; ett<entityList.length; ett++) {
             var syntaxs = [];
             if( ett > 0 ) {
@@ -540,26 +633,46 @@ class  QueryMakeFunction{
             
             
             var varType = Ext.getCmp("queryCenterQueryOption_VAR_TYPE").getValue();
-            
+            var indent = "";
+            var params = "";
             for( var idx=0; idx < columnRecordList.length; idx++) {
                 syntaxs = [];
-                
+                indent = "";
                 if( columnRecordList[idx].get("INDENT")) {
                     for( var i=0;i < columnRecordList[idx].get("INDENT") ; i++) {
-                        syntaxs.push("&nbsp;&nbsp;&nbsp;")
+                        syntaxs.push("&nbsp;&nbsp;&nbsp;");
+                        indent += "&nbsp;&nbsp;&nbsp;";
                     }
                 }
+
                 
                 var len = columnRecordList[idx].get("COL_LEN_TOTAL");
-                console.log( columnRecordList[idx].get("COL_LEN_TOTAL") );
-                syntaxs.push( QueryMakeFunction.toHtml( (ett==0 && idx==0 ? "   " : " , ") + (columnRecordList[idx].get("ENTITY_NM_ALIAS") ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : columnRecordList[idx].get("ENTITY_NM"))+ "."  + columnRecordList[idx].get("COLMN_NM") ,  entityAliasMaxLen + 2 + columnRecordList[idx].get("COL_LEN_TOTAL")));
+                // console.log( columnRecordList[idx].get("COL_LEN_TOTAL") );
+                syntaxs.push( QueryMakeFunction.toHtml( (ett==0 && idx==0 ? "   " : " , ") + (columnRecordList[idx].get("ENTITY_NM_ALIAS") ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : columnRecordList[idx].get("ENTITY_NM"))+ "."  + columnRecordList[idx].get("COLMN_NM") ,  entityAliasMaxLen + columnRecordList[idx].get("COL_LEN_TOTAL") ));
                 syntaxs.push(" AS ");
                 syntaxs.push( QueryMakeFunction.toHtml( columnRecordList[idx].get("COLMN_NM_ALIAS_NM"), columnRecordList[idx].get("COL_LEN_TOTAL")));
 
-                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")));
+                var attrLen = columnRecordList[idx].get("COL_LEN");
+
+                if( varType == "CAMEL_CASE" ) {
+                    attrLen = columnRecordList[idx].get("COL_LEN_CAMEL");
+                }
+                
+                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), attrLen));
+
+                params = "";
+                for( var f = 0 ; f<columnRecordList[idx].fields.length; f++ ) {
+                    var nm = columnRecordList[idx].fields[f].name;
+                    if( f>0 ) {
+                        params += ", ";
+                    }
+                    params += ("\"" + nm +"\" : \"" + columnRecordList[idx].get(nm) + "\"")
+                }
+                syntaxs.push("<span class='addPopupMenu' onclick='ErdDrawFunction.contextAddQuery(event, \"SELECT\", \""+columnRecordList[idx].get("ENTITY_ID")+"\", \""+columnRecordList[idx].get("COLMN_ID")+"\", \"" + indent + "\", {" + params + "} )'> </span>")
 
                 Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
                     tag: 'div',
+                    id : 'col_SELECT_'+ columnRecordList[idx].get("ENTITY_ID") + '_' +columnRecordList[idx].get("COLMN_ID"),
                     style : QueryMakeFunction.getStyleSyntax(),
                     html: syntaxs.join('&nbsp')
                 });
@@ -600,7 +713,7 @@ class  QueryMakeFunction{
             for( var idx=0; idx < columnRecordList.length; idx++) {
                 syntaxs = [];
                 var isCommonColumn = false;
-                console.log( columnRecordList[idx].get("COLMN_NM"), this.commonColumnList )
+                // console.log( columnRecordList[idx].get("COLMN_NM"), this.commonColumnList )
                 for( var comColIdx = 0 ; comColIdx < this.commonColumnList.length; comColIdx++) {
                     if( columnRecordList[idx].get("COLMN_NM") == this.commonColumnList[comColIdx]["COLMN_NM"] ) {
                         isCommonColumn = true;
@@ -610,12 +723,18 @@ class  QueryMakeFunction{
                 if( isCommonColumn == true) {
                     continue;
                 }
+                var attrLen = columnRecordList[idx].get("COL_LEN");
+
+                if( varType == "CAMEL_CASE" ) {
+                    attrLen = columnRecordList[idx].get("COL_LEN_CAMEL");
+                }
+
                 for( var idxNext=0; idxNext < columnRecordListPost.length; idxNext++) {
                     if( columnRecordList[idx].get("COLMN_NM") == columnRecordListPost[idxNext].get("COLMN_NM") ) {
-                        syntaxs.push( QueryMakeFunction.toHtml( "   AND " + (columnRecordList[idx].get("ENTITY_NM_ALIAS") ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : columnRecordList[idx].get("ENTITY_NM") ) + "." + columnRecordList[idx].get("COLMN_NM") ,  entityAliasMaxLen + 2 + columnRecordList[idx].get("COL_LEN_TOTAL")));
+                        syntaxs.push( QueryMakeFunction.toHtml( "   AND " + (columnRecordList[idx].get("ENTITY_NM_ALIAS") ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : columnRecordList[idx].get("ENTITY_NM") ) + "." + columnRecordList[idx].get("COLMN_NM") ,  entityAliasMaxLen + 4 + columnRecordList[idx].get("COL_LEN_TOTAL")));
                         syntaxs.push("=");
-                        syntaxs.push( QueryMakeFunction.toHtml((columnRecordListPost[idxNext].get("ENTITY_NM_ALIAS") ? columnRecordListPost[idxNext].get("ENTITY_NM_ALIAS") : columnRecordListPost[idxNext].get("ENTITY_NM") ) + "." + columnRecordListPost[idxNext].get("COLMN_NM") ,  entityAliasMaxLen + 2 + columnRecordListPost[idxNext].get("COL_LEN_TOTAL")));
-                        syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")));
+                        syntaxs.push( QueryMakeFunction.toHtml((columnRecordListPost[idxNext].get("ENTITY_NM_ALIAS") ? columnRecordListPost[idxNext].get("ENTITY_NM_ALIAS") : columnRecordListPost[idxNext].get("ENTITY_NM") ) + "." + columnRecordListPost[idxNext].get("COLMN_NM") ,  entityAliasMaxLen + 4 + columnRecordListPost[idxNext].get("COL_LEN_TOTAL")));
+                        syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), attrLen));
                         
                         Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
                             tag: 'div',
@@ -651,8 +770,8 @@ class  QueryMakeFunction{
             for( var idx=0; idx < columnRecordList.length; idx++) {
                 syntaxs = [];
                 
-                syntaxs.push( QueryMakeFunction.toHtml( "   AND " + (columnRecordList[idx].get("ENTITY_NM_ALIAS") ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : columnRecordList[idx].get("ENTITY_NM") ) + "." + columnRecordList[idx].get("COLMN_NM") ,  entityAliasMaxLen + 2 + columnRecordList[idx].get("COL_LEN")));
-                syntaxs.push(" =");
+                syntaxs.push( QueryMakeFunction.toHtml( "   AND " + (columnRecordList[idx].get("ENTITY_NM_ALIAS") ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : columnRecordList[idx].get("ENTITY_NM") ) + "." + columnRecordList[idx].get("COLMN_NM") ,  entityAliasMaxLen + 4 + columnRecordList[idx].get("COL_LEN")));
+                syntaxs.push("=");
 
                 var len = columnRecordList[idx].get("COL_LEN");
 
@@ -661,10 +780,20 @@ class  QueryMakeFunction{
                 }
                 syntaxs.push( QueryMakeFunction.toHtml( "#{" + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +"}" , len));
 
-                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")));
+                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), len));
+                params = "";
+                for( var f = 0 ; f<columnRecordList[idx].fields.length; f++ ) {
+                    var nm = columnRecordList[idx].fields[f].name;
+                    if( f>0 ) {
+                        params += ", ";
+                    }
+                    params += ("\"" + nm +"\" : \"" + columnRecordList[idx].get(nm) + "\"")
+                }
+                syntaxs.push("<span class='addPopupMenu' onclick='ErdDrawFunction.contextAddQuery(\"SELECT\", event, \"WHERE\", \""+columnRecordList[idx].get("ENTITY_ID")+"\", \""+columnRecordList[idx].get("COLMN_ID")+"\", \"" + indent + "\", {" + params + "} )'> </span>")
 
                 Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
                     tag: 'div',
+                    id : 'col_WHERE_' +columnRecordList[idx].get("ENTITY_ID") + '_' +columnRecordList[idx].get("COLMN_ID"),
                     style : QueryMakeFunction.getStyleSyntax(),
                     html: syntaxs.join('&nbsp')
                 });
@@ -694,7 +823,7 @@ class  QueryMakeFunction{
             var indexTreeRecord = QueryMakeFunction.getIndexTreeRecord(entityList[ett]["ENTITY_ID"])
 
             
-            syntaxs.push(" SELECT ")
+            syntaxs.push(QueryMakeFunction.toHtml("SELECT /*   */"))
             Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
                 tag: 'div',
                 style : QueryMakeFunction.getStyleSyntax(),
@@ -705,6 +834,8 @@ class  QueryMakeFunction{
             var varType = Ext.getCmp("queryCenterQueryOption_VAR_TYPE").getValue();
             var indent = "";
             var params = "";
+            
+            var entityAliasMaxLen = QueryMakeFunction.getEntityAliasMaxLen(columnRecordList) ; 
             
             for( var idx=0; idx < columnRecordList.length; idx++) {
                 syntaxs = [];
@@ -717,12 +848,17 @@ class  QueryMakeFunction{
                 }
                 
                 var len = columnRecordList[idx].get("COL_LEN");
-                syntaxs.push(QueryMakeFunction.toHtml( (idx==0 ? "   " : " , ") + (columnRecordList[idx].get("ENTITY_NM_ALIAS") ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : columnRecordList[idx].get("ENTITY_NM") )+ "."  + columnRecordList[idx].get("COLMN_NM") ,  columnRecordList[idx].get("ENTITY_NM_ALIAS").length + 2+8 + columnRecordList[idx].get("COL_LEN")));
+                syntaxs.push(QueryMakeFunction.toHtml( (idx==0 ? "   " : " , ") + (columnRecordList[idx].get("ENTITY_NM_ALIAS") ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : columnRecordList[idx].get("ENTITY_NM") )+ "."  + columnRecordList[idx].get("COLMN_NM") ,  entityAliasMaxLen + columnRecordList[idx].get("COL_LEN")));
                 syntaxs.push(" AS ");
                 syntaxs.push( QueryMakeFunction.toHtml( columnRecordList[idx].get("COLMN_NM_ALIAS_NM"), columnRecordList[idx].get("COL_LEN")));
                 
+                var attrLen = columnRecordList[idx].get("COL_LEN");
+
+                if( varType == "CAMEL_CASE" ) {
+                    attrLen = columnRecordList[idx].get("COL_LEN_CAMEL");
+                }
                 
-                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")));
+                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), attrLen));
                 
                 params = "";
                 for( var f = 0 ; f<columnRecordList[idx].fields.length; f++ ) {
@@ -732,7 +868,7 @@ class  QueryMakeFunction{
                     }
                     params += ("\"" + nm +"\" : \"" + columnRecordList[idx].get(nm) + "\"")
                 }
-                syntaxs.push("<span class='select' onclick='ErdDrawFunction.contextAddQuery(event, \"SELECT\", \""+columnRecordList[idx].get("ENTITY_ID")+"\", \""+columnRecordList[idx].get("COLMN_ID")+"\", \"" + indent + "\", {" + params + "} )'> </span>")
+                syntaxs.push("<span class='addPopupMenu' onclick='ErdDrawFunction.contextAddQuery(\"SELECT\", event, \"SELECT\", \""+columnRecordList[idx].get("ENTITY_ID")+"\", \""+columnRecordList[idx].get("COLMN_ID")+"\", \"" + indent + "\", {" + params + "} )'> </span>")
                 
                 Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
                     tag: 'div',
@@ -762,7 +898,7 @@ class  QueryMakeFunction{
             for( var idx=0; idx < columnRecordList.length; idx++) {
                 syntaxs = [];
                 
-                syntaxs.push( QueryMakeFunction.toHtml( "   AND " + (columnRecordList[idx].get("ENTITY_NM_ALIAS") ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : columnRecordList[idx].get("ENTITY_NM") ) + "." + columnRecordList[idx].get("COLMN_NM") ,  (columnRecordList[idx].get("ENTITY_NM_ALIAS") ? columnRecordList[idx].get("ENTITY_NM_ALIAS").length : columnRecordList[idx].get("ENTITY_NM").length) + 2+8 + columnRecordList[idx].get("COL_LEN")));
+                syntaxs.push( QueryMakeFunction.toHtml( "   AND " + (columnRecordList[idx].get("ENTITY_NM_ALIAS") ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : columnRecordList[idx].get("ENTITY_NM") ) + "." + columnRecordList[idx].get("COLMN_NM") ,  entityAliasMaxLen + 2 + columnRecordList[idx].get("COL_LEN")));
                 syntaxs.push(" =");
 
                 var len = columnRecordList[idx].get("COL_LEN");
@@ -772,7 +908,7 @@ class  QueryMakeFunction{
                 }
                 syntaxs.push( QueryMakeFunction.toHtml( "#{" + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +"}" , len));
 
-                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")));
+                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), len));
 
                 params = "";
                 for( var f = 0 ; f<columnRecordList[idx].fields.length; f++ ) {
@@ -782,7 +918,7 @@ class  QueryMakeFunction{
                     }
                     params += ("\"" + nm +"\" : \"" + columnRecordList[idx].get(nm) + "\"")
                 }
-                syntaxs.push("<span class='select' onclick='ErdDrawFunction.contextAddQuery(event, \"WHERE\", \""+columnRecordList[idx].get("ENTITY_ID")+"\", \""+columnRecordList[idx].get("COLMN_ID")+"\", \"" + indent + "\", {" + params + "} )'> </span>")
+                syntaxs.push("<span class='addPopupMenu' onclick='ErdDrawFunction.contextAddQuery(\"SELECT\", event, \"WHERE\", \""+columnRecordList[idx].get("ENTITY_ID")+"\", \""+columnRecordList[idx].get("COLMN_ID")+"\", \"" + indent + "\", {" + params + "} )'> </span>")
 
                 Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
                     tag: 'div',
@@ -824,6 +960,8 @@ class  QueryMakeFunction{
                 html: QueryMakeFunction.toHtml(" WHERE 1 = 1")
             });
             
+            var entityAliasMaxLen = QueryMakeFunction.getEntityAliasMaxLen(columnRecordList) ; 
+            
             var varType = Ext.getCmp("queryCenterQueryOption_VAR_TYPE").getValue();
             for( var idx=0; idx < columnRecordList.length; idx++) {
                 syntaxs = [];
@@ -834,7 +972,7 @@ class  QueryMakeFunction{
                         }
                     }
 
-                    syntaxs.push( QueryMakeFunction.toHtml( "   AND " + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "")  + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+columnRecordList[idx].get("ENTITY_NM_ALIAS").length ));
+                    syntaxs.push( QueryMakeFunction.toHtml( "   AND " + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "")  + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+entityAliasMaxLen ));
                     syntaxs.push( "=" );
                     
                     var len = columnRecordList[idx].get("COL_LEN");
@@ -843,7 +981,7 @@ class  QueryMakeFunction{
                     }
                     syntaxs.push( QueryMakeFunction.toHtml( "#{" + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +"}" , len));
 
-                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")));
+                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), len));
 
                     Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
                         tag: 'div',
@@ -869,7 +1007,7 @@ class  QueryMakeFunction{
             
             var columnRecordList = entityColumnList[entityList[ett]["ENTITY_NM"]];
 
-            syntaxs.push( QueryMakeFunction.toHtml("MERGE "+QueryMakeFunction.getCommentString(entityList[ett]["TABL_NM"])));
+            syntaxs.push( QueryMakeFunction.toHtml("MERGE /*   */"));
             syntaxs.push( QueryMakeFunction.toHtml(" INTO "+ entityList[ett]["ENTITY_NM"]) + " " + ( entityList[ett]["ENTITY_NM_ALIAS"] ? entityList[ett]["ENTITY_NM_ALIAS"] : entityList[ett]["ENTITY_NM"] ) + " /* " + entityList[ett]["TABL_NM"] + " */");
             syntaxs.push( QueryMakeFunction.toHtml("USING TABLE T"));
             syntaxs.push( QueryMakeFunction.toHtml("   ON ("));
@@ -881,6 +1019,8 @@ class  QueryMakeFunction{
             });
             
             var isFirst = true;
+            var entityAliasMaxLen = QueryMakeFunction.getEntityAliasMaxLen(columnRecordList) ; 
+            
             for( var idx=0; idx < columnRecordList.length; idx++) {
                 if( columnRecordList[idx].get("PK_YN") == 'Y') {
                     syntaxs = [];
@@ -890,7 +1030,7 @@ class  QueryMakeFunction{
                         }
                     }
                     var str = ""; 
-                    str += QueryMakeFunction.toHtml((isFirst ? "            " : "        AND ") + ( entityList[ett]["ENTITY_NM_ALIAS"] ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : entityList[ett]["ENTITY_NM"] ) + "." + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+ ( entityList[ett]["ENTITY_NM_ALIAS"] ? columnRecordList[idx].get("ENTITY_NM_ALIAS").length  : entityList[ett]["ENTITY_NM"].length)) ;
+                    str += QueryMakeFunction.toHtml((isFirst ? "            " : "        AND ") + ( entityList[ett]["ENTITY_NM_ALIAS"] ? columnRecordList[idx].get("ENTITY_NM_ALIAS") : entityList[ett]["ENTITY_NM"] ) + "." + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+ entityAliasMaxLen + 4) ;
                
                     
                     var len = columnRecordList[idx].get("COL_LEN");
@@ -900,7 +1040,7 @@ class  QueryMakeFunction{
                     str += " = ";
                     // str += QueryMakeFunction.toHtml( "#{" + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +"}" , len);
                     str += "T." + QueryMakeFunction.toHtml(columnRecordList[idx].get("COLMN_NM"), columnRecordList[idx].get("COL_LEN") );
-                    str += QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */";
+                    str += QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), len); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */";
                     
                     
                     syntaxs.push(str);
@@ -934,7 +1074,7 @@ class  QueryMakeFunction{
                         }
                     }
 
-                    syntaxs.push( QueryMakeFunction.toHtml( (isFirst==0 ? "       , " : "         ") + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+columnRecordList[idx].get("ENTITY_NM_ALIAS").length +6 ));
+                    syntaxs.push( QueryMakeFunction.toHtml( (isFirst==0 ? "       , " : "         ") + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+ entityAliasMaxLen + 2 ));
                     syntaxs.push( " = " );
                     
                     var len = columnRecordList[idx].get("COL_LEN");
@@ -943,7 +1083,7 @@ class  QueryMakeFunction{
                     }
                     syntaxs.push( QueryMakeFunction.toHtml( "#{" + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +"}" , len));
 
-                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"))); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */"
+                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), len)); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */"
 
                     isFirst = false;
 
@@ -974,9 +1114,9 @@ class  QueryMakeFunction{
                     }
                 }
 
-                syntaxs.push( QueryMakeFunction.toHtml( (isFirst==0 ? "             , " : "               ") + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+columnRecordList[idx].get("ENTITY_NM_ALIAS").length ));
+                syntaxs.push( QueryMakeFunction.toHtml( (isFirst==0 ? "             , " : "               ") + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+ entityAliasMaxLen+8 ));
 
-                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"))); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */"
+                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), len)); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */"
 
                 isFirst = false;
 
@@ -1008,9 +1148,9 @@ class  QueryMakeFunction{
                     }
                 }
 
-                syntaxs.push( QueryMakeFunction.toHtml( (isFirst==0 ? "             , " : "               ") + "T." + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+columnRecordList[idx].get("ENTITY_NM_ALIAS").length ));
+                syntaxs.push( QueryMakeFunction.toHtml( (isFirst==0 ? "             , " : "               ") + "T." + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+ entityAliasMaxLen ));
 
-                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"))); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */"
+                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), len)); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */"
 
                 isFirst = false;
 
@@ -1043,7 +1183,7 @@ class  QueryMakeFunction{
             
             var columnRecordList = entityColumnList[entityList[ett]["ENTITY_NM"]];
 
-            syntaxs.push( QueryMakeFunction.toHtml("UPDATE " + QueryMakeFunction.getCommentString(entityList[ett]["TABL_NM"])));
+            syntaxs.push( QueryMakeFunction.toHtml("UPDATE /*   */"));
             syntaxs.push( QueryMakeFunction.toHtml("       "+ entityList[ett]["ENTITY_NM"]) + " " + entityList[ett]["ENTITY_NM_ALIAS"] + " /* " + entityList[ett]["TABL_NM"] + " */");
             syntaxs.push( QueryMakeFunction.toHtml("   SET "));
 
@@ -1055,17 +1195,20 @@ class  QueryMakeFunction{
 
             var isFirst = true;
             var varType = Ext.getCmp("queryCenterQueryOption_VAR_TYPE").getValue();
+            
+            var entityAliasMaxLen = QueryMakeFunction.getEntityAliasMaxLen(columnRecordList) ; 
+            
             for( var idx=0; idx < columnRecordList.length; idx++) {
                 syntaxs = [];
                 if( columnRecordList[idx].get("PK_YN") != 'Y') {
                     if( columnRecordList[idx].get("INDENT")) {
                         for( var i=0;i < columnRecordList[idx].get("INDENT") ; i++) {
-                            syntaxs.push("&nbsp;&nbsp;&nbsp;")
+                            syntaxs.push("&nbsp;&nbsp;&nbsp;&nbsp;")
                         }
                     }
 
-                    syntaxs.push( QueryMakeFunction.toHtml( (isFirst==0 ? ", " : "  ") + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+columnRecordList[idx].get("ENTITY_NM_ALIAS").length -2 ));
-                    syntaxs.push( " = " );
+                    syntaxs.push( QueryMakeFunction.toHtml( (isFirst==0 ? ", " : "  ") + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") , entityAliasMaxLen + columnRecordList[idx].get("COL_LEN") - 3 ));
+                    syntaxs.push( "=" );
                     
                     var len = columnRecordList[idx].get("COL_LEN");
                     if( varType == "CAMEL_CASE" ) {
@@ -1073,7 +1216,7 @@ class  QueryMakeFunction{
                     }
                     syntaxs.push( QueryMakeFunction.toHtml( "#{" + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +"}" , len));
 
-                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"))); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */"
+                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), columnRecordList[idx].get("ATTR_LEN"))); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */"
 
                     isFirst = false;
 
@@ -1100,7 +1243,7 @@ class  QueryMakeFunction{
                         }
                     }
 
-                    syntaxs.push( QueryMakeFunction.toHtml( "   AND " + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")+columnRecordList[idx].get("ENTITY_NM_ALIAS").length ));
+                    syntaxs.push( QueryMakeFunction.toHtml( "   AND " + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") , entityAliasMaxLen + columnRecordList[idx].get("COL_LEN")+2 ));
                     syntaxs.push( "=" );
                     
                     var len = columnRecordList[idx].get("COL_LEN");
@@ -1109,7 +1252,7 @@ class  QueryMakeFunction{
                     }
                     syntaxs.push( QueryMakeFunction.toHtml( "#{" + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +"}" , len));
 
-                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"))); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */"
+                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), columnRecordList[idx].get("ATTR_LEN"))); // "/* " + QueryMakeFunction.toHtml(columnRecordList[idx].get("ATTR_NM"),  columnRecordList[idx].get("ATTR_LEN")) + " */"
 
                     isFirst = false;
 
@@ -1133,6 +1276,9 @@ class  QueryMakeFunction{
 
         var colmnLineCnt = Ext.getCmp("queryCenterQueryOption_COLMN_CNT").getValue();
         
+        var indent = "";
+        var params = "";
+        
         for( var ett=0 ; ett<entityList.length; ett++) {
             var syntaxs = [];
             if( ett > 0 ) {
@@ -1146,7 +1292,7 @@ class  QueryMakeFunction{
             
             var indexTreeRecord = QueryMakeFunction.getIndexTreeRecord(entityList[ett]["ENTITY_ID"])
 
-            syntaxs.push( QueryMakeFunction.toHtml("INSERT "));
+            syntaxs.push( QueryMakeFunction.toHtml("INSERT /*   */"));
             syntaxs.push( QueryMakeFunction.toHtml("  INTO "+ entityList[ett]["ENTITY_NM"] + " " + QueryMakeFunction.getCommentString(entityList[ett]["TABL_NM"])));
             syntaxs.push( QueryMakeFunction.toHtml("     ("));
 
@@ -1156,31 +1302,73 @@ class  QueryMakeFunction{
                 html: syntaxs.join('<br/>')
             });
                 
-            for( var idx=0; idx < columnRecordList.length; idx++) {
+            for( var idx=0; idx < columnRecordList.length; ) {
                 syntaxs = [];
-                
+                indent = "";
                 if( columnRecordList[idx].get("INDENT")) {
                     for( var i=0;i < columnRecordList[idx].get("INDENT") ; i++) {
-                        syntaxs.push("&nbsp;&nbsp;&nbsp;")
+                        syntaxs.push("&nbsp;&nbsp;&nbsp;");
+                        indent += "&nbsp;&nbsp;&nbsp;";
                     }
                 }
-                
-                for( var col=0; col< colmnLineCnt; col++ ) {
-                    if( idx >= columnRecordList.length ) {
-                        continue;
-                    }
-                    syntaxs.push( QueryMakeFunction.toHtml( (idx==0 ? "  " : ", ") + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")));
+
+                for( var col=0; col< colmnLineCnt && idx < columnRecordList.length; col++ ) {
+                    syntaxs.push( QueryMakeFunction.toHtml( (idx==0 ? "  " : ", ") + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")) );
                     
-                    syntaxs.push( QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"))) ; //  columnRecordList[idx].get("ATTR_LEN")) 
-                
-                    idx++
+                    syntaxs.push( QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), columnRecordList[idx].get("ATTR_LEN"))) ; //  columnRecordList[idx].get("ATTR_LEN")) 
+
+                    params = "";
+                    var val = "";
+                    for( var f = 0 ; f<columnRecordList[idx].fields.length; f++ ) {
+                        var nm = columnRecordList[idx].fields[f].name;
+                        if( f>0 ) {
+                            params += ", ";
+                        }
+                        
+                        val = columnRecordList[idx].get(nm);
+                        if(val && typeof(val) == 'string') {
+                            params += ("\"" + nm +"\" : \"" + val.replace(/(?:\r\n|\r|\n)/gm, "<br/>") + "\""); 
+                        } else {
+                            params += ("\"" + nm +"\" : \"" + val + "\"")
+                        }
+                        
+                    }
+
+                    params = "";
+                    for( var f = 0 ; f<columnRecordList[idx].fields.length; f++ ) {
+                        var nm = columnRecordList[idx].fields[f].name;
+                        if( f>0 ) {
+                            params += ", ";
+                        }
+                        val = columnRecordList[idx].get(nm);
+                        if(val && typeof(val) == 'string') {
+                            params += ("\"" + nm +"\" : \"" + val.replace(/(?:\r\n|\r|\n)/gm, "<br/>") + "\""); 
+                        } else {
+                            params += ("\"" + nm +"\" : \"" + val + "\"")
+                        }
+                    }
+                    
+                    if( colmnLineCnt == 1 ) {
+                        syntaxs.push("<span class='addPopupMenuRemove' onclick='ErdDrawFunction.contextAddQueryRemove(\"INSERT\", event, \"INTO\", \""+columnRecordList[idx].get("ENTITY_ID")+"\", \""+columnRecordList[idx].get("COLMN_ID")+"\", \"" + indent + "\", {" + params + "} )'> </span>")
+
+                        Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
+                            tag: 'div',
+                            id : 'col_INTO_'+ columnRecordList[idx].get("ENTITY_ID") + '_' +columnRecordList[idx].get("COLMN_ID"),
+                            style : QueryMakeFunction.getStyleSyntax(),
+                            html: syntaxs.join('&nbsp')
+                        });
+                    }
+
+                    
+                    idx++;            
                 }
-                
-                Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
-                    tag: 'div',
-                    style : QueryMakeFunction.getStyleSyntax(),
-                    html: syntaxs.join('&nbsp')
-                });
+                if( colmnLineCnt != 1 ) {
+                    Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
+                        tag: 'div',
+                        style : QueryMakeFunction.getStyleSyntax(),
+                        html: syntaxs.join('&nbsp')
+                    });
+                }
             }
             
             syntaxs = [];
@@ -1196,12 +1384,13 @@ class  QueryMakeFunction{
             
             var varType = Ext.getCmp("queryCenterQueryOption_VAR_TYPE").getValue();
             
-            for( var idx=0; idx < columnRecordList.length; idx++) {
+            for( var idx=0; idx < columnRecordList.length; ) {
                 syntaxs = [];
-                
+                indent = "";
                 if( columnRecordList[idx].get("INDENT")) {
                     for( var i=0;i < columnRecordList[idx].get("INDENT") ; i++) {
                         syntaxs.push("&nbsp;&nbsp;&nbsp;")
+                        indent += "&nbsp;&nbsp;&nbsp;";
                     }
                 }
                 
@@ -1210,21 +1399,45 @@ class  QueryMakeFunction{
                 if( varType == "CAMEL_CASE" ) {
                     len = columnRecordList[idx].get("COL_LEN_CAMEL");
                 }
-                for( var col=0; col< colmnLineCnt; col++ ) {
-                    if( idx >= columnRecordList.length ) {
-                        continue;
-                    }
+                for( var col=0; col< colmnLineCnt && idx < columnRecordList.length; col++ ) {
                     syntaxs.push( QueryMakeFunction.toHtml( (idx==0 ? "  " : ", ") + "#{" + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +"}" , len));
                     
-                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")));
+                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), columnRecordList[idx].get("ATTR_LEN")));
+
+                    params = "";
+                    for( var f = 0 ; f<columnRecordList[idx].fields.length; f++ ) {
+                        var nm = columnRecordList[idx].fields[f].name;
+                        if( f>0 ) {
+                            params += ", ";
+                        }
+                        val = columnRecordList[idx].get(nm);
+                        if(val && typeof(val) == 'string') {
+                            params += ("\"" + nm +"\" : \"" + val.replace(/(?:\r\n|\r|\n)/gm, "<br/>") + "\""); 
+                        } else {
+                            params += ("\"" + nm +"\" : \"" + val + "\"")
+                        }
+                    }
+                    
+                    if( colmnLineCnt == 1 ) {
+                        syntaxs.push("<span class='addPopupMenu' onclick='ErdDrawFunction.contextAddQuery(\"INSERT\", event, \"VALUES\", \""+columnRecordList[idx].get("ENTITY_ID")+"\", \""+columnRecordList[idx].get("COLMN_ID")+"\", \"" + indent + "\", {" + params + "} )'> </span>")
+
+                        Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
+                            tag: 'div',
+                            id : 'col_VALUES_'+ columnRecordList[idx].get("ENTITY_ID") + '_' +columnRecordList[idx].get("COLMN_ID"),
+                            style : QueryMakeFunction.getStyleSyntax(),
+                            html: syntaxs.join('&nbsp')
+                        });
+                    }
+
                     idx++
                 }
-                
-                Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
-                    tag: 'div',
-                    style : QueryMakeFunction.getStyleSyntax(),
-                    html: syntaxs.join('&nbsp')
-                });
+                if( colmnLineCnt != 1 ) {
+                    Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
+                        tag: 'div',
+                        style : QueryMakeFunction.getStyleSyntax(),
+                        html: syntaxs.join('&nbsp')
+                    });
+                }
             }
             
             syntaxs = [];
@@ -1245,7 +1458,8 @@ class  QueryMakeFunction{
      */
     static makeSyntaxInsertSelect(queryType, records, entityList, entityColumnList) {
 
-
+        var colmnLineCnt = Ext.getCmp("queryCenterQueryOption_COLMN_CNT").getValue();
+        
         for( var ett=0 ; ett<entityList.length; ett++) {
             var syntaxs = [];
             if( ett > 0 ) {
@@ -1260,7 +1474,7 @@ class  QueryMakeFunction{
             
             var indexTreeRecord = QueryMakeFunction.getIndexTreeRecord(entityList[ett]["ENTITY_ID"])
 
-            syntaxs.push( QueryMakeFunction.toHtml("INSERT "));
+            syntaxs.push( QueryMakeFunction.toHtml("INSERT /*   */"));
             syntaxs.push( QueryMakeFunction.toHtml("  INTO "+ entityList[ett]["ENTITY_NM"] + " /* " + entityList[ett]["TABL_NM"] + " */"));
             syntaxs.push( QueryMakeFunction.toHtml("     ("));
 
@@ -1270,7 +1484,9 @@ class  QueryMakeFunction{
                 html: syntaxs.join('<br/>')
             });
                 
-            for( var idx=0; idx < columnRecordList.length; idx++) {
+            var param = "";
+            var val = "";
+            for( var idx=0; idx < columnRecordList.length;) {
                 syntaxs = [];
                 
                 if( columnRecordList[idx].get("INDENT")) {
@@ -1278,17 +1494,46 @@ class  QueryMakeFunction{
                         syntaxs.push("&nbsp;&nbsp;&nbsp;")
                     }
                 }
-                
-                
-                syntaxs.push( QueryMakeFunction.toHtml( (idx==0 ? "  " : ", ") + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")));
-                
-                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")));
+                    
+                for( var col=0; col< colmnLineCnt && idx < columnRecordList.length; col++ ) {
+                    syntaxs.push( QueryMakeFunction.toHtml( (idx==0 ? "  " : ", ") + columnRecordList[idx].get("COLMN_NM") , columnRecordList[idx].get("COL_LEN")));
+                    
+                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), columnRecordList[idx].get("ATTR_LEN")));
 
-                Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
-                    tag: 'div',
-                    style : QueryMakeFunction.getStyleSyntax(),
-                    html: syntaxs.join('&nbsp')
-                });
+                    params = "";
+                    for( var f = 0 ; f<columnRecordList[idx].fields.length; f++ ) {
+                        var nm = columnRecordList[idx].fields[f].name;
+                        if( f>0 ) {
+                            params += ", ";
+                        }
+                        val = columnRecordList[idx].get(nm);
+                        if(val && typeof(val) == 'string') {
+                            params += ("\"" + nm +"\" : \"" + val.replace(/(?:\r\n|\r|\n)/gm, "<br/>") + "\""); 
+                        } else {
+                            params += ("\"" + nm +"\" : \"" + val + "\"")
+                        }
+                    }
+
+                    if( colmnLineCnt == 1 ) {
+                        syntaxs.push("<span class='addPopupMenuRemove' onclick='ErdDrawFunction.contextAddQueryRemove(\"INSERT\", event, \"INTO\", \""+columnRecordList[idx].get("ENTITY_ID")+"\", \""+columnRecordList[idx].get("COLMN_ID")+"\", \"" + indent + "\", {" + params + "} )'> </span>")
+
+                        Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
+                            tag: 'div',
+                            id : 'col_INTO_'+ columnRecordList[idx].get("ENTITY_ID") + '_' +columnRecordList[idx].get("COLMN_ID"),
+                            style : QueryMakeFunction.getStyleSyntax(),
+                            html: syntaxs.join('&nbsp')
+                        });
+                    }
+                    
+                    idx++;
+                }
+                if( colmnLineCnt != 1 ) {
+                    Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
+                        tag: 'div',
+                        style : QueryMakeFunction.getStyleSyntax(),
+                        html: syntaxs.join('&nbsp')
+                    });
+                }
             }
             
             syntaxs = [];
@@ -1303,29 +1548,60 @@ class  QueryMakeFunction{
             
             
             var varType = Ext.getCmp("queryCenterQueryOption_VAR_TYPE").getValue();
+            var indent = "";
+            var entityAliasMaxLen = QueryMakeFunction.getEntityAliasMaxLen(columnRecordList) ; 
             
-            for( var idx=0; idx < columnRecordList.length; idx++) {
+            for( var idx=0; idx < columnRecordList.length; ) {
                 syntaxs = [];
+                
+                indent = "";
                 
                 if( columnRecordList[idx].get("INDENT")) {
                     for( var i=0;i < columnRecordList[idx].get("INDENT") ; i++) {
-                        syntaxs.push("&nbsp;&nbsp;&nbsp;")
+                        syntaxs.push("&nbsp;&nbsp;&nbsp;");
+                        indent += "&nbsp;&nbsp;&nbsp";
                     }
                 }
                 
                 var len = columnRecordList[idx].get("COL_LEN");
-                
-                syntaxs.push( QueryMakeFunction.toHtml( (idx==0 ? "  " : ", ") + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") ,  columnRecordList[idx].get("ENTITY_NM_ALIAS").length + 2 + columnRecordList[idx].get("COL_LEN")));
-                syntaxs.push(" AS ");
-                syntaxs.push( QueryMakeFunction.toHtml( columnRecordList[idx].get("COLMN_NM_ALIAS_NM"), columnRecordList[idx].get("COL_LEN")));
+                var params = "";
+                for( var col=0; col< colmnLineCnt && idx < columnRecordList.length; col++ ) {
+                    syntaxs.push( QueryMakeFunction.toHtml( (idx==0 ? "  " : ", ") + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") ,  entityAliasMaxLen + 2 + columnRecordList[idx].get("COL_LEN")));
+                    syntaxs.push(" AS ");
+                    syntaxs.push( QueryMakeFunction.toHtml( columnRecordList[idx].get("COLMN_NM_ALIAS_NM"), columnRecordList[idx].get("COL_LEN")));
+    
+                    syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), columnRecordList[idx].get("ATTR_LEN")));
 
-                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")));
-
-                Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
-                    tag: 'div',
-                    style : QueryMakeFunction.getStyleSyntax(),
-                    html: syntaxs.join('&nbsp')
-                });
+                    if( colmnLineCnt == 1) {
+                        params = "";
+                        for( var f = 0 ; f<columnRecordList[idx].fields.length; f++ ) {
+                            var nm = columnRecordList[idx].fields[f].name;
+                            if( f>0 ) {
+                                params += ", ";
+                            }
+                            params += ("\"" + nm +"\" : \"" + columnRecordList[idx].get(nm) + "\"")
+                        }
+                        params += (", \"ENTITY_ALIAS_MAX_LEN\" : \"" + (entityAliasMaxLen+2) + "\"")
+                        syntaxs.push("<span class='addPopupMenu' onclick='ErdDrawFunction.contextAddQuery(\"SELECT\", event, \"SELECT\", \""+columnRecordList[idx].get("ENTITY_ID")+"\", \""+columnRecordList[idx].get("COLMN_ID")+"\", \"" + indent + "\", {" + params + "} )'> </span>")
+                    }
+                    if( colmnLineCnt == 1) {
+                        Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
+                            tag: 'div',
+                            id : 'col_SELECT_'+ columnRecordList[idx].get("ENTITY_ID") + '_' +columnRecordList[idx].get("COLMN_ID"),
+                            style : QueryMakeFunction.getStyleSyntax(),
+                            html: syntaxs.join('&nbsp')
+                        });
+                    }
+                    idx++;
+                    
+                }
+                if( colmnLineCnt != 1) {
+                    Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
+                        tag: 'div',
+                        style : QueryMakeFunction.getStyleSyntax(),
+                        html: syntaxs.join('&nbsp')
+                    });
+                 }
             }
             
             syntaxs = [];
@@ -1345,11 +1621,16 @@ class  QueryMakeFunction{
                 html: syntaxs.join('&nbsp')
             });
 
+            var entityAliasMaxLen = QueryMakeFunction.getEntityAliasMaxLen(columnRecordList) ; 
+            
+            console.log( " entityAliasMaxLen : " , entityAliasMaxLen)
             for( var idx=0; idx < columnRecordList.length; idx++) {
                 syntaxs = [];
                 
-                syntaxs.push( QueryMakeFunction.toHtml( "   AND " + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") ,  columnRecordList[idx].get("ENTITY_NM_ALIAS").length + 2 + columnRecordList[idx].get("COL_LEN")));
-                syntaxs.push(" =");
+                // syntaxs.push( QueryMakeFunction.toHtml( "   AND " + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") ,  columnRecordList[idx].get("ENTITY_NM_ALIAS").length + 2 + columnRecordList[idx].get("COL_LEN")));
+                syntaxs.push( QueryMakeFunction.toHtml( "   AND " + columnRecordList[idx].get("ENTITY_NM_ALIAS") + ( columnRecordList[idx].get("ENTITY_NM_ALIAS") ? "." : "") + columnRecordList[idx].get("COLMN_NM") , entityAliasMaxLen + columnRecordList[idx].get("COL_LEN")));
+                
+                syntaxs.push("=");
 
                 var len = columnRecordList[idx].get("COL_LEN");
 
@@ -1358,10 +1639,21 @@ class  QueryMakeFunction{
                 }
                 syntaxs.push( QueryMakeFunction.toHtml( "#{" + QueryMakeFunction.getVarName(columnRecordList[idx].get("COLMN_NM")) +"}" , len));
 
-                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM")));
+                syntaxs.push(QueryMakeFunction.getCommentString(columnRecordList[idx].get("ATTR_NM"), columnRecordList[idx].get("ATTR_LEN")));
+
+                params = "";
+                for( var f = 0 ; f<columnRecordList[idx].fields.length; f++ ) {
+                    var nm = columnRecordList[idx].fields[f].name;
+                    if( f>0 ) {
+                        params += ", ";
+                    }
+                    params += ("\"" + nm +"\" : \"" + columnRecordList[idx].get(nm) + "\"")
+                }
+                syntaxs.push("<span class='addPopupMenu' onclick='ErdDrawFunction.contextAddQuery(\"SELECT\", event, \"WHERE\", \""+columnRecordList[idx].get("ENTITY_ID")+"\", \""+columnRecordList[idx].get("COLMN_ID")+"\", \"" + indent + "\", {" + params + "} )'> </span>")
 
                 Ext.DomHelper.append(Ext.get("rightSqlArea-innerCt"), {
                     tag: 'div',
+                    id : 'col_WHERE_' +columnRecordList[idx].get("ENTITY_ID") + '_' +columnRecordList[idx].get("COLMN_ID"),
                     style : QueryMakeFunction.getStyleSyntax(),
                     html: syntaxs.join('&nbsp')
                 });
@@ -1455,9 +1747,25 @@ class  QueryMakeFunction{
         return str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase());
     }
 
+    static getTextLength = function(str) {
+        var len = 0;
+        for (var i = 0; i < str.length; i++) {
+            if (escape(str.charAt(i)).length == 6) {
+                len++;
+            }
+            len++;
+        }
+        return len;
+    }
+
     static toHtml(str, len) {
+        var strCharLen = QueryMakeFunction.getTextLength(str);
+        var strLen = str ? str.length : 0;
+        
+        var padLen = strCharLen == strLen ? len : len-(strCharLen-strLen);
+        // console.log( str, strCharLen, strLen, padLen )
         if( len ) {
-            return str.padEnd(len, ' ').replace(/\s/g, '&nbsp;');
+            return str.padEnd(padLen, ' ').replace(/\s/g, '&nbsp;');
         } else {
             return str.replace(/\s/g, '&nbsp;');
         }
@@ -1469,6 +1777,8 @@ class  QueryMakeFunction{
         var attrMaxLength = {}
         var columnCamelMaxLength = {}
         var totalColumnMaxLength = 0;
+        var entityAliaxMaxLength = {};
+        
         for( var i=0; i < records.length; i++) {
                 
             if(!filterdRecords[records[i].get("ENTITY_NM")]) {
@@ -1478,7 +1788,7 @@ class  QueryMakeFunction{
                 columnCamelMaxLength[records[i].get("ENTITY_NM")] = 0
             }
             
-            attrMaxLength[records[i].get("ENTITY_NM")] = Math.max(attrMaxLength[records[i].get("ENTITY_NM")], records[i].get("ATTR_NM_LEN") + 6 ); // QueryMakeFunction.getStringLength(records[i].get("ATTR_NM"))+4);
+            attrMaxLength[records[i].get("ENTITY_NM")] = Math.max(attrMaxLength[records[i].get("ENTITY_NM")], records[i].get("ATTR_NM_LEN") ); // QueryMakeFunction.getStringLength(records[i].get("ATTR_NM"))+4);
             columnMaxLength[records[i].get("ENTITY_NM")] = Math.max(columnMaxLength[records[i].get("ENTITY_NM")], records[i].get("COL_NM_LEN"));
             columnCamelMaxLength[records[i].get("ENTITY_NM")] = Math.max(columnCamelMaxLength[records[i].get("ENTITY_NM")], records[i].get("COL_NM_PLAIN_LEN"));
             filterdRecords[records[i].get("ENTITY_NM")].push(records[i])

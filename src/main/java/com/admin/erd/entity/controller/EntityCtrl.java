@@ -113,9 +113,7 @@ public class EntityCtrl {
 
 		LoginVo loginVo = (LoginVo) request.getSession().getAttribute(MyFrameworkLoginVO.MY_FRAMEWORK_LOGIN_SESSION_KEY);
 		
-		if(loginVo.isModelerRole()) {
-			MyFrameworkResponseCud myFrameworkResponseCud = entitySvc.updateAttr(model, paramMap);
-		}
+		MyFrameworkResponseCud myFrameworkResponseCud = entitySvc.updateAttr(model, paramMap);
 		
 		return "jsonView";
 	}
@@ -286,4 +284,11 @@ public class EntityCtrl {
 		return "jsonView";
 	}
 
+	@RequestMapping(value="/entity/data/memoList.do")
+	public String memoList(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+
+		entitySvc.memoList(model, paramMap);
+		
+		return "jsonView";
+	}
 }

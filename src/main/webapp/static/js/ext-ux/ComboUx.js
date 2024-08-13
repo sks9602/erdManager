@@ -6,7 +6,7 @@ Ext.define('Ext.form.field.ux.ComboUx', {
 	alias: 'widget.combo_ux',
     padding : '0 0 1 0',
 	labelSeparator : '',
-    labelWidth : 100,
+    labelWidth : 104,
     width      : 320,
     initComponent: function() {
         var me = this;

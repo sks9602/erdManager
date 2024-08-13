@@ -106,7 +106,7 @@ Ext.define('Ext.form.field.ux.Password', {
         val, encVal ;
         if (!me.disabled && me.submitValue && !me.isFileUpload()) {
             val = me.getSubmitValue();
-            if (val !== null) {
+            if (val !== null && val != '') {
                 data = {};
                 switch(me.encryptType) {
                     case 'sha256' :

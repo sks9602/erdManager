@@ -230,7 +230,7 @@
            , PJT.INDEX_SUFFIX_NM_FMT 
            , PJT.TABLE_SPACE_NM      
            , PJT.INDEX_SPACE_NM      
-           , PJT.BUY_UID
+           , nvl(PJT.BUY_UID, 'Free') AS BUY_UID
            
            , NVL(NVL(USR_PJT.ENTITY_DISPLAY_DAYCNT, PJT.ENTITY_DISPLAY_DAYCNT), 7) AS ENTITY_DISPLAY_DAYCNT
            , NVL(NVL(USR_PJT.COLMN_DISPLAY_DAYCNT,  PJT.COLMN_DISPLAY_DAYCNT), 7) AS COLMN_DISPLAY_DAYCNT
@@ -280,7 +280,7 @@
            , PJT.TABLE_SPACE_NM  
            , PJT.INDEX_SPACE_NM  
            , PJT.SUBJECT_ID  
-           , nvl(PJT.BUY_UID, 'Free') 
+           , nvl(PJT.BUY_UID, 'Free') AS BUY_UID
         FROM PROJECT     PJT
        WHERE PJT.PROJECT_ID = #{SESSION_PROJECT_ID}
      </select>
@@ -767,7 +767,7 @@
             AND UB.USR_UID    = #{SESSION_USR_UID}
           GROUP BY UB.USR_UID, UB.BUY_UID
     </select>
-    
+
     <!-- 프로젝트 count조회 -->
     <select id="selectProjectCount"  parameterType="paramMap" resultType="resultMap">
         SELECT /* mapper.erd.project.selectProjectCount */

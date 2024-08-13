@@ -91,6 +91,33 @@
                      title: '생성쿼리',
                      width: 550,      // First tab active by default
                      id : "rightSqlArea-PANEL",
+                     tbar : [
+                         '->',
+                         <tagErd:button type="button" label="클립보드로 복사" iconCls="search" cls="btn_segmentedbutton">
+                             listeners : {
+                                 click : function(_this, e, eOpts) { 
+                                	  // Get the text field
+                                	  // var rightSqlArea = document.getElementById("rightSqlArea-innerCt");
+                                	  // var text = rightSqlArea.textContent;
+                                	  
+                                	var htmls = Ext.dom.Query.select("div[id=rightSqlArea-innerCt] > div");
+                                	  
+                                	var text = "";
+                                	var arr = [];
+                                	for( var i=0; i<htmls.length; i++ ) {
+                                		arr.push( htmls[i].innerText );
+                                	}
+                                	text = arr.join('\r\n')
+                                	navigator.clipboard.writeText(text);
+
+                                	Ext.Msg.alert('성공', '클립보드로 복사되었습니다.', function() {
+                                		  
+                                		  
+                                	});
+                                 }
+                             }
+                         </tagErd:button>
+                     ],
                      items: [
                     	{
                     		xtype: "container",
@@ -103,6 +130,43 @@
                  }
 	        ]
 	  });
+
+        if (document.all) {
+            // document.all.loading.style.visibility='hidden';
+            var el = Ext.get("loading"); 
+            el.fadeOut({
+                   duration: 1000,
+                   callback: function () {
+                       el.hide();
+                   }
+            });
+            //el.setOpacity(0);
+            //el.hide();
+        }
+        if (document.layers) {
+            // document.loading.visibility='hidden';
+            var el = Ext.get("loading"); 
+            el.fadeOut({
+                   duration: 1000,
+                   callback: function () {
+                       el.hide();
+                   }
+            });
+            //el.setOpacity(0);
+            //el.hide();
+        }
+        if (document.getElementById) {
+            // document.getElementById('loading').style.visibility='hidden';
+            var el = Ext.get("loading"); 
+            el.fadeOut({
+                   duration: 1000,
+                   callback: function () {
+                       el.hide();
+                   }
+            });
+            //el.setOpacity(0);
+            //el.hide();
+        }
 
     });
 

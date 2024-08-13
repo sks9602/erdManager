@@ -14,18 +14,6 @@
         background: none;
     }
 
-    .header rect{
-        /* fill: #3366FF */
-        /* fill: #0099FF */ 
-    }
-
-    .header tspan{
-        /* fill: white; */
-        font: 11px sans-serif;
-        text-anchor: start;
-        dominant-baseline: hanging;
-    }
-
     .pattern_hori_sign{
         fill: #000;
         font: 9px sans-serif;
@@ -46,38 +34,6 @@
         dominant-baseline: middle;
     }
     
-    .columns{
-        fill: #FFFFFF;
-    }
-
-    .columns text{
-        fill: white;
-        font: 11px sans-serif;
-        text-anchor: start;
-        dominant-baseline: hanging;
-    }
-
-    .column rect{
-        fill: #FFFFFF;
-    }
-
-    .column text{
-        fill: #000;
-        font: 11px sans-serif;
-        text-anchor: start;
-        dominant-baseline: hanging;
-    }
-
-    .column tspan{
-        /* fill: #000; */
-        font: 11px sans-serif;
-        text-anchor: start;
-        dominant-baseline: hanging;
-    }
-    
-    .white-page .columns{
-        fill: #EEFFFF;
-    }
     
     .btn_segmentedbutton {
         border-color: #81a4d0;
@@ -131,3 +87,17 @@
         z-index: 1;
         cursor: move;
     }
+    
+#loading {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(192, 192, 192, 0.5);
+    background-image: url("/static/image/loading.gif");
+    background-repeat: no-repeat;
+    background-position: center;
+}

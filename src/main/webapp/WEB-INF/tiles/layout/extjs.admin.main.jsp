@@ -8,6 +8,11 @@
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 <%@ taglib prefix="tagErd"  tagdir="/WEB-INF/tags/erd"%>
 <%@ page import="java.util.Locale" %>
+
+<script>if( self != top ) top.location = self.location;</script>
+<div id="loading"></div>
+<center><br><br><font face='Arial' Size=3><b>Loading ERD.....</b></font><br>
+
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -39,7 +44,8 @@
     <script src="//code.jquery.com/jquery-3.7.0.min.js" integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g="  crossorigin="anonymous"></script>
     <script src="//code.jquery.com/ui/1.12.0/jquery-ui.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.5/sockjs.min.js"></script>
+
     <script src="/static/js/jQuery/plugin/jquery-minimap.js"></script>
     
     <script src="/static/js/svg/svg.draggable-table.js"></script>
@@ -53,6 +59,7 @@
     <script src="/static/js/erd/ErdDrawFunction.js"></script>
     <script src="/static/js/erd/ErdAuth.js"></script>
     <script src="/static/js/erd/QueryMakeFunction.js"></script>
+    <script src="/static/js/erd/Socket.js"></script>
     
     <script src="/static/js/ext-ux/StringUtil.js"></script>
     <script src="/static/js/ext-ux/HoMessage.js"></script>
@@ -67,9 +74,39 @@
     <script src="/static/js/ext-ux/ColumnCheck.js"></script>
     <script src="/static/js/ext-ux/CheckboxGrouping.js"></script>
     <style>
-      span.select:before {
+      span.addPopupMenu:before {
         content: "[+]";
       }
+
+      span.addPopupMenuRemove:before {
+        content: "[-]";
+      }
+    /*
+	pre {
+	    background: #303030;
+	    color: #f1f1f1;
+	    padding: 10px 16px;
+	    border-radius: 2px;
+	    border-top: 4px solid #00aeef;
+	    -moz-box-shadow: inset 0 0 10px #000;
+	    box-shadow: inset 0 0 10px #000;
+	}
+	
+	pre div {
+	    display: block;
+	    line-height: 1.5rem;
+	    counter-increment: line;
+	}
+	pre div:before {
+	      content: counter(line);
+	      display: inline-block;
+	      border-right: 1px solid #ddd;
+	      padding: 0.5em;
+	      margin-right: .5em;
+	      color: #888
+	
+	}
+	*/
 <!--
 로딩화면 만들기
  script type='text/javascript' src='/static/js/loadImg.js'></script>
@@ -95,7 +132,7 @@
             });
         }
 
-
+        
         Ext.override(Ext.panel.Panel, {   // Ext.grid.Panel
         	
             getParamData : function(submitType) {
@@ -464,6 +501,12 @@ div class="images">
 </div -->
     <form name="projectForm" method="post" action="/extjs/erd/erd.do">
         <input type="hidden" name="PROJECT_ID" value=""/>
+        <input type="hidden" name="CURRENT_ERD_YN" value=""/>
     </form>
+    
 </body>
 </html>
+
+<!-- script>if (document.all) document.all.loadingmsg.style.visibility='hidden';</script -->
+<!-- script>if (document.layers) document.loadingmsg.visibility='hidden'</script -->
+<!-- script>if (document.getElementById) document.getElementById('loadingmsg').style.visibility='hidden'</script -->

@@ -700,8 +700,8 @@
                         */
                         { text: 'Foreign Key', header: '<div style="text-align:center;width:100%;">Foreign Key</div>',  dataIndex: 'FK', align: "left", width : 100,  sort : false,
                            renderer : function(value, metaData, record , rowIndex, colIndex, store, view) {
-                              if( record.data.FK_ENTITY_NM && record.data.FK_COLMN_ID) {
-                                  return  record.data.FK_ENTITY_NM+"."+record.data.FK_COLMN_ID;
+                              if( record.data.FK_ENTITY_NM && record.data.FK_COLMN_NM) {
+                                  return  record.data.FK_ENTITY_NM+"."+record.data.FK_COLMN_NM;
                               } else {
                                   return "";
                               }
@@ -719,16 +719,18 @@
                               }
                             },
                             editor: {
-                                selectOnFocus: false
+                                xtype: 'textarea',
+                                grow : true,
+                                // selectOnFocus: false
                             },
                         },
                         { text: 'CUD',  header: '<div style="text-align:center;width:100%;">CUD</div>',dataIndex: 'DML_TCD_NM', width : 40, visible : false,  sort : false, },
                         { text: 'CUD일자',  header: '<div style="text-align:center;width:100%;">CUD일자</div>',dataIndex: 'DML_DT_FMT', width : 80, visible : false, align: 'center', sort : false, },
-                        { text: 'NOTE',  header: '<div style="text-align:center;width:100%;"><div class="grid-header-textarea"></div>Note</div>',dataIndex: 'COLMN_DESC', flex: 1, minWidth :100, width : 100, visible : false, sort : false,  
+                        { text: 'NOTE',  header: '<div style="text-align:center;width:100%;"><div class="grid-header-textarea"></div>Note</div>',dataIndex: 'COLMN_DESC', flex: 1, minWidth :100, width : 100, visible : false, sort : false, cellWrap: true, 
                            editor :  {
                                 xtype: 'textarea', // 'htmleditor',
                                 grow : true,
-                                enableColors: false,
+                                enableColors: true,
                                 enableAlignments: false
                            }   
                         },

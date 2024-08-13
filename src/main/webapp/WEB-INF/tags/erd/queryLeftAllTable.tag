@@ -37,6 +37,8 @@
                                                if( this.up('form').getForm().isValid() ) {
                                                    var me = this;
                                                    var store = Ext.getStore("tableLayoutStore").load({page : 1, limit : 999999 , params: {}}); 
+                                               
+                                                   console.log( store )
                                                }
                                            }
                                        }
@@ -424,12 +426,12 @@
                                             */
                                         }, 
                                         datachanged : function( _this, eOpts) {
-                                            console.log( _this )
+                                            // console.log( _this )
                                         
                                         },
                                         update : function( _this, record, operation, modifiedFieldNames, details, eOpts ) {
-                                            console.log( _this )
-                                            console.log( record )
+                                            // console.log( _this )
+                                            // console.log( record )
                                         } 
                                      },
                                 </tagErd:store>

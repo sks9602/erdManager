@@ -11,6 +11,11 @@
 <%@attribute name="value"         type="java.lang.String" %>
 <%@attribute name="required"         type="java.lang.Boolean" %>
 <%@attribute name="placeholder"         type="java.lang.String" %>
+<%@attribute name="rowspan"         type="java.lang.Integer" %>
+<%@attribute name="readonly"         type="java.lang.Boolean" %>
+<%@attribute name="width"         type="java.lang.Integer" %>
+<%@attribute name="style"         type="java.lang.String" %>
+
 
                                 <c:choose>
                                     <c:when test="${type == 'textfield_ux'}">
@@ -25,6 +30,7 @@
                                         allowBlank: true,
                                         anchor: '100%',
                                         value : '${value}',
+                                        <c:if test="${not empty width}">width:${width}, </c:if> 
                                         <c:if test="${not empty id}">id : '${id}', </c:if> 
                                         <c:if test="${not empty vtype}">vtype : '${vtype}', </c:if> 
                                         style : {padding : "0 3 0 1"},
@@ -45,6 +51,10 @@
                                         name: '${name}',
                                         value : '${value}',
                                         aqtip       : '<%= label %>',
+                                        <c:if test="${not empty width}">width:${width}, </c:if> 
+                                        <c:if test="${not empty rowspan}">rowspan : ${rowspan},
+                                        height : 22*${rowspan}+1,
+                                        </c:if> 
                                         
                                      },
                                     </c:when>
@@ -56,6 +66,27 @@
                                         value : '${value}',
                                         hidden : true,
                                         aqtip       : '<%= label %>',
+                                     },
+                                    </c:when>
+                                    <c:when test="${type == 'textarea' or type == 'textarea_ux'}">
+                                     {
+                                        <c:if test="${not empty label}">
+                                        fieldLabel : '${label}',
+                                        </c:if>
+                                        xtype : 'textarea_ux',
+                                        <c:if test="${not empty id}">id : '${id}', </c:if> 
+                                        name: '${name}',
+                                        value : '${value}',
+                                        aqtip       : '<%= label %>',
+                                        <c:if test="${not empty width}">width:${width}, </c:if> 
+                                        <c:if test="${not empty readonly}">readOnly : ${readonly}, 
+                                        fieldStyle: {"background-color" : "#eeeeee","background-image" : "url()" },
+                                        </c:if> 
+                                        <c:if test="${not empty style}">style: { ${style} }, </c:if> 
+                                       
+                                        <c:if test="${not empty rowspan}">rowspan : ${rowspan},
+                                        height : 22*${rowspan}+1,
+                                         </c:if> 
                                      },
                                     </c:when>
                                 </c:choose>

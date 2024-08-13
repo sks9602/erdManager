@@ -79,12 +79,12 @@
                                             */
                                         }, 
                                         datachanged : function( _this, eOpts) {
-                                            console.log( _this )
+                                            // console.log( _this )
                                         
                                         },
                                         update : function( _this, record, operation, modifiedFieldNames, details, eOpts ) {
-                                            console.log( _this )
-                                            console.log( record )
+                                            // console.log( _this )
+                                            // console.log( record )
                                         } 
                                      },
                                 </tagErd:store>

@@ -57,7 +57,7 @@
               </choose>)
         </if>
         <if test='USE_YN_ALL == null or "".equals(USE_YN_ALL )'>
-            AND USE_YN = 'Y'
+           -- AND USE_YN = 'Y'
         </if>
         <if test='TABL_SCD != null and !"".equals(TABL_SCD )'>
             AND SNC.TABL_SCD = #{TABL_SCD}
@@ -121,7 +121,7 @@
                                       THEN CONCAT('시퀀스 "', SEQNC_NM, '"가 삭제되어' , NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"'), '되었습니다.')
                                  WHEN SEQNC_NM = #{SEQNC_NM} AND USE_YN != NVL(#{USE_YN}, USE_YN) AND #{USE_YN} = 'Y'
                                       THEN CONCAT('시퀀스 "', SEQNC_NM, '"가 삭제취소되어' , NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"'), '되었습니다.')
-                                 WHEN SEQNC_NM = #{SEQNC_NM} AND USE_YN = NVL(#{USE_YN} AND TABL_SCD != #{TABL_SCD}
+                                 WHEN SEQNC_NM = #{SEQNC_NM} AND USE_YN = NVL(#{USE_YN}, USE_YN) AND TABL_SCD != #{TABL_SCD}
                                       THEN CONCAT('시퀀스 "', SEQNC_NM, '"가 ', CASE WHEN USE_YN != 'Y' THEN '삭제상태에서' ELSE '' END , NVL((SELECT CD_NM FROM CD WHERE CD = #{TABL_SCD}), '반영"'), '되었습니다.')
                                  ELSE NULL END
            , SEQNC_NM   = NVL(#{SEQNC_NM}, SEQNC_NM)

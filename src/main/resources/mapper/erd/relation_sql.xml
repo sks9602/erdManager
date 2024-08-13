@@ -22,19 +22,51 @@
          , CONCAT(REL.START_ENTITY_ID, '_', REL.END_ENTITY_ID) AS RELATION
          , REL.RELATION_NM    AS RELATION_NAME
          , REL.RELATION_TYPE  AS RELATION_TYPE
-         , NVL(REL_USR.LINE_COLOR, SUBJ_REL.LINE_COLOR)  AS COLOR
+         , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_REL.LINE_COLOR
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_REL.LINE_COLOR
+                 ELSE NVL(REL_USR.LINE_COLOR, SUBJ_REL.LINE_COLOR) END AS COLOR
          , CASE WHEN REL.START_ENTITY_ID = REL.END_ENTITY_ID THEN 'Y'   
                 ELSE NULL END AS RECURSIVE_YN
          , REL.START_ENTITY_ID
-         , NVL(REL_USR.START_POSITION, SUBJ_REL.START_POSITION) AS START_POSITION
-         , NVL(REL_USR.START_X, SUBJ_REL.START_X) AS START_X
-         , NVL(REL_USR.START_Y, SUBJ_REL.START_Y) AS START_Y
+         , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_REL.START_POSITION
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_REL.START_POSITION
+                 ELSE NVL(REL_USR.START_POSITION, SUBJ_REL.START_POSITION) END AS START_POSITION
+         , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_REL.START_X
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_REL.START_X
+                 ELSE NVL(REL_USR.START_X, SUBJ_REL.START_X)  END AS START_X
+         , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_REL.START_Y
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_REL.START_Y
+                 ELSE NVL(REL_USR.START_Y, SUBJ_REL.START_Y)  END AS START_Y
          , REL.END_ENTITY_ID
-         , NVL(REL_USR.END_POSITION, SUBJ_REL.END_POSITION) AS END_POSITION
-         , NVL(REL_USR.END_X, SUBJ_REL.END_X) AS END_X
-         , NVL(REL_USR.END_Y, SUBJ_REL.END_Y) AS END_Y
+         , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_REL.END_POSITION
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_REL.END_POSITION
+                 ELSE NVL(REL_USR.END_POSITION, SUBJ_REL.END_POSITION)  END AS END_POSITION
+         , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_REL.END_X
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_REL.END_X
+                 ELSE NVL(REL_USR.END_X, SUBJ_REL.END_X)  END AS END_X
+         , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_REL.END_Y
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_REL.END_Y
+                 ELSE NVL(REL_USR.END_Y, SUBJ_REL.END_Y)  END AS END_Y
          , REL.NON_IDEN_YN AS NON_IDEN_YN 
-         , NVL(REL_USR.LINE_PATH, SUBJ_REL.LINE_PATH) AS PATHS
+         , CASE WHEN SUBJ.EDIT_USR_UID = 'GUEST' THEN SUBJ_REL.LINE_PATH
+                 WHEN SUBJ.EDIT_USR_UID = #{SESSION_USR_UID} 
+                      OR USR_PJT.AUTH_CD = 'MANAGER' 
+                      OR USR_PJT.BASE_YN = 'Y'  THEN SUBJ_REL.LINE_PATH
+                 ELSE NVL(REL_USR.LINE_PATH, SUBJ_REL.LINE_PATH) END AS PATHS
          , CASE WHEN SUBJ_REL.USE_YN = 'N' THEN 'Y'
                 WHEN REL.USE_YN      = 'N' THEN 'Y'
                 ELSE 'N' END AS DEL_YN
@@ -44,12 +76,21 @@
                 AND SUBJ_REL.VERSN       = REL_USR.VERSN
                 AND SUBJ_REL.SUBJECT_ID  = REL_USR.SUBJECT_ID
                 AND SUBJ_REL.RELATION_ID = REL_USR.RELATION_ID
-                AND #{SESSION_USR_UID}   = REL_USR.USR_ID
+                AND #{SESSION_USR_UID}   = REL_USR.USR_ID 
+            LEFT OUTER JOIN USR_PROJECT USR_PJT
+                 ON SUBJ_REL.PROJECT_ID       = USR_PJT.PROJECT_ID 
+                AND #{SESSION_USR_UID}        = USR_PJT.USR_UID
          , RELATION          REL
+         , SUBJECT        SUBJ
      WHERE 1 = 1
        AND SUBJ_REL.PROJECT_ID  = REL.PROJECT_ID
        AND SUBJ_REL.VERSN       = REL.VERSN
        AND SUBJ_REL.RELATION_ID = REL.RELATION_ID
+       
+       AND SUBJ_REL.PROJECT_ID  = SUBJ.PROJECT_ID
+       AND SUBJ_REL.VERSN       = SUBJ.VERSN
+       AND SUBJ_REL.SUBJECT_ID  = SUBJ.SUBJECT_ID
+       
        AND SUBJ_REL.PROJECT_ID  = #{SESSION_PROJECT_ID}
     </select>
     
@@ -58,7 +99,9 @@
     SELECT /* mapper.erd.relation.selectRelationList */
            CONCAT(REL.START_ENTITY_ID, '_', REL.END_ENTITY_ID) AS RELATION
          , REL.RELATION_NM    AS RELATION_NAME
-         , REL.RELATION_TYPE  AS RELATION_TYPE
+         /* , REL.RELATION_TYPE  AS RELATION_TYPE */
+         , CASE WHEN REL.RELATION_TYPE = 'rel1toN' AND REL.NON_IDEN_YN = 'Y' THEN 'relNonIden'
+                ELSE REL.RELATION_TYPE END AS RELATION_TYPE
          , REL.RELATION_ID    AS RELATION_ID
          , REL.LINE_COLOR     AS COLOR
          , CASE WHEN REL.START_ENTITY_ID = REL.END_ENTITY_ID THEN 'Y'   
@@ -80,9 +123,32 @@
       FROM RELATION          REL
      WHERE 1 = 1
        AND REL.PROJECT_ID  = #{SESSION_PROJECT_ID}
+       AND REL.VERSN       = #{SESSION_VERSN}
        AND NVL( REL.USE_YN, 'Y') = 'Y'
     </select>
 
+    <!--  관계 목록 조회. -->
+    <select id="selectRelationReverseList"  parameterType="paramMap" resultType="resultMap">
+    SELECT /* mapper.erd.relation.selectRelationReverseList */
+           CONCAT(REL.START_ENTITY_ID, '_', REL.END_ENTITY_ID) AS RELATION
+         , REL.RELATION_NM    AS RELATION_NAME
+         , REL.RELATION_TYPE  AS RELATION_TYPE
+         , REL.RELATION_ID    AS RELATION_ID
+         , REL.LINE_COLOR     AS COLOR
+         , CASE WHEN REL.START_ENTITY_ID = REL.END_ENTITY_ID THEN 'Y'   
+                ELSE NULL END AS RECURSIVE_YN
+         , REL.START_ENTITY_ID AS END_ENTITY_ID
+         , (SELECT ENTITY_NM FROM ENTITY WHERE PROJECT_ID = REL.PROJECT_ID AND VERSN = 1.0 AND ENTITY_ID= REL.START_ENTITY_ID ) AS END_ENTITY_NM
+         , REL.END_ENTITY_ID AS START_ENTITY_ID
+         , (SELECT ENTITY_NM FROM ENTITY WHERE PROJECT_ID = REL.PROJECT_ID AND VERSN = 1.0 AND ENTITY_ID= REL.END_ENTITY_ID ) AS START_ENTITY_NM
+      FROM RELATION          REL
+     WHERE 1 = 1
+       AND REL.PROJECT_ID  = #{SESSION_PROJECT_ID}
+       AND REL.VERSN       = #{SESSION_VERSN}
+       AND REL.START_ENTITY_ID != REL.END_ENTITY_ID
+       AND NVL( REL.USE_YN, 'Y') = 'Y'
+    </select>
+    
     <!--  관계 목록 조회. -->
     <select id="selectRelationListByStartEntity"  parameterType="paramMap" resultType="resultMap">
     SELECT /* mapper.erd.relation.selectRelationListByStartEntity */
@@ -227,12 +293,18 @@
                COLMN COL
                
            JOIN (SELECT FK.ENTITY_ID AS FK_ENTITY_ID, FK.COLMN_ID AS FK_COLMN_ID, A.COLMN_NM
-                      , CASE WHEN FK.COLMN_ID IS NOT NULL THEN 'Y' ELSE 'N' END AS USE_YN
+                      , CASE WHEN FK.USE_YN = 'Y' AND FK.COLMN_ID IS NOT NULL THEN 'Y' ELSE 'N' END AS USE_YN
+                      , A.USE_YN AS COL_USE_YN
                       , FK.SEQ
+                      , CASE WHEN FK.NON_IDEN_YN = 'Y' THEN 'N' ELSE FK.PK_YN END AS PK_YN
+                      , CASE WHEN #{NON_IDEN_YN} = 'Y' THEN 'N' ELSE 'Y' END AS PK_YN_NON_IDEN_YN
                    FROM COLMN A
                         LEFT OUTER JOIN (SELECT FK_COL.ENTITY_ID, FK_COL.COLMN_ID, FK_COL.COLMN_NM, FK_COL.ATTR_NM
                                               , FK_COL.SEQ
-                                              , ROW_NUMBER() OVER(PARTITION BY FK_COL.ENTITY_ID, FK_COL.COLMN_ID) RN
+                                              , FK_COL.PK_YN
+                                              , FK_REL.NON_IDEN_YN
+                                              , FK_COL.USE_YN
+                                              , ROW_NUMBER() OVER(PARTITION BY FK_COL.ENTITY_ID, FK_COL.COLMN_ID, FK_REL.NON_IDEN_YN DESC) RN
                                            FROM COLMN    FK_COL
                                               , RELATION FK_REL
                                           WHERE 1 = 1
@@ -243,37 +315,61 @@
                                             AND FK_REL.VERSN           = #{SESSION_VERSN }
                                             AND FK_REL.END_ENTITY_ID   = #{END_ENTITY_ID }
                                             AND FK_REL.START_ENTITY_ID != #{START_ENTITY_ID }
-                                            AND FK_COL.PK_YN           = 'Y'
+                                            AND FK_COL.PK_YN            = 'Y'
+                                            AND FK_REL.END_ENTITY_ID != FK_REL.START_ENTITY_ID
                                           ) FK
                                 ON A.COLMN_NM = FK.COLMN_NM
                                AND 1          = FK.RN
                         
                   WHERE A.PROJECT_ID = #{SESSION_PROJECT_ID }
                     AND A.VERSN      = #{SESSION_VERSN }
-                    AND NVL(A.PK_YN, 'N') = CASE WHEN #{NON_IDEN_YN} = 'Y' THEN 'N' ELSE 'Y' END
+                    /* AND NVL(A.PK_YN, 'N') = CASE WHEN __NON_IDEN_YN__ = 'Y' THEN 'N' ELSE 'Y' END */
                     AND A.ENTITY_ID  = #{START_ENTITY_ID }
                    ) FK
-                ON COL.COLMN_NM = FK.COLMN_NM
+                ON ( COL.COLMN_NM = FK.COLMN_NM
+                     OR ( COL.FK_ENTITY_ID = FK.FK_ENTITY_ID
+                          AND COL.FK_COLMN_ID = FK.FK_COLMN_ID))
            SET 
-               COL.USE_YN       = FK.USE_YN
+               COL.USE_YN       = CASE WHEN FK.USE_YN ='Y' THEN FK.USE_YN ELSE 'N' END
+             /* , COL.PK_YN        = CASE WHEN FK.PK_YN ='Y' THEN FK.PK_YN ELSE FK.PK_YN END */
              , COL.SEQ          = NVL(FK.SEQ, COL.SEQ)
-             , COL.DML_TCD      = CASE WHEN FK.USE_YN = 'N' AND COL.DML_TCD = 'DML_TCD_C' THEN 'DML_TCD_C_D'
-                                       WHEN FK.USE_YN = 'N' AND NVL(COL.DML_TCD, 'DML_TCD_U') != 'DML_TCD_C' THEN 'DML_TCD_U_D'
+             , COL.DML_TCD      = CASE WHEN FK.USE_YN ='Y' AND COL.USE_YN = 'N'
+                                            THEN CASE WHEN COL.DML_TCD = 'DML_TCD_C_D' THEN 'DML_TCD_C'
+                                                      ELSE 'DML_TCD_U' END
+                                       WHEN FK.USE_YN != 'Y' AND COL.USE_YN = 'Y'
+                                            THEN CASE WHEN COL.DML_TCD = 'DML_TCD_C' THEN 'DML_TCD_C_D'
+                                                      ELSE 'DML_TCD_U_D' END
                                        ELSE COL.DML_TCD END
-             , COL.TRT_DT      = CASE WHEN FK.USE_YN = 'N' THEN CURRENT_TIMESTAMP
-                                      ELSE COL.TRT_DT END
-             , COL.TRT_USR_UID      = CASE WHEN FK.USE_YN = 'N' THEN #{SESSION_USR_UID}
-                                      ELSE COL.TRT_USR_UID END
-             , COL.FK_ENTITY_ID = FK.FK_ENTITY_ID
-             , COL.FK_COLMN_ID  = FK.FK_COLMN_ID
+             , COL.DML_DT       = CASE WHEN FK.USE_YN ='Y' AND COL.USE_YN = 'N'
+                                            THEN CURRENT_TIMESTAMP
+                                       WHEN FK.USE_YN != 'Y' AND COL.USE_YN = 'Y'
+                                            THEN CURRENT_TIMESTAMP
+                                       ELSE COL.DML_DT END
+             , COL.TRT_DT        = CASE WHEN FK.USE_YN = 'N' THEN CURRENT_TIMESTAMP
+                                        ELSE COL.TRT_DT END
+             , COL.TRT_USR_UID   = CASE WHEN FK.USE_YN = 'N' THEN #{SESSION_USR_UID}
+                                        ELSE COL.TRT_USR_UID END
+             
+             , COL.FK_ENTITY_ID = CASE WHEN (COL.USE_YN = 'Y' OR FK.USE_YN = 'Y') AND FK.PK_YN = 'Y' AND COL.FK_ENTITY_ID IS NOT NULL AND COL.FK_ENTITY_ID != ''
+                                            THEN COL.FK_ENTITY_ID
+                                       WHEN FK.FK_ENTITY_ID IS NOT NULL 
+                                            THEN FK.FK_ENTITY_ID
+                                       ELSE COL.FK_ENTITY_ID END
+             , COL.FK_COLMN_ID  = CASE WHEN (COL.USE_YN = 'Y' OR FK.USE_YN = 'Y') AND FK.PK_YN = 'Y' AND COL.FK_COLMN_ID IS NOT NULL AND COL.FK_COLMN_ID != ''
+                                            THEN COL.FK_COLMN_ID
+                                       WHEN FK.FK_COLMN_ID IS NOT NULL 
+                                            THEN FK.FK_COLMN_ID
+                                       ELSE COL.FK_COLMN_ID END
         WHERE COL.PROJECT_ID    = #{SESSION_PROJECT_ID }
           AND COL.VERSN         = #{SESSION_VERSN }
           AND COL.ENTITY_ID     = #{END_ENTITY_ID }
-          AND COL.FK_COLMN_NM   IN (SELECT COLMN_NM
+          AND COL.FK_COLMN_NM   IN (SELECT COLMN_NM 
                                   FROM COLMN A
                                  WHERE A.PROJECT_ID = COL.PROJECT_ID
                                    AND A.VERSN      = COL.VERSN
-                                   AND NVL(A.PK_YN, 'N') = CASE WHEN #{NON_IDEN_YN} = 'Y' THEN 'N' ELSE 'Y' END
+                                   AND (NVL(A.PK_YN, 'N') = CASE WHEN #{NON_IDEN_YN} = 'Y' THEN 'N' ELSE 'Y' END
+                                        OR ( A.PK_YN = 'Y'  AND A.USE_YN = 'N')
+                                        )
                                    AND A.ENTITY_ID  = #{START_ENTITY_ID })
     </delete>
     
@@ -287,30 +383,171 @@
               AND COL_E.VERSN      = #{SESSION_VERSN }
               AND COL_E.ENTITY_ID  = #{END_ENTITY_ID }
               AND COL_S.ENTITY_ID  = #{START_ENTITY_ID }
-              AND COL_S.PK_YN      = 'Y'
-              AND COL_S.USE_YN     = 'Y'
+              AND #{END_ENTITY_ID } != #{START_ENTITY_ID }
+              /* AND COL_S.PK_YN      = 'Y' */
+              /* AND COL_S.USE_YN     = 'Y' */
               AND ( COL_E.COLMN_NM   = COL_S.COLMN_NM
+                       OR COL_E.COLMN_ID  = COL_S.COLMN_ID
+                    /*
+                    OR COL_E.PK_YN   = 'Y'
+                    OR COL_S.PK_YN   = 'Y'
                     OR ( COL_E.FK_ENTITY_ID   = COL_S.ENTITY_ID
-                         AND COL_E.FK_COLMN_ID   = COL_S.COLMN_ID ) )
+                         AND COL_E.FK_COLMN_ID   = COL_S.COLMN_ID )
+                    */ 
+                     )
           SET 
               COL_E.DOMAIN_ID     = COL_S.DOMAIN_ID    
-            , COL_E.ATTR_NM       = COL_S.ATTR_NM      
+            /* , COL_E.ATTR_NM       = COL_S.ATTR_NM    */
             , COL_E.DTYPE         = COL_S.DTYPE        
             , COL_E.LEN1          = COL_S.LEN1         
             , COL_E.LEN2          = COL_S.LEN2         
-            , COL_E.DML_TCD       = COL_S.DML_TCD      
-            , COL_E.DML_DT        = COL_S.DML_DT       
-            , COL_E.APLY_USR_UID  = COL_S.APLY_USR_UID 
-            , COL_E.APLY_DT       = COL_S.APLY_DT      
-            , COL_E.COLMN_SCD     = COL_S.COLMN_SCD    
-            , COL_E.NOTNULL_YN    = CASE WHEN #{RELATION_TYPE} = 'relNonIden' THEN 'Y' ELSE 'N' END
-            , COL_E.SEQ           = NVL(COL_S.SEQ,0)/10
-            , COL_E.PK_YN         = CASE WHEN #{RELATION_TYPE} = 'relNonIden' THEN 'N' ELSE 'Y' END 
-            , COL_E.FK_ENTITY_ID  = COL_S.ENTITY_ID 
-            , COL_E.FK_COLMN_ID   = COL_S.COLMN_ID  
-            , COL_E.FK_COLMN_NM   = COL_S.COLMN_NM  
+            , COL_E.DML_TCD       = CASE WHEN NVL(COL_E.FK_ENTITY_ID, '') != '' AND ( COL_S.PK_YN != 'Y' OR NVL(COL_S.USE_YN, 'Y') = 'N') 
+                                             THEN CASE WHEN COL_E.DML_TCD = 'DML_TCD_C' THEN 'DML_TCD_C_D'
+                                                       ELSE 'DML_TCD_U_D' END
+                                         WHEN COL_E.USE_YN = 'N' AND COL_S.USE_YN ='Y'
+                                              THEN CASE
+                                                        WHEN COL_E.PK_YN = 'Y' AND COL_S.PK_YN  = 'Y' 
+                                                             THEN CASE WHEN COL_E.DML_TCD = 'DML_TCD_C_D' THEN 'DML_TCD_C'
+                                                                       ELSE 'DML_TCD_U' END
+                                                        WHEN COL_E.PK_YN = 'Y' AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '')
+                                                             THEN CASE WHEN COL_E.DML_TCD = 'DML_TCD_C' THEN 'DML_TCD_C_D'
+                                                                       ELSE 'DML_TCD_U_D' END
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND COL_S.PK_YN  = 'Y' 
+                                                             THEN 'DML_TCD_U'
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '') 
+                                                             THEN COL_E.DML_TCD
+                                                        END
+                                         WHEN COL_E.USE_YN = 'Y' AND COL_S.USE_YN ='N'
+                                              THEN CASE WHEN COL_E.DML_TCD = 'DML_TCD_C' THEN 'DML_TCD_C_D'
+                                                        ELSE 'DML_TCD_U_D' END
+                                         WHEN COL_E.USE_YN = 'Y' AND COL_S.USE_YN ='Y'
+                                              THEN CASE
+                                                        WHEN COL_E.PK_YN = 'Y' AND COL_S.PK_YN  = 'Y' 
+                                                             THEN CASE WHEN COL_E.DML_TCD = 'DML_TCD_C_D' THEN 'DML_TCD_C'
+                                                                       ELSE 'DML_TCD_U' END
+                                                        WHEN COL_E.PK_YN = 'Y' AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '')
+                                                             THEN CASE WHEN COL_E.DML_TCD = 'DML_TCD_C' THEN 'DML_TCD_C_D'
+                                                                       ELSE 'DML_TCD_U_D' END
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND COL_S.PK_YN  = 'Y' 
+                                                             THEN 'DML_TCD_U'
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '') 
+                                                             THEN COL_E.DML_TCD
+                                                        END
+                                         ELSE COL_E.DML_TCD END
+            , COL_E.DML_DT        = CASE WHEN COL_E.USE_YN = 'N' AND COL_S.USE_YN ='Y'
+                                              THEN CASE
+                                                        WHEN COL_E.PK_YN = 'Y' AND COL_S.PK_YN  = 'Y' 
+                                                             THEN COL_E.DML_DT
+                                                        WHEN COL_E.PK_YN = 'Y' AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '')
+                                                             THEN CURRENT_TIMESTAMP
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND COL_S.PK_YN  = 'Y' 
+                                                             THEN CURRENT_TIMESTAMP
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '') 
+                                                             THEN COL_E.DML_DT
+                                                        END
+                                         WHEN COL_E.USE_YN = 'Y' AND COL_S.USE_YN ='N'
+                                              THEN CURRENT_TIMESTAMP
+                                         WHEN COL_E.USE_YN = 'Y' AND COL_S.USE_YN ='Y'
+                                              THEN CASE
+                                                        WHEN COL_E.PK_YN = 'Y' AND COL_S.PK_YN  = 'Y' 
+                                                             THEN COL_E.DML_DT
+                                                        WHEN COL_E.PK_YN = 'Y' AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '')
+                                                             THEN CURRENT_TIMESTAMP
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND COL_S.PK_YN  = 'Y' 
+                                                             THEN CURRENT_TIMESTAMP
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '') 
+                                                             THEN COL_E.DML_DT
+                                                        END
+                                         ELSE COL_E.DML_DT END
+            , COL_E.APLY_USR_UID  = #{SESSION_USR_UID }
+            , COL_E.APLY_DT       = CURRENT_TIMESTAMP    
+            /* , COL_E.COLMN_SCD     = COL_S.COLMN_SCD   */ 
+            , COL_E.NOTNULL_YN    = CASE WHEN #{RELATION_TYPE} = 'relNonIden' THEN 'N' 
+                                         ELSE CASE WHEN COL_S.PK_YN  = 'Y' THEN 'Y' ELSE 'N' END
+                                         END
+            , COL_E.SEQ           = CASE WHEN COL_S.PK_YN  = 'Y' 
+                                              THEN CASE WHEN NVL(COL_S.SEQ,10) <![CDATA[<]]> 100 THEN NVL(COL_S.SEQ,10) ELSE COL_S.SEQ /10 END
+                                         WHEN COL_E.PK_YN = 'Y'
+                                              THEN CASE WHEN COL_E.SEQ <![CDATA[<]]> 100 
+                                                             THEN 100+COL_E.SEQ
+                                                        WHEN COL_E.SEQ <![CDATA[>]]> 100 AND COL_E.SEQ <![CDATA[<]]> 300 
+                                                             THEN COL_E.SEQ
+                                                        WHEN COL_E.SEQ <![CDATA[>=]]> 300 AND COL_E.SEQ <![CDATA[<=]]> 2000
+                                                             THEN 100+ COL_E.SEQ/10
+                                                        ELSE 100+COL_E.SEQ/100 END
+                                                        
+                                         ELSE COL_E.SEQ END
+            , COL_E.PK_YN         = CASE WHEN #{RELATION_TYPE} = 'relNonIden' THEN 'N' 
+                                         WHEN #{RELATION_TYPE} = 'rel1toN' AND #{NON_IDEN_YN} = 'Y' THEN 'N' 
+                                         ELSE CASE WHEN COL_E.PK_YN = 'Y' AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '') 
+                                                        THEN CASE WHEN COL_E.USE_YN = 'N' THEN 'Y'
+                                                                  ELSE 'N' END
+                                                   WHEN COL_S.PK_YN = 'Y'
+                                                        THEN 'Y'
+                                                   ELSE COL_E.PK_YN END
+                                         END 
+            , COL_E.USE_YN        = CASE WHEN NVL(COL_E.FK_ENTITY_ID, '') != '' AND ( COL_S.PK_YN != 'Y' OR NVL(COL_S.USE_YN, 'Y') = 'N') THEN 'N'
+                                         WHEN COL_E.USE_YN = 'N' AND COL_S.USE_YN ='Y'
+                                              THEN CASE
+                                                        WHEN COL_E.PK_YN = 'Y' AND COL_S.PK_YN  = 'Y' 
+                                                             THEN 'Y'
+                                                        WHEN COL_E.PK_YN = 'Y' AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '')
+                                                             THEN 'N'
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND COL_S.PK_YN  = 'Y' 
+                                                             THEN 'Y'
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '') 
+                                                             THEN COL_S.USE_YN
+                                                        END
+                                         WHEN COL_E.USE_YN = 'Y' AND COL_S.USE_YN ='N'
+                                              THEN 'N'
+                                         WHEN COL_E.USE_YN = 'Y' AND COL_S.USE_YN ='Y'
+                                              THEN CASE
+                                                        WHEN COL_E.PK_YN = 'Y' AND COL_S.PK_YN  = 'Y' 
+                                                             THEN 'Y'
+                                                        WHEN COL_E.PK_YN = 'Y' AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '')
+                                                             THEN 'N'
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND COL_S.PK_YN  = 'Y' 
+                                                             THEN 'Y'
+                                                        WHEN (NVL(COL_E.PK_YN, 'N') = 'N' OR COL_E.PK_YN = '' ) AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '') 
+                                                             THEN COL_S.USE_YN
+                                                        END
+                                         ELSE COL_S.USE_YN END
+            , COL_E.FK_ENTITY_ID  = CASE WHEN COL_S.FK_ENTITY_ID = COL_E.FK_ENTITY_ID THEN COL_E.FK_ENTITY_ID
+                                         WHEN COL_S.ENTITY_ID    = COL_E.FK_ENTITY_ID THEN COL_S.ENTITY_ID
+                                         WHEN #{RELATION_TYPE} = 'relNonIden' THEN NULL 
+                                         ELSE CASE WHEN COL_E.PK_YN = 'Y' AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '') 
+                                                        THEN CASE WHEN COL_E.USE_YN = 'N' THEN COL_S.ENTITY_ID
+                                                                  ELSE NULL END
+                                                   WHEN COL_S.PK_YN = 'Y'
+                                                        THEN CASE WHEN NVL(COL_S.FK_ENTITY_ID, '') = '' THEN COL_S.ENTITY_ID
+                                                                  ELSE COL_S.FK_ENTITY_ID END 
+                                                   ELSE COL_E.FK_ENTITY_ID  END
+                                         END 
+            
+            , COL_E.FK_COLMN_ID   = CASE WHEN COL_S.FK_ENTITY_ID = COL_E.FK_ENTITY_ID THEN COL_E.FK_COLMN_ID
+                                         WHEN COL_S.COLMN_ID = COL_E.FK_COLMN_ID THEN COL_S.COLMN_ID
+                                         WHEN #{RELATION_TYPE} = 'relNonIden' THEN NULL 
+                                         ELSE CASE WHEN COL_E.PK_YN = 'Y' AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '') 
+                                                        THEN CASE WHEN COL_E.USE_YN = 'N' THEN COL_S.COLMN_ID
+                                                                  ELSE NULL END
+                                                   WHEN COL_S.PK_YN = 'Y'
+                                                        THEN CASE WHEN NVL(COL_S.FK_COLMN_ID, '') = '' THEN COL_S.COLMN_ID
+                                                                  ELSE COL_S.FK_COLMN_ID END
+                                                   ELSE COL_S.FK_COLMN_ID END
+                                         END    
+            , COL_E.FK_COLMN_NM   = CASE WHEN COL_S.FK_COLMN_ID = COL_E.FK_ENTITY_ID THEN COL_E.FK_COLMN_NM
+                                         WHEN COL_S.COLMN_ID = COL_E.FK_COLMN_ID THEN COL_S.COLMN_NM
+                                         WHEN #{RELATION_TYPE} = 'relNonIden' THEN NULL 
+                                         ELSE CASE WHEN COL_E.PK_YN = 'Y' AND (NVL(COL_S.PK_YN, 'N') = 'N' OR COL_S.PK_YN = '') 
+                                                        THEN CASE WHEN COL_E.USE_YN = 'N' THEN COL_S.COLMN_NM
+                                                                  ELSE NULL END
+                                                   WHEN COL_S.PK_YN = 'Y'
+                                                        THEN  CASE WHEN NVL(COL_S.FK_COLMN_NM, '') = '' THEN COL_S.COLMN_NM
+                                                                  ELSE COL_S.FK_COLMN_NM END
+                                                   ELSE COL_S.FK_COLMN_NM  END
+                                         END     
             , COL_E.COLMN_DESC    = COL_S.COLMN_DESC  
-            , COL_E.USE_YN        = COL_S.USE_YN      
+
             , COL_E.NUMB_MTH      = COL_S.NUMB_MTH 
             , COL_E.LAST_UPD_DT   = CURRENT_TIMESTAMP
             , COL_E.LAST_UPD_USR_UID = #{SESSION_USR_NM}
@@ -391,13 +628,16 @@
                            WHERE PROJECT_ID = COL.PROJECT_ID
                              AND VERSN      = COL.VERSN
                              AND ENTITY_ID  = #{END_ENTITY_ID }
-                             AND COLMN_NM   = COL.COLMN_NM )
+                             AND (COLMN_NM   = COL.COLMN_NM
+                                  OR COLMN_ID   = COL.COLMN_ID
+                                 ) 
+                          )
     </insert>
 
 
 
     <update  id="updateRelationNonIdenYN"  parameterType="paramMap">
-      UPDATE /* mapper.erd.relation.updateRelationNonIdenY */
+      UPDATE /* mapper.erd.relation.updateRelationNonIdenYN */
              COLMN  COL
          SET 
              PK_YN       = CASE WHEN #{NON_IDEN_YN} = 'Y' THEN 'N' ELSE 'Y' END
@@ -486,7 +726,7 @@
             , END_Y          = CASE WHEN #{END_Y}          IS NULL THEN END_Y          ELSE #{END_Y}          END
 
             , LINE_PATH      = CASE WHEN #{LINE_PATH}      IS NULL THEN LINE_PATH      ELSE #{LINE_PATH}      END
-           
+            , LINE_COLOR     = CASE WHEN #{LINE_COLOR}     IS NULL THEN LINE_COLOR     ELSE #{LINE_COLOR}      END
            , LAST_UPD_DT     = CURRENT_TIMESTAMP 
            , LAST_UPD_USR_UID =#{SESSION_USR_NM}
     </insert>
@@ -549,7 +789,8 @@
             , END_Y          = CASE WHEN #{END_Y}          IS NULL THEN END_Y          ELSE #{END_Y}          END
 
             , LINE_PATH      = CASE WHEN #{LINE_PATH}      IS NULL THEN LINE_PATH      ELSE #{LINE_PATH}      END
-           
+            , LINE_COLOR     = CASE WHEN #{LINE_COLOR}     IS NULL THEN LINE_COLOR     ELSE #{LINE_COLOR}     END
+            
            , LAST_UPD_DT     = CURRENT_TIMESTAMP 
            , LAST_UPD_USR_UID =#{SESSION_USR_NM}
     </insert>
@@ -582,7 +823,7 @@
            AND RELATION_ID = #{RELATION_ID} 
     </delete>
     
-    <delete id="updateRelationPath"  parameterType="paramMap">
+    <update id="updateRelationPath"  parameterType="paramMap">
         UPDATE /* mapper.erd.relation.updateRelationPath */
                SUBJECT_RELATION SUBJ_REL
            SET 
@@ -594,10 +835,9 @@
            AND VERSN       = #{SESSION_VERSN}
            AND SUBJECT_ID  = #{SUBJECT_ID} 
            AND RELATION_ID = #{RELATION_ID} 
-    </delete>
+    </update>
     
-    
-    <delete id="updateRelationPathUsr"  parameterType="paramMap">
+    <update id="updateRelationPathUsr"  parameterType="paramMap">
         UPDATE /* mapper.erd.relation.updateRelationPathUsr */
                SUBJECT_RELATION_USR SUBJ_REL
            SET 
@@ -610,5 +850,5 @@
            AND SUBJECT_ID  = #{SUBJECT_ID} 
            AND RELATION_ID = #{RELATION_ID} 
            AND USR_ID      = #{SESSION_USR_UID} 
-    </delete>
+    </update>
 </mapper>

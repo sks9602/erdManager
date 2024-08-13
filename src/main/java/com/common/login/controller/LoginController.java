@@ -63,6 +63,12 @@ public class LoginController {
 			
 			request.getSession().setAttribute(MyFrameworkLoginVO.MY_FRAMEWORK_LOGIN_SESSION_KEY, loginVo);
 		}
+
+		if( "Y".equals(request.getParameter("CURRENT_ERD_YN"))) {
+			loginVo.setCurrentErdYn("Y");
+		} else {
+			loginVo.setCurrentErdYn("N");
+		}
 		
 		if( StringUtils.isNotEmpty(paramMap.get("PROJECT_ID"))) {
 			MyFrameworkResponseData myFrameworkResponseData = projectSvc.projectDetail(model, paramMap);
@@ -76,10 +82,10 @@ public class LoginController {
 			
 			request.getSession().setAttribute(MyFrameworkLoginVO.MY_FRAMEWORK_LOGIN_SESSION_KEY, loginVo);
 		}
-
-		
 		
 		paramMap.put("SESSION_PROJECT_ID", loginVo.getProjectId());
+		paramMap.put("SESSION_CURRENT_ERD_YN", loginVo.getCurrentErdYn());
+		
 		projectSvc.selectProjectCdList(model, paramMap);
 		return path+"/erd/erd/erd";
 	}
@@ -89,6 +95,13 @@ public class LoginController {
 
 		
 		return path+"/erd/erd/query";
+	}
+	
+	@RequestMapping(value="/{path}/erd/request.do")
+	public String request(@PathVariable String path, ModelMap model, RequestParamMap paramMap, HttpServletRequest request) {
+
+		
+		return path+"/erd/erd/request";
 	}
 	
 	/**

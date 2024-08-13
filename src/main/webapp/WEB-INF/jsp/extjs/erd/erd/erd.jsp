@@ -10,19 +10,86 @@
 
     <script>
     var drawDataLoad = new DrawDataLoad();
-    var erdAuth      = new ErdAuth();
+    var erdAuth   = new ErdAuth();
     drawDataLoad.loadData();
     erdAuth.loadData();
 
     <tagErd:itemCode type="ext-js-store" name="DATA_TYPE" cdGrp="DATA_TYPE" firstText="" value=""></tagErd:itemCode>
+
+    var socket = new WebSocket("ws://localhost:8080/ws/chat");
+
+    var roomId = '${sessionScope._sessionVO.projectId}', userNm = '${sessionScope._sessionVO.usrNm}';
+
+    function socketEnterRoom(ws){
+        // if (!isOpen(ws)) return;
+        var jsonMsg =  {"type" : "ENTER", "roomId": roomId , "sender": userNm , "message": ""};
+        ws.send(JSON.stringify(jsonMsg));
+    }
+
+    socket.onopen = function (e) {
+        // 
+        socketEnterRoom(socket);
+    };
+
+    function socketStartEdit() {
+        if (!isOpen(socket)) return;
+        
+        var jsonMsg =  {"type" : "START", "roomId": roomId , "sender": userNm , "message": ""};
+        socket.send(JSON.stringify(jsonMsg));
+    }
+    
+    function isOpen(ws) { 
+        console.log( ws.readyState, ws.OPEN );
+        return ws.readyState === ws.OPEN ;
+    }
+    
+    socket.onmessage = function (e) {
+        // alert( e.data );
+        var json = Ext.JSON.decode(e.data);
+        console.log(json);
+        if( json.type == "START" || json.type == "END" ) {
+            Ext.Msg.alert('안내',  Ext.JSON.decode(e.data).message , function() {
+                
+            });
+        }
+    }
+
+    socket.onclose = function (e) {
+        console.log( '연결 끊김' )
+    }
+
+    function socketSendMessage( msg) {
+        if (!isOpen(socket)) return;
+        
+        var jsonMsg = {"type" : "TALK", "roomId": roomId , "sender": userNm, "message": msg};
+        socket.send(JSON.stringify(jsonMsg));
+    }
+    
+    function socketEndEdit() {
+        if (!isOpen(socket)) return;
+        
+        var jsonMsg =  {"type" : "END", "roomId": roomId , "sender": userNm , "message": ""};
+        socket.send(JSON.stringify(jsonMsg));
+    }
+    
+    function socketExitRoom() {
+        if (!isOpen(socket)) return;
+        var jsonMsg = {"type" : "QUIT", "roomId": roomId , "sender": userNm, "message": ""};
+        
+        socket.send(JSON.stringify(jsonMsg));
+    }
+
+    window.onbeforeunload = function() {
+        socketExitRoom();
+    };
     
     Ext.onReady(function() {
-    	<%-- 로그인 하지 않은 경우 로그인 창 --%>
+        <%-- 로그인 하지 않은 경우 로그인 창 --%>
         <c:if test="${sessionScope._sessionVO.usrUid == null || sessionScope._sessionVO.usrUid == 'GUEST' }">
             ErdAppFunction.loginWindow(true);
         </c:if>
         
-        var viewSize = Ext.getBody().getViewSize();        
+        var viewSize = Ext.getBody().getViewSize();     
         
         Ext.create('Ext.container.Viewport', {
             layout: 'border',
@@ -48,7 +115,7 @@
                                  <c:if test="${sessionScope._sessionVO.usrUid != null && sessionScope._sessionVO.usrUid != 'GUEST' }">
                                  {text: '프로젝트 수정', id: 'topEditProject', 
                                      handler : function() {
-                                    	 ErdAppFunction.editProjectWindow('${sessionScope._sessionVO.projectId}', 'topEditProject');
+                                         ErdAppFunction.editProjectWindow('${sessionScope._sessionVO.projectId}', 'topEditProject');
                                      },
                                   },'|',
                                   </c:if>
@@ -74,14 +141,20 @@
                                   '|',
                                   {text: '쿼리 Maker', id: 'topSqlQueryMaker', 
                                      handler : function() {
-                                    	 window.open('/extjs/erd/query.do', '_blank');
+                                         window.open('/extjs/erd/query.do', '_blank');
+                                     },
+                                  },
+                                  '|',
+                                  {text: 'DB모델 신규/변경요청', id: 'topErdRequest', 
+                                     handler : function() {
+                                         window.open('/extjs/erd/request.do', '_blank');
                                      },
                                   },
                                   '->',
                                   <c:if test="${sessionScope._sessionVO.usrUid == null || sessionScope._sessionVO.usrUid == 'GUEST' }">
                                   {text: '회원가입', id: 'topRegistUser', 
                                       handler : function() {
-                                    	  ErdAppFunction.addUserWindow();
+                                          ErdAppFunction.addUserWindow(this.id);
                                       },
                                   },'|',
                                   {text: 'Login', id: 'topLogin', 
@@ -93,9 +166,9 @@
                                   </c:if>
                                   <%-- 로그인 한 경우 로그인 창 --%>
                                   <c:if test="${sessionScope._sessionVO.usrUid != null && sessionScope._sessionVO.usrUid != 'GUEST' }">
-                                  {text: '${sessionScope._sessionVO.usrNm}님의 로그인 정보 변경', id: 'loginUsrNm', 
+                                  {text: '${sessionScope._sessionVO.usrNm}님의 로그인 정보 변경', id: 'topEditUser', 
                                       handler : function() {
-                                          alert('사용자정보 변경 팝업');
+                                          ErdAppFunction.editUserWindow(this.id)
                                       },
                                   },
                                   '|',
@@ -104,21 +177,21 @@
 
                                          Ext.Msg.confirm('확인', '로그아웃하시겠습니까?', function(btn) {
                                              if( btn == 'yes') {
-                                             	 var response = Ext.Ajax.request({
+                                                 var response = Ext.Ajax.request({
                                                       async: false,
                                                       url: '/common/login/logout.do',
                                                       params: {
                                                               
                                                       }
                                                   });
-                                             	 
-                                             	  console.log( Ext.decode(response.responseText) )
-                                             	  if( Ext.decode(response.responseText).success == true ) {
-                                             		  Ext.Msg.alert('성공', '로그아웃되었습니다.', function() {
-                                             		      self.location.href = '/extjs/erd/erd.do';
+                                                 
+                                                  console.log( Ext.decode(response.responseText) )
+                                                  if( Ext.decode(response.responseText).success == true ) {
+                                                      Ext.Msg.alert('성공', '로그아웃되었습니다.', function() {
+                                                          self.location.href = '/extjs/erd/erd.do';
                                                       });
-                                             		  
-                                             		  
+                                                      
+                                                      
                                                   }
                                                   
                                              }
@@ -138,7 +211,7 @@
                 id : "LEFT-PANEL",
                 split: true,
                 border: true,
-                width: 350,      // First tab active by default
+                width: 350,   // First tab active by default
                 listeners : {
                     collapse : function ( _this, eOpts ) {
                         var minimaps = Ext.dom.Query.select("div[id^=minimap]");
@@ -180,21 +253,23 @@
             }, 
             {
                 region: 'east',
-                title: '전체 테이블 레이아웃/단어사전',
+                title: '전체 테이블 레이아웃/단어사전/메모',
                 xtype: 'tabpanel', // TabPanel itself has no title
                 split: true,
                 collapsible: true,
                 collapsed : true,
-                activeTab: 0,      // First tab active by default
-                width: 650,      // First tab active by default
+                activeTab: 0,     // First tab active by default
+                width: 650,   // First tab active by default
                 margin: '0 0 0 -2',
                 border : true,
                 id : "RIGHT-PANEL",
                 items: [
-                       <%-- 전체테이블 --%>
-                       <tagErd:erdRightAllTable></tagErd:erdRightAllTable>
-                       <%-- 단어사전 --%>
-                       <tagErd:erdRightWord></tagErd:erdRightWord>
+                        <%-- 전체테이블 --%>
+                        <tagErd:erdRightAllTable></tagErd:erdRightAllTable>
+                        <%-- 단어사전 --%>
+                        <tagErd:erdRightWord></tagErd:erdRightWord>
+                        <%-- 메모 --%>
+                        <tagErd:erdRightMemo></tagErd:erdRightMemo>
                 ]   
              }, 
              {
@@ -202,6 +277,7 @@
                  xtype: 'panel', // TabPanel itself has no title
                  border: true,
                  margin: '0 0 0 -2',
+                 layout: 'border',
                  items: [
                          <%-- 버튼 영역 --%>
                          <tagErd:erdCenterTopButton></tagErd:erdCenterTopButton>
@@ -221,10 +297,11 @@
                                      id : 'ERD-SUBJECTS',
                                      border : false,
                                      listeners : {
-                                    	 tabchange : function ( tabPanel, newCard, oldCard, eOpts ) {
-                                    		 console.log( newCard, oldCard);
-                                    		 erdAuth.startOrCheckSubjectEditInfo(newCard.getId(), false);
-                                    	 }
+                                         tabchange : function ( tabPanel, newCard, oldCard, eOpts ) {
+                                             console.log( newCard, oldCard);
+                                             erdAuth.startOrCheckSubjectEditInfo(newCard.getId(), false);
+                                             Ext.getCmp('DRAW_BUTTON').setValue('pointer')
+                                         }
                                      },
                                      items : [
          
@@ -251,7 +328,7 @@
     
     ErdDrawFunction.drawErdPage(subjectAreaDatas, 0, drawDataLoad);
 
-       
+        
         // var draw = SVG().addTo("#subj_1").size( 8000 , viewSize.height-98 ); // 
         /*
         var draw = SVG().addTo("#subj_1-innerCt").size( 8000 , viewSize.height-98 ); //  5000 
@@ -277,6 +354,43 @@
         */
         // draw.size(8000, 5000);
     
+
+    if (document.all) {
+        // document.all.loading.style.visibility='hidden';
+        var el = Ext.get("loading"); 
+        el.fadeOut({
+                duration: 1000,
+                callback: function () {
+                    el.hide();
+                }
+        });
+        //el.setOpacity(0);
+        //el.hide();
+    }
+    if (document.layers) {
+        // document.loading.visibility='hidden';
+        var el = Ext.get("loading"); 
+        el.fadeOut({
+                duration: 1000,
+                callback: function () {
+                    el.hide();
+                }
+        });
+        //el.setOpacity(0);
+        //el.hide();
+    }
+    if (document.getElementById) {
+        // document.getElementById('loading').style.visibility='hidden';
+        var el = Ext.get("loading"); 
+        el.fadeOut({
+                duration: 1000,
+                callback: function () {
+                    el.hide();
+                }
+        });
+        //el.setOpacity(0);
+        //el.hide();
+    }
 
     });
 

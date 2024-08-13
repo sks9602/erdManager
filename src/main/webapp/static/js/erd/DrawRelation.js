@@ -24,7 +24,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 					'stroke-width': 0.7, 
 				});
 	
-	this.relationPathOutlint = this.draw.path().attr({ 
+	this.relationPathOutline = this.draw.path().attr({ 
 					fill: 'none',
 					stroke: '#00f', // '00f/fff'
 					'stroke-width': this.CONSTANT.LINE*2,
@@ -71,7 +71,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 		var _this = this;
 		// 경로가 이미 지정된 경우
 		if( this.relationInfo["PATHS"] && this.relationInfo["PATHS"].length > 0 ) {
-			console.log("PATHS ",  _this.relationInfo["PATHS"] )
+			// console.log("PATHS ",  _this.relationInfo["PATHS"] )
 			
 			var ps = this.relationInfo["PATHS"].split(' ');
 			var paths = Array();
@@ -196,7 +196,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 			_this.relationInfo["PATHS"] = _this.pathRelation['paths'].join(' ');
 			_this.drawDataLoad.updateRelationPath(draw_type, param);
 		}
-		console.log( draw_type, _this.relationInfo  );
+		// console.log( draw_type, _this.relationInfo  );
 		
 
 		
@@ -204,7 +204,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 		/* 
 		// 테이블 이동시. 적용... 위의 "_dragend"로 통합.
 		if( draw_type == 'table_move_dragend') {
-			console.log( "table_move_dragend");
+			// console.log( "table_move_dragend");
 			_this.drawDataLoad.setRelationPathValue(  _this.relationInfo["SUBJECT_ID"], _this.relationInfo["RELATION_ID"], _this.pathRelation['paths'] );
 		}	
 		*/	
@@ -219,13 +219,13 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 		
 		if( typeof( paths) == 'string') {
 			this.relationPath.plot(_this.pathRelation['start'].join(' ') + ' ' + paths + ' ' + _this.pathRelation['outline_end'].join(' '));
-			this.relationPathOutlint.plot(_this.pathRelation['outline_start'].join(' ') + ' ' + paths + ' ' + _this.pathRelation['outline_end'].join(' '));
+			this.relationPathOutline.plot(_this.pathRelation['outline_start'].join(' ') + ' ' + paths + ' ' + _this.pathRelation['outline_end'].join(' '));
 			//console.log( _this.pathRelation['outline_start'].join(' ') + '/' + paths + '/' + _this.pathRelation['outline_end'].join(' '));
 		} else {
 		// console.log( _this.pathRelation['start'].join(' ') + ' ' + paths.join(' ') + ' ' + _this.pathRelation['end'].join(' ') );
 		
 			this.relationPath.plot(_this.pathRelation['start'].join(' ') + ' ' + paths.join(' ') + ' ' + _this.pathRelation['outline_end'].join(' '));
-			this.relationPathOutlint.plot(_this.pathRelation['outline_start'].join(' ') + ' ' + paths.join(' ') + ' ' + _this.pathRelation['outline_end'].join(' '));
+			this.relationPathOutline.plot(_this.pathRelation['outline_start'].join(' ') + ' ' + paths.join(' ') + ' ' + _this.pathRelation['outline_end'].join(' '));
 			//console.log( _this.pathRelation['outline_start'].join(' ') + '|' + paths.join(' ') + '|' + _this.pathRelation['outline_end'].join(' '));
 		}
 
@@ -233,9 +233,9 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 		
 		var arrayAll = this.getRelationPathArrayAll();
 		
-		_this.relationPathEnd.plot( "M " + arrayAll[arrayAll.length-2][1]+" " + arrayAll[arrayAll.length-2][2] + " " + _this.pathRelation['end'].join(' '));
+		_this.relationPathEnd.plot( "M " + arrayAll[arrayAll.length-2][1]+" " + (arrayAll[arrayAll.length-2][2]) + " " + _this.pathRelation['end'].join(' '));
 		
-		var _array = this.relationPathOutlint.array();
+		var _array = this.relationPathOutline.array();
 		var _ends = _array[_array.length-1];
 		_this.pathRelation['end_info'] = "l "+ _ends[1] + " "+ _ends[2];
 	}
@@ -244,7 +244,9 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 	 * 관계의 경로를 구한다..
 	 */
 	this.getRelationPathArrayAll= function() {
-		return this.relationPathOutlint.array();
+        console.log(this.tableInfo);
+        console.log(this.relationInfo);
+		return this.relationPathOutline ? this.relationPathOutline.array() : null;
 	}
 	
 	/*
@@ -252,7 +254,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 	 */
 	this.getRelationPathArray = function() {
 		var _this = this;
-		var array = this.relationPathOutlint.array();
+		var array = this.relationPathOutline.array();
 		
 		// console.log( array );
 		
@@ -273,11 +275,11 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 		// 중간 연결선
 		for( var i=1; i<array.length-2;i++ ) {
 			if( array[i][1] == array[i+1][1] && array[i][2] == array[i+1][2] ) {
-				console.log(">>",  i, array[i] );
+				// console.log(">>",  i, array[i] );
 				continue;
 			}
 			if( axis == "y" && array[i][2] == array[i+1][2] ) {
-				console.log("+>",  i, array[i] );
+				// console.log("+>",  i, array[i] );
 				continue;
 			}
 			else if( axis == "y" && array[i][2] != array[i+1][2] ) {
@@ -293,7 +295,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				pathIdx++;
 			}
 			else if( axis == "x" && array[i][1] == array[i+1][1] ) {
-				console.log("#>",  i, array[i] );
+				// console.log("#>",  i, array[i] );
 				continue;
 			} 
 			else if( axis == "x" && array[i][1] != array[i+1][1] ) {
@@ -307,15 +309,15 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				pathList[pathIdx] = [ axis, (val1[1]+val2[1])/2 -(_this.CONSTANT.MOVER.NARROW/2) , (val1[2]+val2[2])/2 -(_this.CONSTANT.MOVER.NARROW/2), i-1 ];
 				pathIdx++;
 			}
-			console.log( pathIdx-1, pathList[pathIdx-1] );
+			// console.log( pathIdx-1, pathList[pathIdx-1] );
 		}
 
 		// 마지막 연결선
 		/*
-		console.log( array[array.length-3], array[array.length-2] );
+		// console.log( array[array.length-3], array[array.length-2] );
 		if( array[array.length-3][1] == array[array.length-2][1] && array[array.length-3][2] == array[array.length-2][2] ) {
 			axis = pathList[pathIdx-1][0];
-			console.log( axis );
+			// console.log( axis );
 		}
 		else if( array[array.length-3][1] == array[array.length-2][1] ) {
 			axis = "y"
@@ -344,7 +346,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 	 */
 	this.getRelationLineType = function() {
 		var _this = this;
-		var array = this.relationPathOutlint.array();
+		var array = this.relationPathOutline.array();
 		
 		var lineType ="", last = "" ;
 		lineType+= _this.start['position'];
@@ -354,7 +356,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 		
 		for( var i=1; i<_this.pathRelation['paths'].length ; i++ ) {
 			var p = _this.pathRelation['paths'][i].split(' ');
-			console.log( i, p);
+			// console.log( i, p);
 			if( p[1] == '0' && p[2] == '0' ) {
 				if( last == "|" ) {
 					last = "-";
@@ -366,7 +368,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 			} else if( p[1] != '0' && p[2] == '0' ) {
 				last = "-";
 			} else {
-				console.error(i, _this.pathRelation['paths'][i] );
+				// console.error(i, _this.pathRelation['paths'][i] );
 			}
 			
 			lineType+= last;
@@ -466,12 +468,65 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 		}
 	}
 
+    this.updateRelationPathInfo = function(relType) {
+        var _this = this;
+        console.log( "redrawRelationType : ", _this.relationInfo["SUBJECT_ID"], relType );
+       
+        // 1:0or1관계선
+        if( relType == "relNonIden" ){
+            _this.relationPath.attr({'stroke-dasharray' : '12,12'});
+            _this.relationInfo["RELATION_TYPE"] = "rel1toN";
+        } else {
+            this.relationPath.attr({'stroke-dasharray' : ''});
+            _this.relationInfo["RELATION_TYPE"] = Ext.getCmp('DRAW_BUTTON').getValue();
+        }
+        
+        _this.drawRelation('relation_change');
+        _this.relationPathOutline.attr({"cursor": "default"});
+    }
+
+	this.redrawRelationType = function() {
+		var _this = this;
+        var relType = Ext.getCmp('DRAW_BUTTON').getValue();
+		
+		/*
+		_this.drawDataLoad.changeRelationType(_this.relationInfo["SUBJECT_ID"], _this.relationInfo["RELATION_ID"], Ext.getCmp('DRAW_BUTTON').getValue());
+		// 1:0or1관계선
+		if( relType == "relNonIden" ){
+			_this.relationPath.attr({'stroke-dasharray' : '12,12'});
+			_this.relationInfo["RELATION_TYPE"] = "rel1toN";
+		} else {
+			this.relationPath.attr({'stroke-dasharray' : ''});
+			_this.relationInfo["RELATION_TYPE"] = Ext.getCmp('DRAW_BUTTON').getValue();
+		}
+		
+		_this.drawRelation('relation_change');
+		_this.relationPathOutline.attr({"cursor": "default"});
+		Ext.getCmp('DRAW_BUTTON').setValue('pointer');
+        */
+        
+        var relations = _this.drawDataLoad.getDrawedRelation();
+        
+        for( var subject_id in relations ) {
+            if( subject_id.substring(0, 1) == "S") {
+                console.log(" subject_id : ", subject_id )
+                var relation = _this.drawDataLoad.getDrawedRelation(subject_id, _this.relationInfo["RELATION_ID"]);
+                console.log(" relation : ", relation )
+                _this.drawDataLoad.changeRelationType(subject_id, _this.relationInfo["RELATION_ID"], Ext.getCmp('DRAW_BUTTON').getValue());
+                relation.updateRelationPathInfo(relType);
+            }  
+        }
+        
+        
+        Ext.getCmp('DRAW_BUTTON').setValue('pointer');
+	}
+
 	/*
 	 * mover를 생성한다.
 	 */
 	this.drawMover = function() {
 		var _this = this;
-		_this.relationPathOutlint.click(function(ev) {
+		_this.relationPathOutline.click(function(ev) {
 
 			// 상단 색상관련 버튼 disble처리.
 			for( var i=1;_this.drawDataLoad.hasUserAuthOfModeler() && i<=3; i++ ) {
@@ -480,40 +535,51 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 
 			_this.drawDataLoad.setSelectedRelation( _this.relationInfo["SUBJECT_ID"], _this.relationInfo["RELATION_ID"] );
 			if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1toN' ) {
+				_this.redrawRelationType();
+				/*
 				_this.drawDataLoad.changeRelationType(_this.relationInfo["SUBJECT_ID"], _this.relationInfo["RELATION_ID"], Ext.getCmp('DRAW_BUTTON').getValue());
 				_this.relationPath.attr({'stroke-dasharray' : ''});
 				_this.relationInfo["RELATION_TYPE"] = Ext.getCmp('DRAW_BUTTON').getValue();
 				_this.drawRelation('relation_change');
-				_this.relationPathOutlint.attr({"cursor": "default"});
+				_this.relationPathOutline.attr({"cursor": "default"});
 				Ext.getCmp('DRAW_BUTTON').setValue('pointer');
+				*/
 			} 
 			// 1:1관계선
 			else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1to1' ) {
+				_this.redrawRelationType();
+				/*
 				_this.drawDataLoad.changeRelationType(_this.relationInfo["SUBJECT_ID"], _this.relationInfo["RELATION_ID"], Ext.getCmp('DRAW_BUTTON').getValue());
 				_this.relationPath.attr({'stroke-dasharray' : ''});
 				_this.relationInfo["RELATION_TYPE"] = Ext.getCmp('DRAW_BUTTON').getValue();
 				_this.drawRelation('relation_change');
-				_this.relationPathOutlint.attr({"cursor": "default"});
+				_this.relationPathOutline.attr({"cursor": "default"});
 				Ext.getCmp('DRAW_BUTTON').setValue('pointer');
+				*/
 			} 
 			// 1:0or1관계선
 			else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1to0_1' ) {
+				_this.redrawRelationType();
+				/*
 				_this.drawDataLoad.changeRelationType(_this.relationInfo["SUBJECT_ID"], _this.relationInfo["RELATION_ID"], Ext.getCmp('DRAW_BUTTON').getValue());
 				_this.relationPath.attr({'stroke-dasharray' : ''});
 				_this.relationInfo["RELATION_TYPE"] = Ext.getCmp('DRAW_BUTTON').getValue();
 				_this.drawRelation('relation_change');
-				_this.relationPathOutlint.attr({"cursor": "default"});
+				_this.relationPathOutline.attr({"cursor": "default"});
 				Ext.getCmp('DRAW_BUTTON').setValue('pointer');
+				*/
 			} 
 			// 1:0or1관계선
 			else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'relNonIden' ) {
+				_this.redrawRelationType();
+				/*
 				_this.drawDataLoad.changeRelationType(_this.relationInfo["SUBJECT_ID"], _this.relationInfo["RELATION_ID"], Ext.getCmp('DRAW_BUTTON').getValue())
 				_this.relationPath.attr({'stroke-dasharray' : '12,12'});
 				_this.relationInfo["RELATION_TYPE"] = "rel1toN";
 				_this.drawRelation('relation_change');
-				_this.relationPathOutlint.attr({"cursor": "default"});
+				_this.relationPathOutline.attr({"cursor": "default"});
 				Ext.getCmp('DRAW_BUTTON').setValue('pointer');
-				
+				*/
 			} 
 			else {
 				// 다른 relation의 mover삭제
@@ -536,31 +602,31 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 			ev.stopPropagation();
 		});
 		
-		_this.relationPathOutlint.mousemove(function(ev) {
+		_this.relationPathOutline.mousemove(function(ev) {
 			  _this.relationPath.attr({'stroke-width':1.7});
 			var scroll = { top : Ext.getCmp(_this.subjectAreaInfo["SUBJECT_ID"]).getEl().getScrollTop() , left : Ext.getCmp(_this.subjectAreaInfo["SUBJECT_ID"]).getEl().getScrollLeft()};
 			var subject = _this.drawDataLoad.getSubjectArea( _this.subjectAreaInfo["SUBJECT_ID"]);
 
 			if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1toN' ) {
-				_this.relationPathOutlint.attr({"cursor": "crosshair"});
+				_this.relationPathOutline.attr({"cursor": "crosshair"});
 				subject.phantomRelation1toN.plot("M " + (scroll.left + ev.layerX+5) + " " + (scroll.top + ev.layerY+5) + subject.phantomRelation1toNPath ).attr({stroke: 'black'}).show().front();
 			} 
 			// 1:1관계선
 			else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1to1' ) {
-				_this.relationPathOutlint.attr({"cursor": "crosshair"});
+				_this.relationPathOutline.attr({"cursor": "crosshair"});
 				subject.phantomRelation1to1.plot("M " + (scroll.left + ev.layerX+5) + " " + (scroll.top + ev.layerY+5) + subject.phantomRelation1toNPath ).attr({stroke: 'black'}).show().front();
 			} 
 			// 1:0or1관계선
 			else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1to0_1' ) {
-				_this.relationPathOutlint.attr({"cursor": "crosshair"});
+				_this.relationPathOutline.attr({"cursor": "crosshair"});
 				subject.phantomRelation1to0_1.plot("M " + (scroll.left + ev.layerX+5) + " " + (scroll.top + ev.layerY+5) + subject.phantomRelation1toNPath ).attr({stroke: 'black'}).show().front();
 			} 
 		  // 1:0or1관계선
 			else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'relNonIden' ) {
-				_this.relationPathOutlint.attr({"cursor": "crosshair"});
+				_this.relationPathOutline.attr({"cursor": "crosshair"});
 				subject.phantomRelationNonIden.plot("M " + (scroll.left + ev.layerX+5) + " " + (scroll.top + ev.layerY+5) + subject.phantomRelation1toNPath ).attr({stroke: 'black'}).show().front();
 			} else {
-				_this.relationPathOutlint.attr({"cursor": "default"});
+				_this.relationPathOutline.attr({"cursor": "default"});
 			}
 			/*
 				if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1toN' ) {
@@ -581,29 +647,29 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				*/
 		});
 		
-		_this.relationPathOutlint.mouseout(function(ev) {
+		_this.relationPathOutline.mouseout(function(ev) {
 			_this.relationPath.attr({'stroke-width':0.7});
 
 			var scroll = { top : Ext.getCmp(_this.subjectAreaInfo["SUBJECT_ID"]).getEl().getScrollTop() , left : Ext.getCmp(_this.subjectAreaInfo["SUBJECT_ID"]).getEl().getScrollLeft()};
 			var subject = _this.drawDataLoad.getSubjectArea( _this.subjectAreaInfo["SUBJECT_ID"]);
 
 			if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1toN' ) {
-				//_this.relationPathOutlint.attr({"cursor": "crosshair"});
+				//_this.relationPathOutline.attr({"cursor": "crosshair"});
 				subject.phantomRelation1toN.attr({stroke: 'red'}).show().front();
 			} 
 			// 1:1관계선
 			else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1to1' ) {
-				//_this.relationPathOutlint.attr({"cursor": "crosshair"});
+				//_this.relationPathOutline.attr({"cursor": "crosshair"});
 				subject.phantomRelation1to1.attr({stroke: 'red'}).show().front();
 			} 
 			// 1:0or1관계선
 			else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'rel1to0_1' ) {
-				//_this.relationPathOutlint.attr({"cursor": "crosshair"});
+				//_this.relationPathOutline.attr({"cursor": "crosshair"});
 				subject.phantomRelation1to0_1.attr({stroke: 'red'}).show().front();
 			} 
 		  // 1:0or1관계선
 			else if( Ext.getCmp('DRAW_BUTTON').getValue() == 'relNonIden' ) {
-				//_this.relationPathOutlint.attr({"cursor": "crosshair"});
+				//_this.relationPathOutline.attr({"cursor": "crosshair"});
 				subject.phantomRelationNonIden.attr({stroke: 'red'}).show().front();
 			} 
 
@@ -632,8 +698,12 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 	 */
 	this.hideResizerOfTable = function() {
 		var _this = this;
+		console.log( " SUBJECT_ID : ", _this.subjectAreaInfo["SUBJECT_ID"]);
 		for(var x in _this.drawDataLoad.getDrawedTable( _this.subjectAreaInfo["SUBJECT_ID"])) {
-			_this.drawDataLoad.getDrawedTable( _this.subjectAreaInfo["SUBJECT_ID"], x).hideResizer();
+            if( x != _this.subjectAreaInfo["SUBJECT_ID"]) {
+                _this.drawDataLoad.getDrawedTable( _this.subjectAreaInfo["SUBJECT_ID"], x).hideResizer();
+            }
+			
 		}
 	}
 	
@@ -678,7 +748,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 	
 	this.log = function() {
 		var _this = this;
-		console.log( "log", _this.start );
+		// console.log( "log", _this.start );
 	}
 	
 	/**
@@ -737,14 +807,14 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 							left : Math.ceil(table["start"].transform().translateX)
 						 , top : Math.ceil(table["start"].transform().translateY)
 						 , right : Math.ceil(table["start"].transform().translateX + rect["start"].width())
-						 , bottom : Math.ceil(table["start"].transform().translateY + rect["start"].height()) + 15  // DrawTable.CONSTANT.COLUMN_HIGHT
+						 , bottom : Math.ceil(table["start"].transform().translateY + rect["start"].height()) + 5  // DrawTable.CONSTANT.COLUMN_HIGHT
 						};
 	
 		var boxOfEnd = { 
 							left : Math.ceil(table["end"].transform().translateX)
 						 , top : Math.ceil(table["end"].transform().translateY)
 						 , right : Math.ceil(table["end"].transform().translateX + rect["end"].width())
-						 , bottom : Math.ceil(table["end"].transform().translateY + rect["end"].height()) + 15  // DrawTable.CONSTANT.COLUMN_HIGHT
+						 , bottom : Math.ceil(table["end"].transform().translateY + rect["end"].height()) + 5  // DrawTable.CONSTANT.COLUMN_HIGHT
 						};
 							
 		// 시작, 종료 위치 및 xy구하기..
@@ -755,7 +825,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				 _this.start["x"] = Math.min( _this.start["x"], boxOfStart.right);
 				 _this.relationInfo["START_X"] = _this.start["x"] - table["start"].transform('translateX');
 			}
-			_this.start["y"] = Math.ceil(table["start"].transform('translateY')+(draw_type == "init" ? 0 : _this.CONSTANT.CORRECT-2));
+			_this.start["y"] = Math.ceil(table["start"].transform('translateY')+(draw_type == "init" ? 0 : _this.CONSTANT.CORRECT-3));
 		} else if( _this.relationInfo["START_POSITION"] == "l" ) {
 			_this.start["x"] = Math.ceil(table["start"].transform('translateX'));
 			_this.start["y"] = Math.ceil(table["start"].transform('translateY') + _this.relationInfo["START_Y"]);
@@ -777,7 +847,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				 _this.start["x"] = Math.min( _this.start["x"], boxOfStart.right);
 				 _this.relationInfo["START_X"] = _this.start["x"] - table["start"].transform('translateX');
 			}
-			_this.start["y"] = Math.ceil(table["start"].transform('translateY') + rect["start"].height()+15+(draw_type == "init" ? 0 : _this.CONSTANT.CORRECT-1));
+			_this.start["y"] = Math.ceil(table["start"].transform('translateY') + rect["start"].height()+5+(draw_type == "init" ? 10 : _this.CONSTANT.CORRECT+7));
 		} 
 		
 		if( draw_type == "init") {
@@ -793,7 +863,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				 _this.end["x"] = Math.min( _this.end["x"], boxOfEnd.right);
 				 _this.relationInfo["END_X"] = _this.end["x"] - table["end"].transform('translateX');
 			}
-			_this.end["y"] = Math.ceil(table["end"].transform('translateY'));
+			_this.end["y"] = Math.ceil(table["end"].transform('translateY'))+(draw_type == "init" ? 0 : _this.CONSTANT.CORRECT-3);
 		} else if( _this.relationInfo["END_POSITION"] == "l" ) {
 			_this.end["x"] = Math.ceil(table["end"].transform('translateX'));
 			_this.end["y"] = Math.ceil(table["end"].transform('translateY') + _this.relationInfo["END_Y"]);
@@ -814,10 +884,10 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				 _this.end["x"] = Math.min( _this.end["x"], boxOfEnd.right);
 				 _this.relationInfo["END_X"] = _this.end["x"] - table["end"].transform('translateX');
 			}
-			_this.end["y"] = Math.ceil(table["end"].transform('translateY') + rect["end"].height()+15+(draw_type == "init" ? 0 : _this.CONSTANT.CORRECT-1));
+			_this.end["y"] = Math.ceil(table["end"].transform('translateY') + rect["end"].height()+5+(draw_type == "init" ? 10 : _this.CONSTANT.CORRECT+7)); // 
 		}
-		
 		// console.log( _this.relationInfo, _this.start, _this.end);
+		;
 	}
 	
 	/*
@@ -1013,10 +1083,10 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 			str_y = "시작(아래)>종료(위) start_y > end_y";
 		}
 		
-		console.log( "start-y:"+_this.start["y"] , "end-y:"+_this.end["y"], str_y);
-		console.log( "start-x:"+_this.start["x"] , "end-x:"+_this.end["y"], str_x);
-		console.log( "start", _this.start);
-		console.log( "end", _this.end);
+		// console.log( "start-y:"+_this.start["y"] , "end-y:"+_this.end["y"], str_y);
+		// console.log( "start-x:"+_this.start["x"] , "end-x:"+_this.end["y"], str_x);
+		// console.log( "start", _this.start);
+		// console.log( "end", _this.end);
 		*/
 		
 		// 시작점 상단 
@@ -1137,8 +1207,8 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 						//	_this.pathRelation['paths'][3] = "l " + ((_this.end["x"] - _this.start["x"]) - parseInt(p[1]) -_this.CONSTANT.PADDING) + " 0";
 						//}
 						
-						console.log("------------------------------", _this.pathRelation['outline_start'].join(' '));
-						console.log("------------------------------", _this.pathRelation['paths'].join(' '));
+						// console.log("------------------------------", _this.pathRelation['outline_start'].join(' '));
+						// console.log("------------------------------", _this.pathRelation['paths'].join(' '));
 					}
 				}else if( _this.end["position"] == 'r' ) {
 					if( _this.start["x"] > _this.end["x"]  ) {
@@ -1671,7 +1741,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 					} else if( _this.start["x"] < _this.end["x"] ) {
 						_this.relationType["now"] = "r-|l";
 						//if( _this.pathRelation['paths'].length == 0 ) {
-							console.log( _this.start, _this.end );
+							// console.log( _this.start, _this.end );
 							_this.pathRelation['paths'][0] = "l " + (_this.end["x"] - _this.start["x"]) + " 0";
 							_this.pathRelation['paths'][1] = "l 0 " + (_this.end["y"] - _this.start["y"]);
 						//} else {
@@ -2107,7 +2177,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 			_this.pathRelation['end'] = new Array();
 		}
 		var relation_type = _this.relationInfo["RELATION_TYPE"]||"rel1toN";
-		console.log( " relation_type : " + relation_type);
+		// console.log( " relation_type : " + relation_type);
 		// 시작점 상단 
 		if( _this.end["position"] == 't') {
 
@@ -2240,9 +2310,9 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 	
 	this.front = function() {
 		var _this = this;
-		console.log( _this.relationPath );
+		// console.log( _this.relationPath );
 		_this.relationPath.front();
-		_this.relationPathOutlint.front();
+		_this.relationPathOutline.front();
 
 		for(var x in _this.pathMover ) {
 			_this.pathMover[x].front();
@@ -2298,6 +2368,8 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				//.opacity(0.4)
 				.draggable(true, (moverPos[0]=="x" ?  "h" : "v"), _this.relationInfo, i==0 ? "START" : ((i == moversPos.length-1) ? "END" : "") )
 				.attr("cursor", (moverPos[0]=="y" ?  "s-resize" : "e-resize"));
+			
+			console.log(i , _this.pathMover[i] );
 			
 			if( _this.pathMover[i].remember("relation_SorE") == "start" || _this.pathMover[i].remember("relation_SorE") == "end" ) {
 				if( _this.pathMover[i].remember("direction") == "x"  ) {
@@ -2362,9 +2434,9 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				
 				/*
 				if( !erdAuth.isEditable()) {
-                    return ;
-                }
-                */
+					return ;
+				}
+				*/
 				if( mover_rect.remember("relation_SorE") == "start" && _this.moverDisplayMode == "relocate") {
 					var p = _this.pathRelation['start_info'].split(' ');
 					_this.pathRelation['start_info'] = p[0] + " " + (parseInt(p[1])-_this.moverBaseStart["mx"]) + " " + (parseInt(p[2])-_this.moverBaseStart["my"]);
@@ -2380,6 +2452,8 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				
 				tableStart.tableGrp.off('mousemove', tableStart.onmousemove);
 				tableEnd.tableGrp.off('mousemove', tableEnd.onmousemove);
+
+				console.log(i , "mover", "dragstart" );
 				
 				ev.stopPropagation();
 			});
@@ -2394,11 +2468,11 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				mover_box["y"] = Math.ceil(_mover_box.y);
 				
 				/*
-                if( !erdAuth.isEditable()) {
-                    return ;
-                }
-                */
-               
+				if( !erdAuth.isEditable()) {
+					return ;
+				}
+				*/
+			   
 				// 시작 mover
 				if( mover_rect.remember("relation_SorE") == "start" ) {
 					var pathPre = _this.pathRelation['start_info'].split(' ');
@@ -2494,7 +2568,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				else {
 
 					var drag_direction = mover_rect.remember("direction");
-					console.log( drag_direction );
+					// console.log( drag_direction );
 					
 					var direction = _this.moverBase[mover_index].direction;
 					var idx = _this.moverBase[mover_index].idx;
@@ -2527,6 +2601,9 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 					_this.draw.attr({"cursor": "s-resize"});
 				} 
 				ev.stopPropagation();
+
+				console.log(i , "mover", "dragmove" );
+
 			});
 			
 			_this.pathMover[i].on("dragend", function(ev) {
@@ -2537,10 +2614,10 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				
 				/*
 				if( !erdAuth.isEditable()) {
-                    return ;
-                }
-                */ 
-               
+					return ;
+				}
+				*/ 
+			   
 				/*
 				if( mover_rect.remember("relation_SorE") == "start" ) {
 					if( _this.moverBaseStart["idx"] == _this.moverBaseEnd["idx"] ) {
@@ -2586,8 +2663,8 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 					}
 
 					
-					console.log( _this.moverBaseStart );
-					console.log( _this.moverBaseEnd );
+					// console.log( _this.moverBaseStart );
+					// console.log( _this.moverBaseEnd );
 
 					_this.pathRelation['start_info'] = _this.pathRelation['start'][0];
 				}
@@ -2646,6 +2723,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 				tableStart.tableGrp.on('mousemove', tableStart.onmousemove);
 				tableEnd.tableGrp.on('mousemove', tableEnd.onmousemove);
 				*/
+				console.log(i , "mover", "dragend" );
 				
 				_this.drawDataLoad.setCursorStatus(null);
 				// _this.relocateMover();
@@ -2672,11 +2750,12 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 			
 			_this.end = { position : _position, x : parseInt(pathPre[1]), y : parseInt(pathPre[2]) };
 		
-			//console.log( "_this.end", _this.end);
 		}
 		else {
 			
 		}
+		
+		console.log( "setRelationStartEndValue", mover_rect.remember("relation_SorE") );
 
 		_this.caculateRelativeXYOfStart(mover_rect.remember("relation_SorE"), ev);
 
@@ -2687,7 +2766,7 @@ var DrawRelation = function(draw, subjectAreaInfo, tableInfo, drawDataLoad, tabl
 	
 		this.relationPathEnd.remove();
 		
-		this.relationPathOutlint.remove();
+		this.relationPathOutline.remove();
 	}
 }
 

@@ -224,9 +224,10 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
         
         console.log( _this.drawDataLoad.getProjectBuyInfo() );
         
+        _this.drawDataLoad.setSelectedRelation(null, null);
+        
         var projectBuyInfo = _this.drawDataLoad.getProjectBuyInfo();
         
-
         
           if( Ext.getCmp('DRAW_BUTTON').getValue() == 'pointer' && _this.drawDataLoad.getSelectRectangular()["OBJECT"] == 'subject') {
              var areaSelect =  _this.drawDataLoad.getSelectRectangular();
@@ -244,7 +245,9 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
                     && areaSelect["X"] <= item["X"] && areaSelect["Y"] <= item["Y"]
                     && ( areaSelect["X"] + areaSelect["WIDTH"]) >= (item["X"] + item["WIDTH"]||100) 
                     && ( areaSelect["Y"] + areaSelect["HEIGHT"]) >= (item["Y"] + item["HEIGHT"]||100) ) {
-                        console.log( item["SUBJECT_ID"], item["ENTITY_ID"] )
+                        console.log( item["SUBJECT_ID"], item["ENTITY_ID"] );
+                        
+                        _this.drawDataLoad.getDrawedTable(item["SUBJECT_ID"], item["ENTITY_ID"]).tableGrp.draggable(true);
                         _this.drawDataLoad.setSelectedTables( item["SUBJECT_ID"], item["ENTITY_ID"], true);
                     }
             });
@@ -259,9 +262,7 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
           for( var i=1;_this.drawDataLoad.hasUserAuthOfModeler() && i<=3; i++ ) {
               Ext.getCmp("COLOR_BUTTON").items.items[i].setDisabled(false);
           }
-          
-          console.log( 'click')
-          
+                    
           _this.drawDataLoad.setSelectedRelation(null, null);
           _this.drawDataLoad.setSelectedTables( _this.subjectAreaData["SUBJECT_ID"], null  );
            var subjectAreaInfo = subjectAreaDatas[index];
@@ -270,9 +271,11 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
           
            var point = _this.draw.point(ev.layerX, ev.layerY);
           
+          
            // 테이블 추가 일 경우
            if( Ext.getCmp('DRAW_BUTTON').getValue() == 'table' || Ext.getCmp('DRAW_BUTTON').getValue() == 'view') {
-                if( projectBuyInfo.ENTITY_CNT >= projectBuyInfo.BUY_ENTITY_CNT ) {
+                if( !drawDataLoad.getEntityForAddSubject().ENTITY_ID 
+                     && projectBuyInfo.ENTITY_CNT >= projectBuyInfo.BUY_ENTITY_CNT ) {
                     Ext.Msg.alert(
                         '오류',
                         '이 프로젝트는 최대 '+projectBuyInfo.BUY_ENTITY_CNT+'개의 ENTITY를 설계가능합니다.'
@@ -282,7 +285,7 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
                     
                     return;
                 }
-                        
+                
                 if( drawDataLoad.getEntityForAddSubject().ENTITY_ID ) {
                     var entity_id = drawDataLoad.getEntityForAddSubject().ENTITY_ID;
                     var tableInfo = drawDataLoad.getTable(subjectAreaInfo["SUBJECT_ID"], entity_id);
@@ -301,6 +304,8 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
                              success: function(response, opts) {
                                  // 테이블 정보 추가.
                                  drawDataLoad.addTable( tableInfo );
+                                 
+                                 _this.draw.attr({"cursor": "default"});
                                  
                                  // 상세 테이블 조회 영역 표시..
                                  ErdDrawFunction.loadTableInfo(entity_id, true);
@@ -331,20 +336,88 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
                         drawDataLoad.initEntityForAddSubject(true);
 
                         var tableGrp = drawDataLoad.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], entity_id).getTableGrp();
-                        var tableRelations = drawDataLoad.getTableRelations(subjectAreaInfo["SUBJECT_ID"], entity_id);
+                        // var tableRelations = drawDataLoad.getTableRelations(subjectAreaInfo["SUBJECT_ID"], entity_id);
+                        
+                        var tableRelations = drawDataLoad.getTableRelationsInMaster(subjectAreaInfo["SUBJECT_ID"], entity_id);
+                        
+                        
                         for( var i=0; i<tableRelations.length; i++ ) {
                             var relationInfo = tableRelations[i] ;
-                            relationInfo["DEL_YN"] != "Y" 
+                            // relationInfo["DEL_YN"] != "Y" 
                             if( drawDataLoad.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], relationInfo["START_ENTITY_ID"])
                                 && drawDataLoad.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], relationInfo["END_ENTITY_ID"])
                               ) {
+                                var boxOfStart = drawDataLoad.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], relationInfo["START_ENTITY_ID"]).getTableBox();
+                                var boxOfEnd = drawDataLoad.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], relationInfo["END_ENTITY_ID"]).getTableBox();
+                                
+                                var start = {x:50, y:50};
+                                
+                                relationInfo["START_X"] = start.x;
+                                relationInfo["START_Y"] = start.y;
+                                
+                                if( boxOfStart.right < boxOfEnd.left ) {
+                                    relationInfo["START_POSITION"] = "r";
+                                    relationInfo["START_X"] = 0;
+                                    relationInfo["START_Y"] = (boxOfStart.bottom - boxOfStart.top)/2;
+                                    
+                                    if( boxOfStart.top > boxOfEnd.bottom ) {
+                                        relationInfo["END_POSITION"] = "b";
+                                        relationInfo["END_X"] = (boxOfEnd.right - boxOfEnd.left)/2;
+                                        relationInfo["END_Y"] = 0;
+                                    } else if ( boxOfStart.bottom < boxOfEnd.top ) {
+                                        relationInfo["END_POSITION"] = "t";
+                                        relationInfo["END_X"] = (boxOfEnd.right - boxOfEnd.left)/2;
+                                        relationInfo["END_Y"] = 0;
+                                    } else {
+                                        relationInfo["END_POSITION"] = "l";
+                                        relationInfo["END_X"] = 0;
+                                        relationInfo["END_Y"] = (boxOfEnd.bottom - boxOfEnd.top)/2;
+                                    }
+                                } else if( boxOfStart.left > boxOfEnd.right ) {
+                                    relationInfo["START_POSITION"] = "l";
+                                    relationInfo["START_X"] = 0;
+                                    relationInfo["START_Y"] = (boxOfStart.bottom - boxOfStart.top)/2;
+                                    if( boxOfStart.top > boxOfEnd.bottom ) {
+                                        relationInfo["END_POSITION"] = "b";
+                                        relationInfo["END_X"] = (boxOfEnd.right - boxOfEnd.left)/2;
+                                        relationInfo["END_Y"] = 0;
+                                    } else if ( boxOfStart.bottom < boxOfEnd.top ) {
+                                        relationInfo["END_POSITION"] = "t";
+                                        relationInfo["END_X"] = (boxOfEnd.right - boxOfEnd.left)/2;
+                                        relationInfo["END_Y"] = 0;
+                                    } else {
+                                        relationInfo["END_POSITION"] = "r";
+                                        relationInfo["START_X"] = 0;
+                                        relationInfo["END_X"] = 0;
+                                        relationInfo["END_Y"] = (boxOfEnd.bottom - boxOfEnd.top)/2;
+                                    }
+                                } else {
+                                    if( boxOfStart.top > boxOfEnd.bottom ) {
+                                        relationInfo["START_POSITION"] = "t";
+                                        relationInfo["START_X"] = (boxOfStart.right - boxOfStart.left)/2;
+                                        relationInfo["START_Y"] = 0;
+                                        relationInfo["END_POSITION"] = "b";
+                                        relationInfo["END_X"] = (boxOfEnd.right - boxOfEnd.left)/2;
+                                        relationInfo["END_Y"] = 0;
+                                    } else if ( boxOfStart.bottom < boxOfEnd.top ) {
+                                        relationInfo["START_POSITION"] = "b";
+                                        relationInfo["START_X"] = (boxOfStart.right - boxOfStart.left)/2;
+                                        relationInfo["START_Y"] = 0;
+                                        relationInfo["END_POSITION"] = "t";
+                                        relationInfo["END_X"] = (boxOfEnd.right - boxOfEnd.left)/2;
+                                        relationInfo["END_Y"] = 0;
+                                    }
+                                }
+                                relationInfo["SUBJECT_ID"] = subjectAreaInfo["SUBJECT_ID"];
                                 drawDataLoad.setDrawedRelation(subjectAreaInfo["SUBJECT_ID"], relationInfo["RELATION_ID"], new DrawRelation( _this.draw, subjectAreaInfo, tableInfo, drawDataLoad, tableGrp, relationInfo ));
                                 drawDataLoad.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], relationInfo["RELATION_ID"]).initPath();
                                 drawDataLoad.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], relationInfo["RELATION_ID"]).drawRelation('init');
                                 // 시작, 종료 relation 등록
                                 drawDataLoad.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], relationInfo["START_ENTITY_ID"]).addRelationStart( drawDataLoad.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], relationInfo["RELATION_ID"]));
                                 drawDataLoad.getDrawedTable(subjectAreaInfo["SUBJECT_ID"], relationInfo["END_ENTITY_ID"]).addRelationEnd( drawDataLoad.getDrawedRelation(subjectAreaInfo["SUBJECT_ID"], relationInfo["RELATION_ID"]));
-                                
+                                // 연결선 정보 저장,
+                                drawDataLoad.updateRelationInfo("addToSubject", relationInfo); 
+                                Ext.getStore("subjectEntityListStore").reload();
                                 // console.log( relationInfo );
                             }
                         }
@@ -375,7 +448,11 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
                 });
                 */
             } else if(Ext.getCmp('DRAW_BUTTON').getValue().substring(0, 3) == "rel") {
-                Ext.MessageBox.alert("안내","관계를 연결할 테이블을 선택하세요.");
+                var doms = Ext.dom.Query.select('div.x-window');
+                if( !doms || doms.length == 0 ) {
+                    Ext.MessageBox.alert("안내","관계를 연결할 테이블을 선택하세요.");
+                }
+                
             }
             
             for(var x in _this.drawDataLoad.getDrawedRelation( _this.subjectAreaData["SUBJECT_ID"])) {
@@ -429,11 +506,16 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
         _this.horizontalText = new Array();
         _this.verticalText = new Array();
         for( var i=1; i<width/100; i++ ) {
-            _this.horizontalText.push(_this.draw.text(function(t) {t.tspan(i*100).dx(i*100).dy(0)} ).font({anchor: 'middle'}).addClass("pattern_hori_sign"));
+            _this.horizontalText.push(_this.draw.text(function(t) {t.tspan(i*100).dx(i*100).dy(0)} ).font({anchor: 'middle'}).attr({ "font-size": "9px", "dominant-baseline" : "hanging", "text-anchor" : "middle" })); // .addClass("pattern_hori_sign"));
         }
 
         for( var i=0; i<height/100; i++ ) {
-            _this.verticalText.push(_this.draw.text(function(t) {t.tspan(i*100).dx(0).dy(i*100)} ).addClass(i==0 ? "pattern_base_sign" : "pattern_verti_sign"));
+            _this.verticalText.push(_this.draw.text(function(t) {t.tspan(i*100).dx(0).dy(i*100)} ).attr({ "font-size": "9px", "dominant-baseline" : (i==0 ? "hanging" : "middle") })); // .addClass(i==0 ? "pattern_base_sign" : "pattern_verti_sign"));
+            if( i == 0 ) {
+                
+            } else {
+                
+            }
         }
     }
     
@@ -467,11 +549,11 @@ var DrawSubjectArea = function(subjectAreaDatas, index, drawDataLoad) {
         _this.draw.svg();
     
         for( var i=1; i<_this.area.width/100; i++ ) {
-            _this.horizontalText.push(_this.draw.text(function(t) {t.tspan(i*100).dx(i*100).dy(0)} ).font({anchor: 'middle'}).addClass("pattern_hori_sign"));
+            _this.horizontalText.push(_this.draw.text(function(t) {t.tspan(i*100).dx(i*100).dy(0)} ).font({anchor: 'middle'}).attr({ "font-size": "9px", anchor: 'middle', "dominant-baseline" : "hanging", "text-anchor" : "middle" })); // .addClass("pattern_hori_sign"));
         }
 
         for( var i=0; i<_this.area.height/100; i++ ) {
-            _this.verticalText.push(_this.draw.text(function(t) {t.tspan(i*100).dx(0).dy(i*100)} ).addClass(i==0 ? "pattern_base_sign" : "pattern_verti_sign"));
+            _this.verticalText.push(_this.draw.text(function(t) {t.tspan(i*100).dx(0).dy(i*100)} ).attr({ "font-size": "9px", "dominant-baseline" : (i==0 ? "hanging" : "middle") })); // .addClass(i==0 ? "pattern_base_sign" : "pattern_verti_sign"));
         }
 
       /*

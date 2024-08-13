@@ -33,10 +33,15 @@
           , nvl(WIDTH, '100') AS WIDTH
           , nvl(HEIGHT, '100') AS HEIGHT
           , ENTT.TABL_SCD          
-          , (SELECT CD_NM
-               FROM CD
-              WHERE CD_GRP = 'TABL_SCD'
-                AND CD     = ENTT.TABL_SCD)  AS TABL_SCD_NM    
+          , NVL((SELECT GROUP_CONCAT(CD.CD_VAL_A ORDER BY CD.CD ASC)
+                 FROM ENTITY_SCD ESCD
+                    , CD         CD
+                WHERE ESCD.PROJECT_ID = ENTT.PROJECT_ID
+                  AND ESCD.VERSN      = ENTT.VERSN
+                  AND ESCD.ENTITY_ID  = ENTT.ENTITY_ID
+                  AND CD.CD_GRP = 'TABL_SCD'
+                  AND CD.CD     = ESCD.TABL_SCD
+                GROUP BY ESCD.ENTITY_ID), '')  AS TABL_SCD_NM    
           , (SELECT 'Y'
                FROM COLMN 
               WHERE PROJECT_ID = ENTT.PROJECT_ID
@@ -76,7 +81,7 @@
                    AND ENTITY_ID   = ETT.ENTITY_ID    
                    AND VERSN       = ETT.VERSN    
                    AND USR_UID     = #{SESSION_USR_UID} )  AS ALIAS_NM
-             , (SELECT GROUP_CONCAT(CD.CD_VAL_A ORDER BY CD.CD ASC)
+             , NVL((SELECT GROUP_CONCAT(CD.CD_VAL_A ORDER BY CD.CD ASC)
                  FROM ENTITY_SCD ESCD
                     , CD         CD
                 WHERE ESCD.PROJECT_ID = ETT.PROJECT_ID
@@ -84,7 +89,7 @@
                   AND ESCD.ENTITY_ID  = ETT.ENTITY_ID
                   AND CD.CD_GRP = 'TABL_SCD'
                   AND CD.CD     = ESCD.TABL_SCD
-                GROUP BY ESCD.ENTITY_ID)  AS TABL_SCD_NM    
+                GROUP BY ESCD.ENTITY_ID), '')  AS TABL_SCD_NM    
              , (SELECT GROUP_CONCAT(ESCD.TABL_SCD ORDER BY ESCD.TABL_SCD ASC)
                  FROM ENTITY_SCD ESCD
                 WHERE ESCD.PROJECT_ID = ETT.PROJECT_ID
@@ -637,7 +642,7 @@
           AND ETT.PROJECT_ID = COL.PROJECT_ID
           AND ETT.ENTITY_ID  = COL.ENTITY_ID
           AND ETT.VERSN      = COL.VERSN
-          AND CASE WHEN COL.USE_YN = 'N' AND  NVL(COL.DML_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]> date_add(CURRENT_TIMESTAMP , interval #{SESSION_COLUMN_DISPLAY_DAYCNT} day) THEN 'N'
+          AND CASE WHEN COL.USE_YN = 'N' AND  NVL(COL.DML_DT, CURRENT_TIMESTAMP) <![CDATA[ < ]]> date_add(CURRENT_TIMESTAMP , interval -#{SESSION_COLUMN_DISPLAY_DAYCNT} day) THEN 'N'
                    ELSE 'Y' END = 'Y'
           <if test='!"ALL".equals(USE_YN)'>
           /* AND CASE WHEN COL.USE_YN = '' THEN 'Y' ELSE NVL(COL.USE_YN, 'Y') END = 'Y' */
@@ -705,7 +710,7 @@
                  FROM CD
                 WHERE CD_GRP = 'DML_TCD'
                   AND CD     = COL.DML_TCD) AS DML_TCD_NM
-            , COL.DML_DT        
+            , DATE_FORMAT(COL.DML_DT, '%Y-%m-%d %H:%i:%S') AS DML_DT        
             , CASE WHEN DATE_FORMAT(COL.DML_DT, '%Y-%m-%d') = DATE_FORMAT(CURRENT_TIMESTAMP, '%Y-%m-%d') THEN DATE_FORMAT(COL.DML_DT, '%H:%i:%S')
                    ELSE DATE_FORMAT(COL.DML_DT, '%Y-%m-%d') END AS DML_DT_FMT
             , COL.APLY_USR_UID  
@@ -737,11 +742,11 @@
             , 'N' AS SELECTED_YN
             , 'N' AS EXPAND_YN
             , 1 AS INDENT
-            , LENGTHB(COL.COLMN_NM)+3  AS COL_NM_LEN
-            , LENGTHB(REPLACE(COL.COLMN_NM, '_', ''))+3  AS COL_NM_PLAIN_LEN
-            , LENGTHB(COL.ATTR_NM)+3   AS ATTR_NM_LEN
-            , LENGTHB(ETT.ENTITY_NM)+3 AS ENTITY_NM_LEN
-            , LENGTHB(ETT.TABL_NM)+3   AS TABL_NM_LEN
+            , (CHAR_LENGTH(COL.COLMN_NM) +  (LENGTHB(COL.COLMN_NM)-CHAR_LENGTH(COL.COLMN_NM))/2) +3  AS COL_NM_LEN
+            , (CHAR_LENGTH(REPLACE(COL.COLMN_NM, '_', '')) +  (LENGTHB(REPLACE(COL.COLMN_NM, '_', ''))-CHAR_LENGTH(REPLACE(COL.COLMN_NM, '_', '')))/2)+3 AS COL_NM_PLAIN_LEN
+            , (CHAR_LENGTH(COL.ATTR_NM) +  (LENGTHB(COL.ATTR_NM)-CHAR_LENGTH(COL.ATTR_NM))/2) +1  AS ATTR_NM_LEN
+            , (CHAR_LENGTH(ETT.ENTITY_NM) +  (LENGTHB(ETT.ENTITY_NM)-CHAR_LENGTH(ETT.ENTITY_NM))/2) +3 AS ENTITY_NM_LEN
+            , (CHAR_LENGTH(ETT.TABL_NM) +  (LENGTHB(ETT.TABL_NM)-CHAR_LENGTH(ETT.TABL_NM))/2) +3   AS TABL_NM_LEN
             , CAST(ROW_NUMBER() OVER(PARTITION BY ETT.ENTITY_ID ORDER BY CASE WHEN PK_YN = 'Y' THEN 1 ELSE 2 END, SEQ, COLMN_NM) AS CHAR) AS RNUM
 
 
@@ -1421,11 +1426,22 @@
                                               AND VERSN       = ETT.VERSN 
                                               AND ENTITY_ID   = ETT.ENTITY_ID
                                               AND TABL_SCD    = 'TABL_SCD_070') AS TABL_SCD_070
+             , ETT.VIEW_CLAUSE
           FROM ENTITY         ETT
          WHERE ETT.PROJECT_ID = #{SESSION_PROJECT_ID}
            AND ETT.VERSN      = #{SESSION_VERSN}
            AND ETT.ENTITY_ID  = #{ENTITY_ID}
     </select>
+    
+    <insert  id="updateViewClause"  parameterType="paramMap">
+    UPDATE /* mapper.erd.entity.updateViewClause */
+           ENTITY
+       SET 
+            VIEW_CLAUSE = #{VIEW_CLAUSE}
+      WHERE PROJECT_ID = #{SESSION_PROJECT_ID}
+        AND VERSN      = #{SESSION_VERSN}
+        AND ENTITY_ID  = #{ENTITY_ID}
+    </insert>
     
     <insert  id="saveEntity"  parameterType="paramMap">
         INSERT /* mapper.erd.entity.saveEntity */
@@ -1531,8 +1547,18 @@
 
     </insert>
     
-    
-    
+    <update  id="updateTableDesc"  parameterType="paramMap">
+        UPDATE /* mapper.erd.entity.updateTableDesc */
+               ENTITY 
+           SET 
+               TABL_DESC    = #{TABL_DESC}
+             , LAST_UPD_DT     = CURRENT_TIMESTAMP 
+             , LAST_UPD_USR_UID =#{SESSION_USR_UID}
+         WHERE PROJECT_ID = #{SESSION_PROJECT_ID}  
+           AND VERSN      = #{SESSION_VERSN}
+           AND ENTITY_ID  = #{ENTITY_ID}
+    </update>
+
     <insert  id="saveSubjectEntity"  parameterType="paramMap">
         INSERT /* mapper.erd.entity.saveSubjectEntity */
           INTO SUBJECT_ENTITY (
@@ -1740,7 +1766,34 @@
                                        ) 
                                )
     </delete>
-    
+
+    <select id="selectRelationOfEntity" parameterType="paramMap" resultType="resultMap">
+        SELECT /* mapper.erd.entity.selectRelationOfEntity */
+               RELATION_ID, START_ENTITY_ID, END_ENTITY_ID
+          FROM RELATION
+         WHERE PROJECT_ID  = #{SESSION_PROJECT_ID}
+           AND VERSN       = #{SESSION_VERSN}
+           AND START_ENTITY_ID  = #{ENTITY_ID} 
+    </select>
+
+    <delete id="deleteRelationAttr"  parameterType="paramMap">
+        DELETE /* mapper.erd.relation.deleteRelationAttr */
+               RA
+          FROM RELATION_ATTR  RA
+         WHERE 1 = 1
+           AND PROJECT_ID  = #{SESSION_PROJECT_ID} 
+           AND VERSN       = #{SESSION_VERSN}
+           AND RELATION_ID IN ( SELECT RELATION_ID
+                                  FROM RELATION
+                                 WHERE PROJECT_ID = RA.PROJECT_ID 
+                                   AND VERSN      = RA.VERSN
+                                   AND ( START_ENTITY_ID  = #{ENTITY_ID} 
+                                          OR END_ENTITY_ID  = #{ENTITY_ID} 
+                                        ) 
+                                )
+           
+    </delete>
+            
     <delete id="deleteRelationOfEntity" parameterType="paramMap">
         DELETE /* mapper.erd.entity.deleteRelationOfEntity */
           FROM RELATION
@@ -1812,16 +1865,16 @@
 
              , TRT_USR_UID  = #{SESSION_USR_UID} 
              , TRT_DT       = CURRENT_TIMESTAMP
+             , FK_ENTITY_ID = NULL
+             , FK_COLMN_ID  = NULL
+             , FK_COLMN_NM  = NULL
          WHERE COL.PROJECT_ID = #{SESSION_PROJECT_ID}
            AND COL.VERSN      = #{SESSION_VERSN}
-           AND (COL.FK_ENTITY_ID, COL.FK_COLMN_ID) 
-               IN (SELECT ENTITY_ID, COLMN_ID
-                     FROM COLMN
-                    WHERE PROJECT_ID = COL.PROJECT_ID
-                      AND VERSN      = COL.VERSN
-                      AND ENTITY_ID  = #{ENTITY_ID}
-                      AND PK_YN      = 'Y'
-                   )
+           AND COL.ENTITY_ID  = #{ENTITY_ID}
+           AND PK_YN          = 'Y'
+           AND NVL(FK_ENTITY_ID, '')  = ''
+           AND NVL(FK_COLMN_ID , '')  = ''
+           AND NVL(FK_COLMN_NM , '')  = ''
     </update>
     
     <select id="selectEntityHaveFKColumn"  parameterType="paramMap" resultType="resultMap">
@@ -2263,17 +2316,22 @@
                             , CASE WHEN COL.USE_YN = 'N' THEN 'N' ELSE 'Y' END AS USE_YN
                             , @ROWNUM1:=@ROWNUM1+1 AS RNUM1
                          FROM ENTITY   ETT
+                              INNER JOIN PROJECT PJT
+                                ON PJT.PROJECT_ID = ETT.PROJECT_ID
+                               AND PJT.VERSN  = ETT.VERSN
                               LEFT OUTER JOIN COLMN    COL
                                 ON ETT.PROJECT_ID = COL.PROJECT_ID
                                AND ETT.ENTITY_ID  = COL.ENTITY_ID
                                AND ETT.VERSN      = COL.VERSN
                            LEFT OUTER JOIN DTYPE DTYPE 
                                 ON COL.DTYPE      = DTYPE.DTYPE
+                               AND PJT.DBASE      = DTYPE.DBASE 
                            LEFT OUTER JOIN DOMAIN DMN 
                                 ON COL.PROJECT_ID = #{SESSION_PROJECT_ID}
                                AND COL.DOMAIN_ID  = DMN.DOMAIN_ID
                            LEFT OUTER JOIN DTYPE DTYPE_1 
                                 ON DMN.DTYPE      = DTYPE_1.DTYPE
+                               AND PJT.DBASE      = DTYPE_1.DBASE 
                             , (SELECT @ROWNUM1:=0) AS R
                         WHERE COL.PROJECT_ID = #{SESSION_PROJECT_ID}
                           AND COL.VERSN      = #{SESSION_VERSN}
@@ -2682,4 +2740,163 @@
                 , LAST_UPD_DT     = CURRENT_TIMESTAMP 
                 , LAST_UPD_USR_UID =#{SESSION_USR_UID}
      </insert>
+     
+     
+    <insert  id="insertEntityMemo"  parameterType="paramMap">
+        INSERT /* mapper.erd.entity.insertEntityMemo */
+          INTO ENTITY_MEMO
+        (
+             PROJECT_ID          
+            , VERSN               
+            , ENTITY_ID           
+            , MEMO_SEQ            
+            , MEMO                
+            , TRT_USR_UID         
+            , TRT_DT              
+            , FRST_INS_DT         
+            , FRST_INS_USR_UID   
+            , LAST_UPD_DT        
+            , LAST_UPD_USR_UID    
+        ) VALUES (
+        
+             #{SESSION_PROJECT_ID}  
+           , #{SESSION_VERSN}
+           , CASE WHEN NVL(#{ENTITY_ID}, '') = '' THEN '*' ELSE #{ENTITY_ID} END
+           , NVL(#{MEMO_SEQ}, (SELECT MAX(MEMO_SEQ)
+                                 FROM ENTITY_MEMO
+                                WHERE PROJECT_ID = #{SESSION_PROJECT_ID} 
+                                  AND VERSN      = #{SESSION_VERSN}
+                                  AND ENTITY_ID  = CASE WHEN NVL(#{ENTITY_ID}, '') = '' THEN '*' ELSE #{ENTITY_ID} END
+                               ) )
+           , #{TABL_DESC}
+           
+           , #{SESSION_USR_UID}
+           , CURRENT_TIMESTAMP   
+
+           , CURRENT_TIMESTAMP     
+           , #{SESSION_USR_UID}
+           , CURRENT_TIMESTAMP   
+           , #{SESSION_USR_UID}
+        )        
+        ON DUPLICATE KEY UPDATE
+             MEMO            = #{TABL_DESC}
+           , LAST_UPD_DT     = CURRENT_TIMESTAMP 
+           , LAST_UPD_USR_UID =#{SESSION_USR_UID}
+    </insert>
+    
+    
+    <select id="selectEntityMemoList"  parameterType="paramMap" resultType="resultMap">
+        SELECT /* mapper.erd.entity.selectEntityMemoList */
+               ETT.ENTITY_ID
+             , concat(ETT.ENTITY_ID, "-", ETT.MEMO_SEQ ) AS MEMO_KEY
+             , ETT.ENTITY_NM
+             , ETT.TABL_NM
+             , ETT.MEMO_SEQ
+             , ETT.TABL_DESC
+             , (SELECT USR_NM FROM USR WHERE USR_UID = ETT.TRT_USR_UID ) AS USR_NM
+             , DATE_FORMAT(ETT.TRT_DT, '%Y-%m-%d %H:%i:%S') AS TRT_DT
+           FROM (
+                 SELECT 
+                        ETT.ENTITY_ID
+                      , ETT.ENTITY_NM
+                      , ETT.TABL_NM
+                      , 1 AS MEMO_SEQ
+                      , ETT.TABL_DESC
+                      , ETT.TRT_USR_UID
+                      , ETT.TRT_DT
+		          FROM ENTITY ETT
+		         WHERE 1 = 1
+           <choose>
+                <when test='ENTITY_ID!=null and !"".equals(ENTITY_ID)'>
+                 AND ETT.ENTITY_ID = #{ENTITY_ID}
+                </when>
+
+                    <otherwise>
+                       <if test="ENTITY_NM != null ">
+                       AND((<choose>
+                                <when test='"Y".equals(EXACT_YN)'>
+                                    <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.ENTITY_NM) IN (" close=")" separator=",">
+                                     UPPER(REPLACE(#{ITEM},' ',''))
+                                    </foreach>
+                                </when>
+                                <otherwise>                    
+                                    <foreach collection="ENTITY_NM" item="ITEM" open="( " close=")" separator=" OR ">
+                                      UPPER(ETT.ENTITY_NM) LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+                                    </foreach>
+                                </otherwise>
+                           </choose>)
+                           OR
+                           (<choose>
+                                <when test='"Y".equals(EXACT_YN)'>
+                                    <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.TABL_NM) IN (" close=")" separator=",">
+                                     UPPER(REPLACE(#{ITEM},' ',''))
+                                    </foreach>
+                                </when>
+                                <otherwise>                    
+                                    <foreach collection="ENTITY_NM" item="ITEM" open=" ( " close=")" separator=" OR ">
+                                      UPPER(ETT.TABL_NM) LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+                                    </foreach>
+                                </otherwise>
+                           </choose>)
+                           )
+                        </if>
+                    </otherwise>
+           </choose>
+           AND NVL(ETT.TABL_DESC, '') != ''
+           UNION ALL
+	        SELECT 
+	               MEMO.ENTITY_ID
+	             , CASE WHEN ETT.ENTITY_ID IS NOT NULL THEN ETT.ENTITY_NM ELSE '' END AS ENTITY_NM
+	             , CASE WHEN ETT.ENTITY_ID IS NOT NULL THEN ETT.TABL_NM ELSE '' END AS TABL_NM
+	             , MEMO.MEMO_SEQ
+	             , MEMO.MEMO AS TABL_DESC
+	             , MEMO.TRT_USR_UID
+	             , MEMO.TRT_DT
+	          FROM ENTITY_MEMO      MEMO
+	               LEFT OUTER JOIN ENTITY ETT
+	                    ON MEMO.PROJECT_ID = ETT.PROJECT_ID
+	                   AND MEMO.VERSN      = ETT.VERSN
+	                   AND MEMO.ENTITY_ID  = ETT.ENTITY_ID
+	         WHERE 1 = 1
+	           AND MEMO.PROJECT_ID = #{SESSION_PROJECT_ID}  
+	           AND MEMO.VERSN      = #{SESSION_VERSN}
+	           <choose>
+	                <when test='ENTITY_ID!=null and !"".equals(ENTITY_ID)'>
+	                 AND MEMO.ENTITY_ID = #{ENTITY_ID}
+	                </when>
+	                
+	                <otherwise>
+			           <if test="ENTITY_NM != null ">
+			           AND((<choose>
+			                    <when test='"Y".equals(EXACT_YN)'>
+			                        <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.ENTITY_NM) IN (" close=")" separator=",">
+			                         UPPER(REPLACE(#{ITEM},' ',''))
+			                        </foreach>
+			                    </when>
+			                    <otherwise>                    
+			                        <foreach collection="ENTITY_NM" item="ITEM" open="( " close=")" separator=" OR ">
+			                          UPPER(ETT.ENTITY_NM) LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+			                        </foreach>
+			                    </otherwise>
+			               </choose>)
+			               OR
+			               (<choose>
+			                    <when test='"Y".equals(EXACT_YN)'>
+			                        <foreach collection="ENTITY_NM" item="ITEM" open="UPPER(ETT.TABL_NM) IN (" close=")" separator=",">
+			                         UPPER(REPLACE(#{ITEM},' ',''))
+			                        </foreach>
+			                    </when>
+			                    <otherwise>                    
+			                        <foreach collection="ENTITY_NM" item="ITEM" open=" ( " close=")" separator=" OR ">
+			                          UPPER(ETT.TABL_NM) LIKE CONCAT('%', UPPER(REPLACE(#{ITEM},' ','')), '%')
+			                        </foreach>
+			                    </otherwise>
+			               </choose>)
+			               )
+			            </if>
+                    </otherwise>
+	           </choose>
+             ) ETT 
+          ORDER BY ETT.TABL_NM, ETT.ENTITY_NM, ETT.TRT_DT DESC
+    </select>
 </mapper>

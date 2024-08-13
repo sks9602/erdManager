@@ -118,8 +118,13 @@
                                                                                 return;
                                                                             }
                                                                             
+                                                                            if( Ext.getCmp("ERD-SUBJECTS").items.keys.length > 4) {
+                                                                                Ext.Msg.alert('안내', '업무영역은 5개까지 열 수 있습니다. 업무영역을 닫은 후 다시 열여주십시오.');
+                                                                                
+                                                                                return;
+                                                                            }
+                                                                            
                                                                             for(var i=0; i < Ext.getCmp("ERD-SUBJECTS").items.keys.length;i++) {
-                                                                                console.log( i );
                                                                                 if( record.get("SUBJECT_ID") == Ext.getCmp("ERD-SUBJECTS").items.keys[i]) {
                                                                                     Ext.getCmp("ERD-SUBJECTS").setActiveTab(i);
                                                                                     isTabCreated = true;
@@ -139,6 +144,8 @@
                                                                             }
                                                                             
                                                                             ErdDrawFunction.drawErdPage(drawDataLoad.getSubjectAreaData(), subjectIdx, drawDataLoad);
+                                                                            
+                                                                            Ext.getCmp("ERD-SUBJECTS").setActiveTab(record.get("SUBJECT_ID"));
                                                                         }
                                                                     }));
                                                                     

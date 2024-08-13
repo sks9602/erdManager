@@ -29,7 +29,7 @@
 					title: '테이블 상세',
 					height : 53+(23*3),
 					border : false,
-					layout: { type: 'table' , columns: 2 },
+					layout: { type: 'table' , columns: 3 },
 					bbar : ['->',
 						<tagErd:button type="button" label="삭제" iconCls="search" cls="btn_segmentedbutton" id="btn_tableDelete">
 							disabled : false ,
@@ -155,6 +155,7 @@
 					items : [
 						<tagErd:itemText type="displayfield_ux" label="테이블 논리 명" name="TABL_NM" id="CENTER_RIGHT_TABL_NM" value="" placeholder="테이블 선택시 설정됨"></tagErd:itemText>
 						<tagErd:itemText type="displayfield_ux" label="테이블 물리 명" name="ENTITY_NM" id="CENTER_RIGHT_ENTITY_NM" value="" placeholder="테이블 선택시 설정됨"></tagErd:itemText>
+                        <tagErd:itemText type="textarea" label="ENTITY설명" id="CENTER_RIGHT_TABL_DESC" name="TABL_DESC" rowspan="3" ></tagErd:itemText>
 						<%-- tagErd:itemText type="displayfield_ux" label="테이블 관리상태" name="TABL_SCD_NM" value="" placeholder="테이블 선택시 설정됨"></tagErd:itemText --%>
                         <tagErd:itemText type="displayfield_ux" label="DML유형" name="DML_TCD_NM" value=""></tagErd:itemText>
                         <tagErd:itemText type="displayfield_ux" label="ENTITY 유형" name="ENTITY_TCD_NM" value=""></tagErd:itemText>
@@ -166,7 +167,6 @@
 							/*
 							listeners : {
 								click : function() {
-									alert(1);
 									Ext.getStore("columnListStore").load({page : 1, limit : 999999 , params: me.up('form').getValues(false, false, false, false)}); 
 								},
 							},
@@ -185,10 +185,14 @@
 	                items: [
                        <!--  컬럼 -->
                        <tagErd:erdCenterRightColumn></tagErd:erdCenterRightColumn>
+                       <!--  VIEW 컬럼 -->
+                       <tagErd:erdCenterRightViewColumn></tagErd:erdCenterRightViewColumn>
                        <!--  Index -->
                        <tagErd:erdCenterRightIndex></tagErd:erdCenterRightIndex>
                        <!--  변경이력 -->
                        <tagErd:erdCenterRightChangeHistory></tagErd:erdCenterRightChangeHistory>
+                       <!--  메모 -->
+                       <tagErd:erdCenterRightMemo></tagErd:erdCenterRightMemo>
 	                ]
 	            }
             ]

@@ -234,6 +234,7 @@ public class MyFrameworkWebMvcConfig  implements WebMvcConfigurer {
 					paramMap.put("SESSION_VERSN", loginVo.getVersion());
 					paramMap.put("SESSION_ENTITY_DISPLAY_DAYCNT", loginVo.getEntityDisplayDaycnt());
 					paramMap.put("SESSION_COLUMN_DISPLAY_DAYCNT", loginVo.getColumnDisplayDaycnt());
+					paramMap.put("SESSION_CURRENT_ERD_YN", loginVo.getCurrentErdYn());
 					
 					paramMap.put("INNER_IP", HttpUtil.getCurrentEnvironmentNetworkIp());
 					

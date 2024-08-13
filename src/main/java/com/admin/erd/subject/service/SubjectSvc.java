@@ -266,4 +266,40 @@ public class SubjectSvc {
 		}
 		return myFrameworkResponseCud;
 	}
+
+	/**
+	 * DISPLAY 형태 변경
+	 * @param model
+	 * @param paramMap
+	 * @return
+	 */
+	@Transactional
+	public MyFrameworkResponseCud updateErdSubjectEntityDisplayCode(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseCud myFrameworkResponseCud = MyFrameworkResponseCud.builder().modelMap(model).build();
+		
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		try {
+			log.info( paramMap.toString() );
+			sqlParamMap.put("ENTITY_IDS", paramMap.getValues("ENTITY_IDS"));
+			Integer result = sqlDao.insert("mapper.erd.subject.updateErdSubjectEntityDisplayCode", sqlParamMap);
+			
+			if( result == 1 || result == 2 ) {
+				myFrameworkResponseCud.setCudCount(result);
+				myFrameworkResponseCud.setSuccess(true);
+				myFrameworkResponseCud.setMessage("저장되었습니다.");
+
+			} else {
+				myFrameworkResponseCud.setSuccess(false);
+				myFrameworkResponseCud.setErrorMessage("저장시 오류가 발생했습니다.");
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+			myFrameworkResponseCud.setSuccess(false);
+			myFrameworkResponseCud.setErrorMessage("저장시 오류가 발생했습니다.");
+		}
+		return myFrameworkResponseCud;
+	}
 }

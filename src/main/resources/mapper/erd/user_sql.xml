@@ -23,8 +23,8 @@
     </insert>
         
     <!--  프로젝트 등록 -->
-    <insert  id="saveUser"  parameterType="paramMap">
-        INSERT  /* mapper.erd.user.saveUser */
+    <insert  id="insertUser"  parameterType="paramMap">
+        INSERT  /* mapper.erd.user.insertUser */
               INTO USR (
              USR_UID      
            , COMPANY_ID
@@ -57,4 +57,34 @@
            , LAST_UPD_USR_UID =#{SESSION_USR_NM}
     </insert>     
 
+   <!--   -->
+    <select  id="selectUser"  parameterType="paramMap" resultType="resultMap">
+        SELECT  /* mapper.erd.user.selectUser */
+                USR_NM
+           FROM USR 
+          WHERE USR_UID   = #{SESSION_USR_UID}
+    </select>     
+
+   <!--   -->
+    <select  id="selectUserCountWithPassword"  parameterType="paramMap" resultType="resultMap">
+        SELECT  /* mapper.erd.user.selectUser */
+                COUNT(*) AS CNT
+           FROM USR 
+          WHERE USR_UID   = #{SESSION_USR_UID}
+            AND PWD       = #{PWD}
+    </select> 
+    
+    <!--  -->
+    <update  id="updateUser"  parameterType="paramMap">
+        UPDATE  /* mapper.erd.user.updateUser */
+               USR 
+           SET
+               USR_NM    = #{USR_NM}
+             , PWD       = CASE WHEN #{PWD1} != '' AND #{PWD1} IS NOT NULL AND #{PWD1} = #{PWD2} THEN #{PWD1}
+                                ELSE PWD END
+             , LAST_UPD_DT  =   CURRENT_TIMESTAMP 
+             , LAST_UPD_USR_UID =#{SESSION_USR_NM}
+         WHERE USR_UID   = #{SESSION_USR_UID}
+           AND PWD       = #{PWD}
+    </update>   
 </mapper>

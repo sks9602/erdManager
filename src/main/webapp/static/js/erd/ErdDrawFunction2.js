@@ -87,7 +87,10 @@ class  ErdDrawFunction{
                       , binding: {
                           key: Ext.event.Event.DELETE,
                           handler: function(keyCode, e) {
-                              drawDataLoad.deleteSelectedObjects(subjectAreaInfo["SUBJECT_ID"]);
+                              alert( Ext.getCmp("DRAW_BUTTON_DELETE").disabled );
+                              if( Ext.getCmp("DRAW_BUTTON_DELETE").disabled == false ) {
+                                  drawDataLoad.deleteSelectedObjects(subjectAreaInfo["SUBJECT_ID"]);
+                              }
                           }
                       }
                     });

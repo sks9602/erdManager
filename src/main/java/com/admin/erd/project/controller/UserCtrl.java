@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import com.admin.erd.project.service.UserSvc;
 import com.myframework.was.param.RequestParamMap;
 import com.myframework.was.response.MyFrameworkResponseCud;
+import com.myframework.was.response.MyFrameworkResponseData;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,7 +22,7 @@ public class UserCtrl {
 	private UserSvc userSvc;
 	
 	@RequestMapping(value="/user/data/insert.do")
-	public String userSave(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) throws Exception {
+	public String userInsert(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) throws Exception {
 	
 		MyFrameworkResponseCud myFrameworkResponseCud = userSvc.userInsert(model, paramMap, request);
 		
@@ -43,6 +44,20 @@ public class UserCtrl {
 		
 		return "jsonView";
 	}
+	@RequestMapping(value="/user/data/update.do")
+	public String userUpdate(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) throws Exception {
 	
+		MyFrameworkResponseCud myFrameworkResponseCud = userSvc.userUpdate(model, paramMap, request);
+		
+		return "jsonView";
+	}
+	
+	@RequestMapping(value="/user/data/detail.do")
+	public String userDetail(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) throws Exception {
+	
+		MyFrameworkResponseData myFrameworkResponseData = userSvc.userDetail(model, paramMap);
+		
+		return "jsonView";
+	}
 	
 }

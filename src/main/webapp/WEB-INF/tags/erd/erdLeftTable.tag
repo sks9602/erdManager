@@ -20,6 +20,7 @@
                                         <tagErd:button type="button" label="검색" iconCls="search" cls="btn_segmentedbutton">
                                             listeners : {
                                                 click : function(_this, e, eOpts) { 
+                                                    // sendMessage("socket... 검색.........");
                                                     if( this.up('form').getForm().isValid() ) {
                                                         var me = this;
                                                         var store = Ext.getStore("entityListStore").load({page : 1, limit : 999999 , params: me.up('form').getValues(false, false, false, false)}); store.currentPage = 1; store.params = me.up('form').getForm().getFieldValues(false);
@@ -145,6 +146,8 @@
                                                                     
                                                                     // ENTITY_수 증가
                                                                     drawDataLoad.projectBuyInfo.ENTITY_CNT +=1;
+                                                                    
+                                                                    drawDataLoad.updateEntityDatas(record.get("ENTITY_ID"), "USE_YN", "Y");
                                                                  },
                                                             
                                                                  failure: function(response, opts) {
@@ -195,9 +198,14 @@
                                                  items.push({
                                                      xtype: 'menuseparator'
                                                  });
-
-
-                                                 if( !existsEntityOnSubject ) {
+                                                 
+                                                 var isEntityOnSubject = drawDataLoad.getDrawedTable(subjectActiveId) ? true : false;
+                                                 if( isEntityOnSubject ) {
+                                                     isEntityOnSubject = drawDataLoad.getDrawedTable(subjectActiveId, record.data.ENTITY_ID) ? true : false;
+                                                 }
+                                                 console.log(" isEntityOnSubject : ", isEntityOnSubject);
+                                                 
+                                                 if( !isEntityOnSubject ) {
 	                                                 items.push(Ext.create('Ext.Action', {
 	                                                     // iconCls : 'btn-icon-tree-add-first-level',
 	                                                     text: '['+record.data.TABL_NM+'] 테이블(뷰)을 업무영역 ['+ Ext.getCmp("ERD-SUBJECTS").getActiveTab().title + ']에  추가',
@@ -251,7 +259,7 @@
 		                                    <c:forEach var="item" items="${data}">
 		                                    { text: '${item.CD_NM}', dataIndex: '${item.CD}', align: "center", width : 65, menuDisabled : true, resizable : false,
 		                                       renderer : function(value, metaData, record , rowIndex, colIndex, store, view) {
-		                                          return (value ? "Y" : "<span style='color:red'>N</span>") + " / <span " + ( record.get("${item.CD}_COL_CNT") != record.get("COLUMN_CNT") ? "style='color:red'>" : ">" ) +( record.get("${item.CD}_COL_CNT") ? record.get("${item.CD}_COL_CNT") : "") + "</span>";
+		                                          return (value ? "Y" : "<span style='color:red'>N</span>") + " / <span " + ( record.get("${item.CD}_COL_CNT") != record.get("COLUMN_CNT") ? "style='color:red'>" : ">" ) +( record.get("${item.CD}_COL_CNT") ? record.get("${item.CD}_COL_CNT") : "0") + "</span>";
 		                                       },
 		                                    },
 		                                    </c:forEach>

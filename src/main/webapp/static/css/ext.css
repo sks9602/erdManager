@@ -44,6 +44,8 @@
     border-bottom-width: medium;
 }
 
+.grid-header-filter { background:transparent url(/static/ext/ux/image/icons/filter.png) no-repeat !important; background-size: 10px 10px; display: inline-block; width:16px; height:16px; float:right;  }
+
 .grid-header-textfield { background:transparent url(/static/ext/ux/image/icons/text-input.png) no-repeat !important; width:16px; height:16px; float:left;  }
 .grid-header-textarea { background:transparent url(/static/ext/ux/image/icons/text_signature.png) no-repeat !important; width:14px; height:14px; float:left;  }
 .grid-header-numberfield { background:transparent url(/static/ext/ux/image/icons/calculator_edit.png) no-repeat !important; width:16px; height:16px; float:left;  }

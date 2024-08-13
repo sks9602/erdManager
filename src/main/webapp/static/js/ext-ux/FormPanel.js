@@ -971,11 +971,20 @@ Ext.define('Ext.ux.FormPanel', {
 });
 
 function submitFormGrid(formId, gridId, url, gridRecordType, successFn, failureFn) {
-    var gridData = Ext.getCmp(gridId).getParamData(gridRecordType);
-    
+ 
     var formData = Ext.getCmp(formId).getValues(false, false, true, undefined);
+    var params = {};
+    if( Ext.isArray(gridId) ) {
+        for( var i=0; i<gridId.length; i++) {
+            var gridData = Ext.getCmp(gridId[i]).getParamData(gridRecordType);
+            params = Ext.applyIf(formData, gridData);
+        }
+    } else {
+        var gridData = Ext.getCmp(gridId).getParamData(gridRecordType);
+        console.log( gridData );
+        params = Ext.applyIf(formData, gridData);
+    }
     
-    var params = Ext.applyIf(formData, gridData);
 
     if( Ext.getCmp(formId).isValid() ) {
         hoConfirm( '저장하시겠습니까?' , function(btn, text, opt) { 

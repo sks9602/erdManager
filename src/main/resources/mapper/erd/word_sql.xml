@@ -75,7 +75,8 @@
     <select id="selectWordList"  parameterType="paramMap" resultType="resultMap">
     SELECT /* mapper.erd.word.selectWordList */
            WORD_ID, WORD, ABBR, ENGLISH, WORD_DESC, 'Y' AS USE_YN
-         , DATE_FORMAT(LAST_UPD_DT, '%Y-%m-%d %H:%i:%S')  AS  LAST_UPD_DT_FMT
+         , CASE WHEN DATE_FORMAT(LAST_UPD_DT, '%Y%m%d') = DATE_FORMAT(CURRENT_TIMESTAMP, '%Y%m%d') THEN DATE_FORMAT(LAST_UPD_DT, '%H:%i:%S')
+                ELSE DATE_FORMAT(LAST_UPD_DT, '%Y-%m-%d') END AS  LAST_UPD_DT_FMT
       FROM WORD
      WHERE PROJECT_ID  = #{SESSION_PROJECT_ID}
            <if test="WORD != null ">

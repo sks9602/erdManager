@@ -27,9 +27,9 @@
                     columns: [
                         { xtype: 'rownumberer', },
                         { text: '변경 일시', header: '<div style="text-align:center;width:100%;">변경 일시</div>',dataIndex: 'TRT_DT_FMT', align : 'center', width : 120, hidden : false,  sort : true,},
-                        { text: '변경 대상', header: '<div style="text-align:center;width:100%;">변경 대상</div>',dataIndex: 'TGT_OBJT_CD_NM', align : 'center', width : 70, hidden : false,  sort : true, },
-                        { text: '컬럼 물리 명', header: '<div style="text-align:center;width:100%;">컬럼 물리 명</div>',dataIndex: 'ATTR_NM', align : 'left', width : 130, hidden : false,  sort : true, filter: {type: 'string', dataIndex: 'ATTR_NM'},},
-                        { text: '컬럼 논리 명', header: '<div style="text-align:center;width:100%;">컬럼 논리 명</div>',dataIndex: 'COLMN_NM', align : 'left', width : 130, hidden : false,  sort : true, filter: {type: 'string', dataIndex: 'COLMN_NM'},},
-                        { text: '변경 내용', header: '<div style="text-align:center;width:100%;">변경 내용</div>', align : 'left', dataIndex: 'CHG_CTNT', width : 90,  sort : false, flex : 1, filter: {type: 'string', dataIndex: 'CHG_CTNT'},},
+                        { text: '변경 대상', header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>변경 대상</div>',dataIndex: 'TGT_OBJT_CD_NM', align : 'center', width : 70, hidden : false,  sort : true, filter: {type: 'list', options: ['테이블', '컬럼']},},
+                        { text: '컬럼 물리 명', header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>컬럼 물리 명</div>',dataIndex: 'ATTR_NM', align : 'left', width : 130, hidden : false,  sort : true, filter: {type: 'string', dataIndex: 'ATTR_NM'},},
+                        { text: '컬럼 논리 명', header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>컬럼 논리 명</div>',dataIndex: 'COLMN_NM', align : 'left', width : 130, hidden : false,  sort : true, filter: {type: 'string', dataIndex: 'COLMN_NM'},},
+                        { text: '변경 내용', header: '<div style="text-align:center;width:100%;"><div class="grid-header-filter"></div>변경 내용</div>', align : 'left', dataIndex: 'CHG_CTNT', width : 90,  sort : false, flex : 1, filter: {type: 'string', dataIndex: 'CHG_CTNT'},},
                     ]
                 }, 

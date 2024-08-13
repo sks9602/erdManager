@@ -52,12 +52,13 @@
 								collapsible: false,
 								id : 'rightWord_gridpanel',
 								title : '단어 목록',
-								plugins: {
-									cellediting: {
-										editing : true,
+								plugins: [
+									{
+										ptype: 'cellediting',
 										clicksToEdit: 1
-									}
-								},
+									},
+									'gridfilters'
+								],
 								scrollable:true,
 								<tagErd:store type="store" id="wordListStore" idProperty="WORD" url="/word/data/list.do" rootProperty="data" params="" autoLoad="true">
 
@@ -360,33 +361,33 @@
 											return link.join(' ');
 										},
 									},
-									{ text: '약어', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div>약어</div>', dataIndex: 'ABBR', width : 120, minWidth : 100, locked : true, 
+									{ text: '약어', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div><div class="grid-header-filter"></div>약어</div>', dataIndex: 'ABBR', width : 120, minWidth : 100, locked : true, filter: {type: 'string', dataIndex: 'ABBR'},
 										editor: {
 											allowBlank: true,
 											selectOnFocus: false,
 											listeners : {
-											    change : function( _this, newValue, oldValue, eOpts ) {
-		                                            _this.setValue( _this.getValue().toUpperCase().replace(/ /ig, "") )
-		                                        },
-			                                    keyup : function(_this, e, eOpts) {
-			                                        _this.setValue( _this.getValue().toUpperCase().replace(/ /ig, "") )
-			                                    },
+												change : function( _this, newValue, oldValue, eOpts ) {
+													_this.setValue( _this.getValue().toUpperCase().replace(/ /ig, "") )
+												},
+												keyup : function(_this, e, eOpts) {
+													_this.setValue( _this.getValue().toUpperCase().replace(/ /ig, "") )
+												},
 											}
 										},
 									},
-									{ text: '단어', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div>ENGLISH</div>', dataIndex: 'ENGLISH', width : 120, minWidth : 100, locked : false, 
+									{ text: '단어', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div><div class="grid-header-filter"></div>ENGLISH</div>', dataIndex: 'ENGLISH', width : 120, minWidth : 100, locked : false, filter: {type: 'string', dataIndex: 'ENGLISH'},
 										editor: {
 											allowBlank: true,
 											selectOnFocus: false
 										},
 									},
-									{ text: '설명', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div>설명</div>', dataIndex: 'WORD_DESC', flex : 1, width : 120, minWidth : 100,
+									{ text: '설명', header: '<div style="text-align:center;width:100%;"><div class="grid-header-textfield"></div><div class="grid-header-filter"></div>설명</div>', dataIndex: 'WORD_DESC', flex : 1, width : 120, minWidth : 100, filter: {type: 'string', dataIndex: 'WORD_DESC'},
 										editor: {
 											allowBlank: true,
 											selectOnFocus: false
 										},
 									},
-									{ text: '수정일', header: '<div style="text-align:center;width:100%;">수정일</div>', dataIndex: 'LAST_UPD_DT_FMT', resizeble : false, width : 120, minWidth : 120, },
+									{ text: '수정일', header: '<div style="text-align:center;width:100%;">수정일(시)</div>', align:'center', dataIndex: 'LAST_UPD_DT_FMT', resizeble : false, width : 90, minWidth : 90, },
 								
 								]
 							}

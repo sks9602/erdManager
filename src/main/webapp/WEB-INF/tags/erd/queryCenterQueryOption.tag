@@ -164,7 +164,8 @@
 				                    id : "queryCenterQueryOption_store",
 				                    fields: [
 				                        { name : "INDENT"     , type : "string"},        
-				                        { name : "SYNTAX"     , type : "string"},       
+                                        { name : "SYNTAX"     , type : "string"},        
+                                        { name : "COL_LEN"     , type : "int"},       
 				                        { name : "ENTITY_NM"  , type : "string"},   
 				                        { name : "ENTITY_NM_ALIAS_NM"  , type : "string"},        
                                         { name : "COLMN_NM"   , type : "string"},         

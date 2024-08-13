@@ -236,26 +236,60 @@ public class EntitySvc {
 			
 			// 전체삭제 
 			String all_delete_yn = paramMap.get("ALL_YN");
-
 			
 			String subjectEntityDeleteYn  = "N";
 			sqlParamMap.put("USE_YN", "N");
+
+			// RELATION에 따라 변경되는 테이블 목록
+			Set<String> pkEntitySet = new HashSet<String>();
+			
+			List<String> pkEntityList = new ArrayList<String>();
+			
+			Set<String> pkInsertEntityList = new HashSet<String>();
+			Set<String> pkDeleteEntityList = new HashSet<String>();
+
 			if( "Y".equals(all_delete_yn)) {
 				// entity 미사용처리
 				sqlDao.insert("mapper.erd.entity.updateEntityUseYn", sqlParamMap);
 
 				// 관계 미사용처리
 				sqlDao.insert("mapper.erd.entity.deleteSubjectRelationOfEntity", sqlParamMap);
+				
+				
+				List<SqlResultMap<String, Object>> entityRelations = sqlDao.selectList("mapper.erd.entity.selectRelationOfEntity", sqlParamMap);
+				log.info( " entityRelations {} ", entityRelations);
+				
+				List<SqlResultMap<String, Object>> relationList = sqlDao.selectList("mapper.erd.relation.selectRelationList", sqlParamMap);
+				log.info( " relationList {} ", relationList);
+
+				MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList = new MapHasList("START_ENTITY_ID", relationList);
+				log.info( " mapHasList {} ", mapHasList);
+
+				Integer cnt = 0;
+				Integer result = 0;
+				for( SqlResultMap<String, Object> entityRelation : entityRelations ) {
+					//for( SqlResultMap<String, Object> relation : relationList ) {
+						result += relationSvc.deleteColumnPK(cnt, pkDeleteEntityList, entityRelation.getString("END_ENTITY_ID"), entityRelation.getString("START_ENTITY_ID"), mapHasList, paramMap );
+						
+						pkEntityList.addAll(pkDeleteEntityList);
+					//}
+				}
+				pkEntityList.add(entity_id);
+				
+				sqlDao.insert("mapper.erd.entity.deleteRelationAttr", sqlParamMap);
+
 				// 관계 미사용처리
 				sqlDao.insert("mapper.erd.entity.deleteRelationOfEntity", sqlParamMap);
 				
 				// FK 컬럼 미사용처리..
-				sqlDao.insert("mapper.erd.entity.updateFKColumnUseYn", sqlParamMap);
+				// sqlDao.insert("mapper.erd.entity.updateFKColumnUseYn", sqlParamMap);
+				
 			} else {
 				
 				subjectEntityDeleteYn = "Y";
 				//  SUBJECT영역 관계선 미사용 처리.
-				sqlDao.update("mapper.erd.entity.updateSubjectRelationOfEntityUseYn", sqlParamMap);
+				// sqlDao.update("mapper.erd.entity.updateSubjectRelationOfEntityUseYn", sqlParamMap);
+				sqlDao.insert("mapper.erd.entity.deleteSubjectRelationOfEntity", sqlParamMap);
 			}
 			
 			// 업무영역 entity삭제
@@ -265,26 +299,17 @@ public class EntitySvc {
 				|| "TABL_SCD_060".equals(paramMap.get("TABL_SCD"))|| "TABL_SCD_070".equals(paramMap.get("TABL_SCD"))) {
 					sqlDao.insert("mapper.erd.entity.updateSubjectRelationOfEntityUseYn", sqlParamMap);
 			}
-			// RELATION에 따라 변경되는 테이블 목록
-			Set<String> pkEntitySet = new HashSet<String>();
-			
-			List<String> pkEntityList = new ArrayList<String>();
 
-			List<SqlResultMap<String, Object>> entityHaveFKColumnList = sqlDao.selectList("mapper.erd.entity.selectEntityHaveFKColumn", sqlParamMap);
+			// List<SqlResultMap<String, Object>> entityHaveFKColumnList = sqlDao.selectList("mapper.erd.entity.selectEntityHaveFKColumn", sqlParamMap);
 
 			// entity를 기준으로 시작 relation조회.
 			List<SqlResultMap<String, Object>> relationListByStartEntity = sqlDao.selectList("mapper.erd.relation.selectRelationListByStartEntity", sqlParamMap); 
 
-			Set<String> pkInsertEntityList = new HashSet<String>();
-			Set<String> pkDeleteEntityList = new HashSet<String>();
 			pkDeleteEntityList.add(entity_id);
 
-			// 다시 조회.	
-			SqlResultList<SqlResultMap<String, Object>> entityColumnList = sqlDao.selectList("mapper.erd.column.selectColumnErdList", sqlParamMap);
-
-			for(SqlResultMap<String, Object> entityHaveFKColumn :  entityHaveFKColumnList) {
-				pkDeleteEntityList.add(entityHaveFKColumn.getString("ENTITY_ID"));
-			}
+			//for(SqlResultMap<String, Object> entityHaveFKColumn :  entityHaveFKColumnList) {
+				//pkDeleteEntityList.add(entityHaveFKColumn.getString("ENTITY_ID"));
+			//}
 			
 			pkEntitySet.addAll(pkInsertEntityList);
 			pkEntitySet.addAll(pkDeleteEntityList);
@@ -292,20 +317,29 @@ public class EntitySvc {
 			pkEntityList.addAll(pkEntitySet);
 			sqlParamMap.put("ENTITY_LIST", pkEntityList);
 
-			SqlResultList<SqlResultMap<String, Object>> entityList = sqlDao.selectList("mapper.erd.subject.selectSubjectEntityList", sqlParamMap);
+			// 다시 조회.	
+			SqlResultList<SqlResultMap<String, Object>> entityColumnList = sqlDao.selectList("mapper.erd.column.selectColumnErdList", sqlParamMap);
 
+			log.info( " pkEntitySet {} ", pkEntitySet);
+			
+			SqlResultList<SqlResultMap<String, Object>> entityList = sqlDao.selectList("mapper.erd.subject.selectSubjectEntityList", sqlParamMap);
+			log.info( " entityList {} ", entityList);
+			for( SqlResultMap<String, Object> entity : entityList) {
+				pkDeleteEntityList.add( entity.getString("ENTITY_ID"));
+			}
+			
 			if( "Y".equals(all_delete_yn)) {
 	
 				for( SqlResultMap<String, Object> relation : relationListByStartEntity ) {
 					
 					paramMap.put("RELATION_ID", relation.getString("RELATION_ID"));
-					MyFrameworkResponseCud relationDelete = relationSvc.relationDelete(model, paramMap);
+					// MyFrameworkResponseCud relationDelete = relationSvc.relationDelete(model, paramMap);
 					
-					pkInsertEntityList.addAll((HashSet<String>)relationDelete.get("PK_INSERT_ENTITY_LIST"));
-					pkDeleteEntityList.addAll((HashSet<String>)relationDelete.get("PK_DELETE_ENTITY_LIST"));
+					// pkInsertEntityList.addAll((HashSet<String>)relationDelete.get("PK_INSERT_ENTITY_LIST"));
+					// pkDeleteEntityList.addAll((HashSet<String>)relationDelete.get("PK_DELETE_ENTITY_LIST"));
 					
-					entityList.addAll((SqlResultList<SqlResultMap<String, Object>>)relationDelete.get("ENTITY_LIST"));
-					entityColumnList.addAll((SqlResultList<SqlResultMap<String, Object>>)relationDelete.get("ENTITY_COLUMN_LIST"));
+					// entityList.addAll((SqlResultList<SqlResultMap<String, Object>>)relationDelete.get("ENTITY_LIST"));
+					// entityColumnList.addAll((SqlResultList<SqlResultMap<String, Object>>)relationDelete.get("ENTITY_COLUMN_LIST"));
 				}
 			}
 			if( result > 0 ) {
@@ -448,6 +482,8 @@ public class EntitySvc {
 				*/
 			}
 			
+			sqlDao.update("mapper.erd.entity.updateTableDesc", sqlParamMap);
+						
 			// 변경 로그 반영
 			sqlDao.insert("mapper.erd.project.projectChgLog", sqlParamMap);
 			
@@ -486,6 +522,18 @@ public class EntitySvc {
 
 		try {
 			
+			if( !StringUtils.isEmpty(paramMap.get("VIEW_ENTITY_ID"))  ) {
+				sqlParamMap = new SqlParamMap<String, Object>();
+				
+				sqlParamMap.put("SESSION_PROJECT_ID", paramMap.get("SESSION_PROJECT_ID"));
+				sqlParamMap.put("SESSION_VERSN", paramMap.get("SESSION_VERSN"));
+				sqlParamMap.put("ENTITY_ID", paramMap.get("VIEW_ENTITY_ID"));
+				sqlParamMap.put("VIEW_CLAUSE", paramMap.get("VIEW_CLAUSE"));
+				
+				sqlDao.update("mapper.erd.entity.updateViewClause", sqlParamMap);
+			}
+			
+			
 			String [] colmn_ids= paramMap.getValues("COLMN_ID");
 			
 			Set<String> pkEntitySet = new HashSet<String>();
@@ -503,6 +551,11 @@ public class EntitySvc {
 			sqlParamMap.put("LOG_ID", log_id);
 			
 			String entity_id = null;
+			
+			// pk비요용
+			StringBuilder sbPkParam = new StringBuilder();
+			StringBuilder sbPkDb = new StringBuilder();
+			
 			for( int i=0; i<colmn_ids.length; i++ ) {
 
 				sqlParamMap = new SqlParamMap<String, Object>();
@@ -586,6 +639,18 @@ public class EntitySvc {
 				
 				Integer result = sqlDao.update("mapper.erd.column.saveEntityColumn", sqlParamMap);
 
+				if( "Y".equals(sqlParamMap.getString("PK_YN"))) {
+					sbPkParam
+					.append(sqlParamMap.getString("COLMN_NM"))
+					.append("_")
+					.append(sqlParamMap.getString("ATTR_NM"))
+					.append("_")
+					.append(sqlParamMap.getString("DATA_TYPE"))
+					.append("_")
+					.append(sqlParamMap.getString("USE_YN"))
+					.append("_");
+				}
+				
 				// 반영상태 코드 삭제
 				// sqlDao.delete("mapper.erd.entity.deleteColumnStatus", sqlParamMap);
 
@@ -602,7 +667,25 @@ public class EntitySvc {
 			List<String> pkEntityList = new ArrayList<String>();
 			pkInsertEntityList.add(entity_id);
 
-			if(StringUtils.isNotEmpty(entity_id)) {
+			if( StringUtils.isEmpty(colmn_ids[0])) {
+				sqlParamMap = new SqlParamMap<String, Object>();
+				sqlParamMap.put("ENTITY_ID", colmn_ids[0]);
+				List<SqlResultMap<String, Object>> pkList = sqlDao.selectList("mapper.erd.column.selectPkColumnList", sqlParamMap);
+			
+				for( SqlResultMap<String, Object> pkInfo : pkList) {
+					sbPkDb
+					.append(pkInfo.getString("COLMN_NM"))
+					.append("_")
+					.append(pkInfo.getString("ATTR_NM"))
+					.append("_")
+					.append(pkInfo.getString("DATA_TYPE"))
+					.append("_")
+					.append(pkInfo.getString("USE_YN"))
+					.append("_");
+				}
+			}
+			
+			if(StringUtils.isNotEmpty(entity_id) && !sbPkParam.equals(sbPkDb)) {
 				sqlParamMap = new SqlParamMap<String, Object>();
 				
 				pkEntitySet.addAll(pkInsertEntityList);
@@ -627,7 +710,9 @@ public class EntitySvc {
 				for( SqlResultMap<String, Object> relation : relationListByStartEntity ) {
 	
 					int index = 0;
-					relationSvc.insertColumnPK(pkInsertEntityList, pkDeleteEntityList, relation.getString("END_ENTITY_ID"), relation.getString("START_ENTITY_ID"), mapHasList, paramMap, relation.getString("NON_IDEN_YN"), index);
+					if( !relation.getString("END_ENTITY_ID").equals(relation.getString("START_ENTITY_ID"))) {
+						relationSvc.insertColumnPK(pkInsertEntityList, pkDeleteEntityList, relation.getString("END_ENTITY_ID"), relation.getString("START_ENTITY_ID"), relation.getString("RELATION_TYPE"), mapHasList, paramMap, relation.getString("NON_IDEN_YN"), index);
+					}
 					
 					pkEntitySet.addAll(pkInsertEntityList);
 					pkEntitySet.addAll(pkDeleteEntityList);
@@ -637,6 +722,8 @@ public class EntitySvc {
 				}
 			} 
 			sqlParamMap.put("ENTITY_LIST", pkEntityList);
+			sqlParamMap.put("SESSION_COLUMN_DISPLAY_DAYCNT", paramMap.get("SESSION_COLUMN_DISPLAY_DAYCNT"));
+			sqlParamMap.put("SESSION_ENTITY_DISPLAY_DAYCNT", paramMap.get("SESSION_ENTITY_DISPLAY_DAYCNT"));
 			log.info(" ENTITY_LIST : " + sqlParamMap.get("ENTITY_LIST").toString() );
 			
 			SqlResultList<SqlResultMap<String, Object>> entityColumnList = sqlDao.selectList("mapper.erd.column.selectColumnErdList", sqlParamMap);
@@ -902,7 +989,10 @@ public class EntitySvc {
 
 			// 수정정 컬럼 목록
 			SqlResultMap<String, Object> colmnNmPre = sqlDao.select("mapper.erd.entity.selectIndexColumnAll", sqlParamMap);
-			sqlParamMap.put("COLMN_NM_PRE", colmnNmPre.getString("COLMN_NM"));
+			if( colmnNmPre != null ) {
+				sqlParamMap.put("COLMN_NM_PRE", colmnNmPre.getString("COLMN_NM"));
+			}
+			
 			
 			// INDEX 컬럼 등록
 			sqlDao.insert("mapper.erd.entity.deleteIndexColumn", sqlParamMap);
@@ -1049,4 +1139,18 @@ public class EntitySvc {
 		return myFrameworkResponseCud;
 	}
 
+	
+	public void memoList(ModelMap model, RequestParamMap paramMap) {
+
+		MyFrameworkResponseGrid myFrameworkResponseGrid = MyFrameworkResponseGrid.builder().modelMap(model).build();
+
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		SqlResultList<SqlResultMap<String, Object>> list = sqlDao.selectList("mapper.erd.entity.selectEntityMemoList", sqlParamMap);
+
+		myFrameworkResponseGrid.setData(list);
+	}
+	
 }

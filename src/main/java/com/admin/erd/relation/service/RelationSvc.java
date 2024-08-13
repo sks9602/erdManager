@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,35 @@ public class RelationSvc {
 
 		myFrameworkResponseGrid.setData(list);
 	}
+	
+	public boolean checkRecursiveRelation(String startEntityId, String endEntityId, List<SqlResultMap<String, Object>> relationList) {
+		boolean recursiveRelation = false;
+		log.info(" {}, {} ", startEntityId, endEntityId);
+		// List<SqlResultMap<String, Object>> list = mapHasList.getList(startEntityId);
+		
+		List<SqlResultMap<String, Object>> filteredList =  relationList.stream().filter(x -> endEntityId.equals(x.getString("START_ENTITY_ID")) 
+				&& !startEntityId.equals(x.getString("START_ENTITY_ID")) 
+				&& !endEntityId.equals(x.getString("END_ENTITY_ID")) 
+				&& !x.getString("START_ENTITY_ID").equals(x.getString("END_ENTITY_ID"))
+				).collect(Collectors.toList());
+		
+		for(SqlResultMap<String, Object> info : filteredList ) {
+			log.info(info.toString());
+			
+			if( info.getString("START_ENTITY_ID").equals(info.getString("END_ENTITY_ID")) ) {
+				recursiveRelation = false;
+			} else if( startEntityId.equals(info.getString("END_ENTITY_ID")) ) {
+				recursiveRelation = true;
+			} else {
+				relationList = relationList.stream().filter(x -> info.getString("RELATION").equals(x.getString("RELATION"))).collect(Collectors.toList()); 
+				recursiveRelation = checkRecursiveRelation(startEntityId, info.getString("END_ENTITY_ID"), relationList);
+			}
+		}
+		
+		log.info(" {}, {}, {} ", startEntityId, endEntityId, recursiveRelation);
+		
+		return recursiveRelation;
+	}
 
 	
 	/**
@@ -73,6 +103,28 @@ public class RelationSvc {
 		try {
 			// UID조회
 			String relationUid = null;
+
+			List<SqlResultMap<String, Object>> relationList = sqlDao.selectList("mapper.erd.relation.selectRelationList", sqlParamMap);
+			
+			MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList = new MapHasList("START_ENTITY_ID", relationList);
+
+			Set<String> pkInsertEntityList = new HashSet<String>();
+			Set<String> pkDeleteEntityList = new HashSet<String>();
+
+
+			boolean recursiveRelation = checkRecursiveRelation(paramMap.get("START_ENTITY_ID"), paramMap.get("END_ENTITY_ID"), relationList);
+			
+			//List<SqlResultMap<String, Object>> reverseRelationList = sqlDao.selectList("mapper.erd.relation.selectRelationReverseList", sqlParamMap);
+			// MapHasList<String, ArrayList<SqlResultMap<String, Object>>> reverseMapHasList = new MapHasList("START_ENTITY_ID", reverseRelationList);
+			// boolean recursiveRelation = checkRecursiveRelation(paramMap.get("START_ENTITY_ID"), paramMap.get("END_ENTITY_ID"), reverseMapHasList);
+			
+			if( recursiveRelation ) {
+				myFrameworkResponseCud.setSuccess(false);
+				myFrameworkResponseCud.setErrorMessage("관계를 설정하려고 하는 테이블간에 이미 역방향 관계가 설정되어 있습니다.");
+				
+				return myFrameworkResponseCud;
+			}
+
 			try {
 				SqlResultMap<String, Object> relation = sqlDao.select("mapper.erd.relation.selectRelationByStartEndEntity", sqlParamMap);
 			
@@ -83,21 +135,16 @@ public class RelationSvc {
 			}
 				
 			sqlParamMap.put("RELATION_ID", relationUid);
+
 			
 			Integer result = sqlDao.insert("mapper.erd.relation.saveRelation", sqlParamMap);
 			
-			List<SqlResultMap<String, Object>> relationList = sqlDao.selectList("mapper.erd.relation.selectRelationList", sqlParamMap);
-
 			sqlDao.insert("mapper.erd.relation.updateRelationColumnFK", sqlParamMap);
 			sqlDao.insert("mapper.erd.relation.saveRelationColumnFK", sqlParamMap);
 			
-			MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList = new MapHasList("START_ENTITY_ID", relationList);
-
-			Set<String> pkInsertEntityList = new HashSet<String>();
-			Set<String> pkDeleteEntityList = new HashSet<String>();
 			
 			int index = 0;
-			insertColumnPK(pkInsertEntityList, pkDeleteEntityList, paramMap.get("END_ENTITY_ID"), paramMap.get("START_ENTITY_ID"), mapHasList, paramMap, "N", index );
+			insertColumnPK(pkInsertEntityList, pkDeleteEntityList, paramMap.get("END_ENTITY_ID"), paramMap.get("START_ENTITY_ID"), paramMap.get("RELATION_TYPE"),  mapHasList, paramMap, "N", index );
 			
 			log.info("pkInsertEntityList : {} ", pkInsertEntityList );
 			
@@ -112,6 +159,10 @@ public class RelationSvc {
 			List<String> pkEntityList = new ArrayList<String>();
 			pkEntityList.addAll(pkEntitySet);
 			sqlParamMap.put("ENTITY_LIST", pkEntityList);
+			sqlParamMap.put("SESSION_COLUMN_DISPLAY_DAYCNT", paramMap.get("SESSION_COLUMN_DISPLAY_DAYCNT"));
+			sqlParamMap.put("SESSION_ENTITY_DISPLAY_DAYCNT", paramMap.get("SESSION_ENTITY_DISPLAY_DAYCNT"));
+			sqlParamMap.put("SESSION_CURRENT_ERD_YN", paramMap.get("SESSION_CURRENT_ERD_YN"));
+
 			// 다시 조회.	
 			SqlResultList<SqlResultMap<String, Object>> entityColumnList = sqlDao.selectList("mapper.erd.column.selectColumnErdList", sqlParamMap);
 
@@ -141,8 +192,7 @@ public class RelationSvc {
 		return myFrameworkResponseCud;
 	}	
 	
-	@Transactional
-	public void insertColumnPK(Set<String> pkInsertEntityList, Set<String> pkDeleteEntityList, String endEntityId, String startEntityId,  MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList, RequestParamMap paramMap, String nonIdenYn, int index ) {
+	public void insertColumnPK(Set<String> pkInsertEntityList, Set<String> pkDeleteEntityList, String endEntityId, String startEntityId,  String relationType, MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList, RequestParamMap paramMap, String nonIdenYn, int index ) {
 
 		log.info("endEntityId : {} ", endEntityId );
 		pkInsertEntityList.add(endEntityId);
@@ -152,25 +202,27 @@ public class RelationSvc {
 		sqlParamMap.put("END_ENTITY_ID", endEntityId);
 		sqlParamMap.put("START_ENTITY_ID", startEntityId);
 		sqlParamMap.put("ORIGIN_START_ENTITY_ID", paramMap.get("START_ENTITY_ID"));
+		sqlParamMap.put("RELATION_TYPE", relationType);
+		sqlParamMap.put("NON_IDEN_YN", nonIdenYn);
 		sqlParamMap.put("INDEX", index);
-		if(!"Y".equals(nonIdenYn) ) {
+		//if(!"Y".equals(nonIdenYn) ) {
 			sqlDao.insert("mapper.erd.relation.updateRelationColumnFK", sqlParamMap);
 			sqlDao.insert("mapper.erd.relation.saveRelationColumnFK", sqlParamMap);
-		} 
+		//} 
 		
 		List<SqlResultMap<String, Object>> list = mapHasList.getList(endEntityId);
 		log.info("list : {} ", list );
 		if( list != null ) {
 			for( SqlResultMap<String, Object> map : list) {				
 				if( !map.getString("END_ENTITY_ID").equals(map.getString("START_ENTITY_ID"))) {
-					if("Y".equals(map.getString("NON_IDEN_YN")) || "Y".equals(nonIdenYn) ) {
-						Integer cnt = 0;
-						deleteColumnPK(cnt, pkDeleteEntityList, map.getString("END_ENTITY_ID"), map.getString("START_ENTITY_ID"), mapHasList, paramMap );
-					} else {
+					//if("Y".equals(map.getString("NON_IDEN_YN")) || "Y".equals(nonIdenYn) ) {
+					//	Integer cnt = 0;
+					//	deleteColumnPK(cnt, pkDeleteEntityList, map.getString("END_ENTITY_ID"), map.getString("START_ENTITY_ID"), mapHasList, paramMap );
+					//} else {
 						log.info("NEXT endEntityId : {} ", map.getString("END_ENTITY_ID") );
 						index ++;
-						insertColumnPK(pkInsertEntityList, pkDeleteEntityList, map.getString("END_ENTITY_ID"), map.getString("START_ENTITY_ID"), mapHasList, paramMap, "N", index);
-					}
+						insertColumnPK(pkInsertEntityList, pkDeleteEntityList, map.getString("END_ENTITY_ID"), map.getString("START_ENTITY_ID"), map.getString("RELATION_TYPE"), mapHasList, paramMap, map.getString("NON_IDEN_YN"), index);
+					//}
 				}
 			}
 		}
@@ -185,49 +237,61 @@ public class RelationSvc {
 		sqlParamMap.putAll(paramMap.getMap());
 
 		try {
-			
-			Integer result = sqlDao.insert("mapper.erd.relation.saveRelation", sqlParamMap);
-
+			Integer result = 0;
 			Set<String> pkInsertEntityList = new HashSet<String>();
 			Set<String> pkDeleteEntityList = new HashSet<String>();
 
 			SqlResultList<SqlResultMap<String, Object>> entityColumnList = null;
 			SqlResultList<SqlResultMap<String, Object>> entityList = null;
-			
+
 			if("Y".equals(paramMap.get("MANAGER_YN"))) {
-				sqlDao.insert("mapper.erd.relation.saveSubjectRelation", sqlParamMap);
-				// Non-identifing Relation일 경우.
-				sqlDao.insert("mapper.erd.relation.updateRelationNonIdenYN", sqlParamMap);
+				result = sqlDao.insert("mapper.erd.relation.saveSubjectRelation", sqlParamMap);
 				
-				List<SqlResultMap<String, Object>> relationList = sqlDao.selectList("mapper.erd.relation.selectRelationList", sqlParamMap);
+				if( "relType".equals( paramMap.get("ACTION")) ) {
+					result = sqlDao.insert("mapper.erd.relation.saveRelation", sqlParamMap);
 
-				MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList = new MapHasList("START_ENTITY_ID", relationList);
 
-				int index = 0;
-				insertColumnPK(pkInsertEntityList, pkDeleteEntityList, paramMap.get("END_ENTITY_ID"), paramMap.get("START_ENTITY_ID"), mapHasList, paramMap, paramMap.get("NON_IDEN_YN"), index);
+					// Non-identifing Relation일 경우.
+					sqlDao.insert("mapper.erd.relation.updateRelationNonIdenYN", sqlParamMap);
+					
+					List<SqlResultMap<String, Object>> relationList = sqlDao.selectList("mapper.erd.relation.selectRelationList", sqlParamMap);
+	
+					MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList = new MapHasList("START_ENTITY_ID", relationList);
+	
+					int index = 0;
+					insertColumnPK(pkInsertEntityList, pkDeleteEntityList, paramMap.get("END_ENTITY_ID"), paramMap.get("START_ENTITY_ID"), paramMap.get("RELATION_TYPE"), mapHasList, paramMap, paramMap.get("NON_IDEN_YN"), index);
+						
+					// RELATION에 따라 변경되는 테이블 목록
+					Set<String> pkEntitySet = new HashSet<String>();
+					
+					pkEntitySet.addAll(pkInsertEntityList);
+					pkEntitySet.addAll(pkDeleteEntityList);
+					
+					List<String> pkEntityList = new ArrayList<String>();
+					pkEntityList.addAll(pkEntitySet);
+					sqlParamMap.put("ENTITY_LIST", pkEntityList);
+					sqlParamMap.put("SESSION_COLUMN_DISPLAY_DAYCNT", paramMap.get("SESSION_COLUMN_DISPLAY_DAYCNT"));
+					sqlParamMap.put("SESSION_ENTITY_DISPLAY_DAYCNT", paramMap.get("SESSION_ENTITY_DISPLAY_DAYCNT"));
+
+					sqlParamMap.put("SESSION_CURRENT_ERD_YN", paramMap.get("SESSION_CURRENT_ERD_YN"));
+					
+					log.info(" ENTITY_LIST : " + sqlParamMap.get("ENTITY_LIST").toString() );
+					// 다시 조회.	
+					entityColumnList = sqlDao.selectList("mapper.erd.column.selectColumnErdList", sqlParamMap);
+	
+					entityList = sqlDao.selectList("mapper.erd.subject.selectSubjectEntityList", sqlParamMap);
+				} 
+				// 업무영역에 추가 한 경우.
+				else if("addToSubject".equals( paramMap.get("ACTION"))) {
+					result = sqlDao.insert("mapper.erd.relation.saveRelation", sqlParamMap);
+				}
 				
 				if( StringUtils.isNotEmpty(paramMap.get("ATTR")) && StringUtils.isNotEmpty(paramMap.get("VAL"))) {
 					sqlDao.insert("mapper.erd.relation.saveRelationAttr", sqlParamMap);
 				}
 
-				// RELATION에 따라 변경되는 테이블 목록
-				Set<String> pkEntitySet = new HashSet<String>();
-				
-				pkEntitySet.addAll(pkInsertEntityList);
-				pkEntitySet.addAll(pkDeleteEntityList);
-				
-				List<String> pkEntityList = new ArrayList<String>();
-				pkEntityList.addAll(pkEntitySet);
-				sqlParamMap.put("ENTITY_LIST", pkEntityList);
-				
-				log.info(" ENTITY_LIST : " + sqlParamMap.get("ENTITY_LIST").toString() );
-				// 다시 조회.	
-				entityColumnList = sqlDao.selectList("mapper.erd.column.selectColumnErdList", sqlParamMap);
-
-				entityList = sqlDao.selectList("mapper.erd.subject.selectSubjectEntityList", sqlParamMap);
-
 			} else {
-				sqlDao.insert("mapper.erd.relation.saveSubjectRelationUsr", sqlParamMap);
+				result = sqlDao.insert("mapper.erd.relation.saveSubjectRelationUsr", sqlParamMap);
 			}
 			if( result == 1 || result == 2) {
 				myFrameworkResponseCud.setCudCount(result);
@@ -261,8 +325,12 @@ public class RelationSvc {
 		sqlParamMap.putAll(paramMap.getMap());
 
 		try {
-			Integer result =  sqlDao.insert("mapper.erd.relation.updateRelationPath", sqlParamMap);
-			
+			Integer result =  0;
+			if( "Y".equals(paramMap.get("MANAGER_YN"))) {
+				result =  sqlDao.insert("mapper.erd.relation.updateRelationPath", sqlParamMap);
+			} else {
+				result =  sqlDao.insert("mapper.erd.relation.updateRelationPathUsr", sqlParamMap);
+			}
 			if( result == 1 || result == 2) {
 				myFrameworkResponseCud.setCudCount(result);
 				myFrameworkResponseCud.setSuccess(true);
@@ -281,7 +349,7 @@ public class RelationSvc {
 		}
 		return myFrameworkResponseCud;
 	}
-
+	
 	@Transactional
 	public MyFrameworkResponseCud relationDelete(ModelMap model, RequestParamMap paramMap) throws Exception {
 		MyFrameworkResponseCud myFrameworkResponseCud = MyFrameworkResponseCud.builder().modelMap(model).build();
@@ -295,11 +363,24 @@ public class RelationSvc {
 			// Integer result = sqlDao.insert("mapper.erd.relation.deleteRelation", sqlParamMap);
 
 			SqlResultMap<String, Object> relation = sqlDao.select("mapper.erd.relation.selectRelation", sqlParamMap);
-			
+	
+						
 			List<SqlResultMap<String, Object>> relationList = sqlDao.selectList("mapper.erd.relation.selectRelationList", sqlParamMap);
 
 			MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList = new MapHasList("START_ENTITY_ID", relationList);
 
+			//List<SqlResultMap<String, Object>> reverseRelationList = sqlDao.selectList("mapper.erd.relation.selectRelationReverseList", sqlParamMap);
+			//MapHasList<String, ArrayList<SqlResultMap<String, Object>>> reverseMapHasList = new MapHasList("START_ENTITY_ID", reverseRelationList);
+			/*
+			boolean recursiveRelation = checkRecursiveRelation(relation.getString("START_ENTITY_ID"), relation.getString("END_ENTITY_ID"), relationList);
+			
+			if( recursiveRelation ) {
+				myFrameworkResponseCud.setSuccess(false);
+				myFrameworkResponseCud.setErrorMessage("관계를 삭제하려고 하는 테이블간에 이미 상하위 관계가 설정되어 있습니다.");
+				
+				return myFrameworkResponseCud;
+			}
+			*/
 			Set<String> pkDeleteEntityList = new HashSet<String>();
 			Integer cnt = 0;
 			
@@ -321,6 +402,11 @@ public class RelationSvc {
 			List<String> pkEntityList = new ArrayList<String>();
 			pkEntityList.addAll(pkEntitySet);
 			sqlParamMap.put("ENTITY_LIST", pkEntityList);
+			sqlParamMap.put("SESSION_COLUMN_DISPLAY_DAYCNT", paramMap.get("SESSION_COLUMN_DISPLAY_DAYCNT"));
+			sqlParamMap.put("SESSION_ENTITY_DISPLAY_DAYCNT", paramMap.get("SESSION_ENTITY_DISPLAY_DAYCNT"));
+
+			sqlParamMap.put("SESSION_CURRENT_ERD_YN", paramMap.get("SESSION_CURRENT_ERD_YN"));
+			
 			// 다시 조회.	
 			SqlResultList<SqlResultMap<String, Object>> entityColumnList = sqlDao.selectList("mapper.erd.column.selectColumnErdList", sqlParamMap);
 
@@ -349,8 +435,8 @@ public class RelationSvc {
 		return myFrameworkResponseCud;
 	}
 	
-	@Transactional
-	private Integer deleteColumnPK(Integer cnt, Set<String> pkDeleteEntityList, String endEntityId, String startEntityId,  MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList, RequestParamMap paramMap ) {
+	
+	public Integer deleteColumnPK(Integer cnt, Set<String> pkDeleteEntityList, String endEntityId, String startEntityId,  MapHasList<String, ArrayList<SqlResultMap<String, Object>>> mapHasList, RequestParamMap paramMap ) {
 		Integer result = 0;
 		log.info("endEntityId : {} ", endEntityId );
 		pkDeleteEntityList.add(endEntityId);
@@ -370,7 +456,8 @@ public class RelationSvc {
 				if( !map.getString("END_ENTITY_ID").equals(map.getString("START_ENTITY_ID"))
 					&& !"Y".equals(map.getString("NON_IDEN_YN"))) {
 					log.info("NEXT endEntityId : {} ", map.getString("END_ENTITY_ID") );
-					cnt += deleteColumnPK(cnt, pkDeleteEntityList, map.getString("END_ENTITY_ID"), startEntityId, mapHasList, paramMap);
+					// cnt += deleteColumnPK(cnt, pkDeleteEntityList, map.getString("END_ENTITY_ID"), startEntityId, mapHasList, paramMap);
+					cnt += deleteColumnPK(cnt, pkDeleteEntityList, map.getString("END_ENTITY_ID"), map.getString("START_ENTITY_ID"), mapHasList, paramMap);
 				}
 			}
 		}

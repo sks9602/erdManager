@@ -16,11 +16,13 @@ import org.springframework.ui.ModelMap;
 import com.common.login.vo.LoginVo;
 import com.myframework.dao.MyFrameworkSqlDao;
 import com.myframework.sql.SqlParamMap;
+import com.myframework.sql.SqlResultList;
 import com.myframework.sql.SqlResultMap;
 import com.myframework.util.StringUtil;
 import com.myframework.vo.MyFrameworkLoginVO;
 import com.myframework.was.param.RequestParamMap;
 import com.myframework.was.response.MyFrameworkResponseCud;
+import com.myframework.was.response.MyFrameworkResponseData;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -61,7 +63,7 @@ public class UserSvc {
 					sqlParamMap.put("PROJECT_ID", "P"+uidProject.getString("UID"));
 					
 					// 사용자 등록
-					Integer result = sqlDao.insert("mapper.erd.user.saveUser", sqlParamMap);
+					Integer result = sqlDao.insert("mapper.erd.user.insertUser", sqlParamMap);
 			
 					
 					log.info(" saveUser : " + result);
@@ -208,6 +210,60 @@ public class UserSvc {
 		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
 		sqlParamMap.putAll(paramMap.getMap());
 
+		
+		return myFrameworkResponseCud;		
+	}
+	
+	
+	public MyFrameworkResponseData userDetail(ModelMap model, RequestParamMap paramMap) {
+		MyFrameworkResponseData myFrameworkResponseData = MyFrameworkResponseData.builder().modelMap(model).build();
+		
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+
+		SqlResultMap<String, Object> detail = sqlDao.select("mapper.erd.user.selectUser", sqlParamMap);
+		
+		myFrameworkResponseData.put("detail", detail);
+		myFrameworkResponseData.put("totalCount", 0);
+		
+		return myFrameworkResponseData;
+	}
+
+	@Transactional
+	public MyFrameworkResponseCud userUpdate(ModelMap model, RequestParamMap paramMap, HttpServletRequest request) throws Exception {
+		MyFrameworkResponseCud myFrameworkResponseCud = MyFrameworkResponseCud.builder().modelMap(model).build();
+
+		// request파라미터 -> sql파라미터 
+		SqlParamMap<String, Object> sqlParamMap = new SqlParamMap<String, Object>();
+		sqlParamMap.putAll(paramMap.getMap());
+		try {
+			
+			SqlResultMap<String, Object> countInfo = sqlDao.select("mapper.erd.user.selectUserCountWithPassword", sqlParamMap);
+			
+			int count = countInfo.getInt("CNT");
+			
+			if(count == 0) {
+				myFrameworkResponseCud.setSuccess(false);
+				myFrameworkResponseCud.setErrorMessage("패스워드가 일치하지 않습니다.");
+			} else {
+					
+				Integer result = sqlDao.update("mapper.erd.user.updateUser", sqlParamMap);
+
+				LoginVo loginVo = (LoginVo) request.getSession().getAttribute(MyFrameworkLoginVO.MY_FRAMEWORK_LOGIN_SESSION_KEY);
+
+				loginVo.setUsrNm(paramMap.get("USR_NM"));
+				
+				myFrameworkResponseCud.setSuccess(true);
+				myFrameworkResponseCud.setMessage("사용자 정보가 변경되었습니다.");
+			}
+		}catch(Exception e) {
+			e.printStackTrace();
+			myFrameworkResponseCud.setSuccess(false);
+			myFrameworkResponseCud.setErrorMessage("사용자 정보 변경을 실패했습니다.");
+			
+			throw e;
+		}
 		
 		return myFrameworkResponseCud;		
 	}
